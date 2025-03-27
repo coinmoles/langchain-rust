@@ -131,3 +131,72 @@ impl From<ArrayField> for Box<dyn ToolField> {
         Box::new(value)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn test_array_field_plain_description() {
+        let field = ArrayField::new_integer_array("test", Some("test description".into()), true);
+
+        assert_eq!(
+            field.to_plain_description(),
+            "test (array): test description\n    items (integer)"
+        );
+
+        let field_optional =
+            ArrayField::new_string_array("test", Some("test description".into()), false);
+        assert_eq!(
+            field_optional.to_plain_description(),
+            "test (array, optional): test description\n    items (string)"
+        );
+
+        let field_optional_no_description = ArrayField::new_number_array("test", None, false);
+        assert_eq!(
+            field_optional_no_description.to_plain_description(),
+            "test (array, optional)\n    items (number)"
+        );
+    }
+
+    #[test]
+    fn test_array_field_openai() {
+        let field = ArrayField::new_integer_array("test", Some("test description".into()), true);
+        assert_eq!(
+            field.to_openai_field(),
+            json!({
+                "type": "array",
+                "description": "test description",
+                "items": {
+                    "type": "integer"
+                }
+            })
+        );
+
+        let field_optional =
+            ArrayField::new_string_array("test", Some("test description".into()), false);
+        assert_eq!(
+            field_optional.to_openai_field(),
+            json!({
+                "type": "array",
+                "description": "test description",
+                "items": {
+                    "type": "string"
+                }
+            })
+        );
+
+        let field_optional_no_description = ArrayField::new_number_array("test", None, false);
+        assert_eq!(
+            field_optional_no_description.to_openai_field(),
+            json!({
+                "type": "array",
+                "items": {
+                    "type": "number"
+                }
+            })
+        );
+    }
+}
