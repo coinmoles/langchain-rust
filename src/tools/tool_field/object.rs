@@ -44,7 +44,7 @@ impl ObjectField {
 
         let properties = properties
             .lines()
-            .map(|line| format!("  {line}"))
+            .map(|line| format!("    {}", line))
             .collect::<Vec<_>>()
             .join("\n");
 
@@ -157,8 +157,8 @@ mod tests {
             field_complicated.properties_description(),
             indoc! {"
             {
-              query (string): A query to search for,
-              limit (integer, optional): Max number of articles to search
+                query (string): A query to search for,
+                limit (integer, optional): Max number of articles to search
             }"}
         )
     }
@@ -192,8 +192,8 @@ mod tests {
             field_complicated.to_plain_description(),
             indoc! {"
             test (object, optional): {
-              query (string): A query to search for,
-              limit (integer, optional): Max number of articles to search
+                query (string): A query to search for,
+                limit (integer, optional): Max number of articles to search
             }"}
         )
     }
