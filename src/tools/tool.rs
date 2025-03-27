@@ -8,7 +8,7 @@ use derive_new::new;
 use indoc::indoc;
 use serde_json::Value;
 
-use crate::tools::tool_field::{ObjectField, StringField, ToolField};
+use crate::tools::tool_field::{ObjectField, StringField};
 
 #[async_trait]
 pub trait Tool: Send + Sync {
@@ -114,7 +114,7 @@ impl Display for dyn Tool {
             {}"},
             self.name(),
             self.description(),
-            self.parameters().to_plain_description()
+            self.parameters().properties_description()
         )
     }
 }
@@ -132,7 +132,7 @@ where
             {}"},
             self.name(),
             self.description(),
-            self.parameters().to_plain_description()
+            self.parameters().properties_description()
         )
     }
 }
