@@ -5,9 +5,10 @@ use std::{error::Error, fmt::Display};
 
 use async_trait::async_trait;
 use derive_new::new;
+use indoc::indoc;
 use serde_json::Value;
 
-use crate::tools::tool_field::{ObjectField, StringField};
+use crate::tools::tool_field::{ObjectField, StringField, ToolField};
 
 #[async_trait]
 pub trait Tool: Send + Sync {
@@ -105,7 +106,16 @@ where
 
 impl Display for dyn Tool {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "> {}: {}", self.name(), self.description())
+        write!(
+            f,
+            indoc! {"
+            > {}: {}
+            The input for this tool MUST be in the following format:
+            {}"},
+            self.name(),
+            self.description(),
+            self.parameters().to_plain_description()
+        )
     }
 }
 
@@ -114,7 +124,16 @@ where
     T: ToolFunction,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "> {}: {}", self.name(), self.description())
+        write!(
+            f,
+            indoc! {"
+            > {}: {}
+            The input for this tool MUST be in the following format:
+            {}"},
+            self.name(),
+            self.description(),
+            self.parameters().to_plain_description()
+        )
     }
 }
 

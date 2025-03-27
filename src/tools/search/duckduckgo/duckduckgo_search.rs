@@ -83,8 +83,6 @@ impl DuckDuckGoSearch {
     }
 }
 
-const DESCRIPTION: &str = r#""#;
-
 #[async_trait]
 impl ToolFunction for DuckDuckGoSearch {
     type Input = DuckDuckGoSearchInput;
@@ -97,12 +95,7 @@ impl ToolFunction for DuckDuckGoSearch {
     fn description(&self) -> String {
         indoc! {"
         Search the web using Duckduckgo.
-        Useful for when you need to answer questions about current events.
-        The input for this tool MUST be in the following format:
-        {{
-            query (String): The query you want to search for,
-        }}
-        "}
+        Useful for when you need to answer questions about current events."}
         .into()
     }
 
