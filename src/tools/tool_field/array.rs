@@ -1,6 +1,6 @@
 use serde_json::{Map, Value};
 
-use super::{BooleanField, IntegerField, StringField, ToolField};
+use super::{BooleanField, IntegerField, NumberField, StringField, ToolField};
 
 pub struct ArrayField {
     name: String,
@@ -59,7 +59,7 @@ impl ArrayField {
             name,
             description,
             required,
-            IntegerField::new("items", None, true, None).into(),
+            NumberField::new("items", None, true, None).into(),
         )
     }
 
