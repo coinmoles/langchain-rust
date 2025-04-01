@@ -20,24 +20,21 @@ use crate::{
 
 const FORCE_FINAL_ANSWER: &str = "Now it's time you MUST give your absolute best final answer. You'll ignore all previous instructions, stop using any tools, and just return your absolute BEST Final answer.";
 
-pub struct AgentExecutor<A>
-where
-    A: Agent,
-{
-    agent: A,
+pub struct AgentExecutor {
+    agent: Box<dyn Agent>,
     max_iterations: Option<usize>,
     max_consecutive_fails: Option<usize>,
     break_if_tool_error: bool,
     pub memory: Option<Arc<Mutex<dyn BaseMemory>>>,
 }
 
-impl<A> AgentExecutor<A>
-where
-    A: Agent,
-{
-    pub fn from_agent(agent: A) -> Self {
+impl AgentExecutor {
+    pub fn from_agent<A>(agent: A) -> Self
+    where
+        A: Agent + Send + Sync + 'static,
+    {
         Self {
-            agent,
+            agent: Box::new(agent),
             max_iterations: Some(10),
             max_consecutive_fails: Some(3),
             break_if_tool_error: false,
@@ -62,10 +59,7 @@ where
 }
 
 #[async_trait]
-impl<A> Chain for AgentExecutor<A>
-where
-    A: Agent + Send + Sync,
-{
+impl Chain for AgentExecutor {
     async fn call(
         &self,
         input_variables: &mut InputVariables,
@@ -166,11 +160,7 @@ where
                         let observation = match tool.call(action.action_input.clone()).await {
                             Ok(observation) => observation,
                             Err(e) => {
-                                log::warn!(
-                                    "Tool '{}' encountered an error: {}",
-                                    &action.action,
-                                    e
-                                );
+                                log::warn!("Tool '{}' encountered an error: {}", &action.action, e);
                                 if self.break_if_tool_error {
                                     return Err(ChainError::AgentError(
                                         AgentError::ToolError(e.to_string()).to_string(),
