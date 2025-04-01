@@ -20,11 +20,10 @@ pub trait LLM: Sync + Send + LLMClone {
         _messages: Vec<Message>,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, LLMError>> + Send>>, LLMError>;
 
-    /// This is usefull when you want to create a chain and override
+    /// This is useful when you want to create a chain and override
     /// LLM options
-    fn add_options(&mut self, _options: CallOptions) {
-        // No action taken
-    }
+    fn add_options(&mut self, _options: CallOptions);
+
     //This is usefull when using non chat models
     fn messages_to_string(&self, messages: &[Message]) -> String {
         messages
