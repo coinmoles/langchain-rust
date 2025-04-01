@@ -4,7 +4,9 @@ use std::sync::Arc;
 use std::{error::Error, fmt::Display};
 
 use async_openai::error::OpenAIError;
-use async_openai::types::{ChatCompletionTool, ChatCompletionToolArgs, ChatCompletionToolType, FunctionObjectArgs};
+use async_openai::types::{
+    ChatCompletionTool, ChatCompletionToolArgs, ChatCompletionToolType, FunctionObjectArgs,
+};
 use async_trait::async_trait;
 use derive_new::new;
 use indoc::indoc;
@@ -60,7 +62,7 @@ pub trait Tool: Send + Sync {
 
     fn into_openai_tool(&self) -> Result<ChatCompletionTool, OpenAIError> {
         let tool = FunctionObjectArgs::default()
-            .name(self.name())
+            .name(self.name().replace(" ", "_"))
             .description(self.description())
             .parameters(self.parameters().to_openai_field())
             .build()?;
