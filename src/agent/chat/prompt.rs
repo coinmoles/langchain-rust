@@ -31,19 +31,3 @@ The following is the description of the tools available to you:
 {{tools}}"#;
 
 pub const DEFAULT_INITIAL_PROMPT: &str = r#"{{input}}"#;
-
-pub const INVALID_FORMAT_ERROR: &str =
-    r#"Invalid format, remember the instructions regarding the format and try again"#;
-// pub const INVALID_FORMAT_ERROR: &str = r#"INVALID FORMAT
-// ----------------------------
-// To use a tool, you MUST use the following format:
-// {
-//     "action": string, \\ The action to take, should be one of [{{tool_names}}]
-//     "action_input": object \\ The input to the action, object enclosed in curly braces
-// }
-
-// Or if you know your final answer, you must give it using the following format:
-// {
-//     "final_answer": string \\ Your final answer must be the great and the most complete as possible, it must be outcome described,
-// }
-// "#;
