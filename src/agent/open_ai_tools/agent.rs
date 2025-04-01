@@ -33,12 +33,15 @@ pub struct OpenAiToolAgent {
 }
 
 impl OpenAiToolAgent {
-    pub fn create_prompt(prefix: &str) -> Result<PromptTemplate, AgentError> {
+    pub fn create_prompt(
+        system_prompt: &str,
+        initial_prompt: &str,
+    ) -> Result<PromptTemplate, AgentError> {
         let prompt = prompt_template![
-            Message::new(MessageType::SystemMessage, prefix),
+            Message::new(MessageType::SystemMessage, system_prompt),
             MessageOrTemplate::Placeholder("chat_history".into()),
-            MessageTemplate::from_jinja2(MessageType::HumanMessage, "{{input}}"),
-            MessageOrTemplate::Placeholder("chat_history".into())
+            MessageTemplate::from_jinja2(MessageType::HumanMessage, initial_prompt),
+            MessageOrTemplate::Placeholder("agent_scratchpad".into())
         ];
 
         Ok(prompt)

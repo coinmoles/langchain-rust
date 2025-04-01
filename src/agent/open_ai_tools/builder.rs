@@ -7,18 +7,23 @@ use crate::{
     tools::Tool,
 };
 
-use super::{prompt::PREFIX, OpenAiToolAgent};
+use super::{
+    prompt::{DEFAULT_INITIAL_PROMPT, DEFAULT_SYSTEM_PROMPT},
+    OpenAiToolAgent,
+};
 
-pub struct OpenAiToolAgentBuilder {
+pub struct OpenAiToolAgentBuilder<'a, 'b> {
     tools: Option<HashMap<String, Arc<dyn Tool>>>,
-    prefix: Option<String>,
+    system_prompt: Option<&'a str>,
+    initial_prompt: Option<&'b str>,
 }
 
-impl OpenAiToolAgentBuilder {
+impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
     pub fn new() -> Self {
         Self {
             tools: None,
-            prefix: None,
+            system_prompt: None,
+            initial_prompt: None,
         }
     }
 
@@ -27,17 +32,24 @@ impl OpenAiToolAgentBuilder {
         self
     }
 
-    pub fn prefix<S: Into<String>>(mut self, prefix: S) -> Self {
-        self.prefix = Some(prefix.into());
+    pub fn system_prompt<S: Into<String>>(mut self, system_prompt: &'a str) -> Self {
+        self.system_prompt = Some(system_prompt);
+        self
+    }
+
+    pub fn initial_prompt<S: Into<String>>(mut self, initial_prompt: &'b str) -> Self {
+        self.initial_prompt = Some(initial_prompt);
         self
     }
 
     pub fn build<L: LLM + 'static>(self, llm: L) -> Result<OpenAiToolAgent, AgentError> {
         let tools = self.tools.unwrap_or_default();
-        let prefix = self.prefix.unwrap_or_else(|| PREFIX.to_string());
+        let system_prompt = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
+        let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
+
         let mut llm = llm;
 
-        let prompt = OpenAiToolAgent::create_prompt(&prefix)?;
+        let prompt = OpenAiToolAgent::create_prompt(system_prompt, initial_prompt)?;
         let tools_openai = tools
             .values()
             .map(|tool| tool.into_openai_tool())
@@ -50,7 +62,7 @@ impl OpenAiToolAgentBuilder {
     }
 }
 
-impl Default for OpenAiToolAgentBuilder {
+impl<'a, 'b> Default for OpenAiToolAgentBuilder<'a, 'b> {
     fn default() -> Self {
         Self::new()
     }
