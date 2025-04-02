@@ -4,7 +4,7 @@ use std::pin::Pin;
 pub use async_openai::config::{AzureConfig, Config, OpenAIConfig};
 
 use async_openai::{
-    types::{ChatChoiceStream, CreateChatCompletionResponse, CreateChatCompletionStreamResponse},
+    types::{CreateChatCompletionResponse, CreateChatCompletionStreamResponse},
     Client,
 };
 use async_trait::async_trait;
@@ -239,7 +239,9 @@ mod tests {
 
     use super::*;
 
-    use async_openai::types::{ChatCompletionToolArgs, ChatCompletionToolType, FunctionObjectArgs};
+    use async_openai::types::{
+        ChatChoiceStream, ChatCompletionToolArgs, ChatCompletionToolType, FunctionObjectArgs,
+    };
     use base64::prelude::*;
     use serde_json::json;
     use std::sync::Arc;

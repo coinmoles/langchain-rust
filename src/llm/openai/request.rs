@@ -9,8 +9,6 @@ use crate::{
     schemas::Message,
 };
 
-use super::helper::to_openai_messages;
-
 #[derive(Serialize, Debug)]
 pub struct OpenAIRequest {
     pub messages: Vec<ChatCompletionRequestMessage>,
@@ -59,7 +57,10 @@ impl OpenAIRequest {
         messages: Vec<Message>,
         call_options: &CallOptions,
     ) -> Result<OpenAIRequest, LLMError> {
-        let messages = to_openai_messages(messages)?;
+        let messages = messages
+            .into_iter()
+            .map(TryInto::try_into)
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(OpenAIRequest {
             messages,

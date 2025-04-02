@@ -1,6 +1,14 @@
 use std::fmt;
 
+use async_openai::error::OpenAIError;
 use async_openai::types::ChatCompletionMessageToolCall;
+use async_openai::types::ChatCompletionRequestAssistantMessageArgs;
+use async_openai::types::ChatCompletionRequestMessage;
+use async_openai::types::ChatCompletionRequestMessageContentPartImageArgs;
+use async_openai::types::ChatCompletionRequestSystemMessageArgs;
+use async_openai::types::ChatCompletionRequestToolMessageArgs;
+use async_openai::types::ChatCompletionRequestUserMessageArgs;
+use async_openai::types::ChatCompletionRequestUserMessageContent;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -122,5 +130,54 @@ impl<'de> Deserialize<'de> for Message {
         D: serde::Deserializer<'de>,
     {
         todo!()
+    }
+}
+
+impl TryFrom<Message> for ChatCompletionRequestMessage {
+    type Error = OpenAIError;
+
+    fn try_from(value: Message) -> Result<Self, Self::Error> {
+        match value.message_type {
+            MessageType::AIMessage => Ok(match value.tool_calls {
+                Some(function) => ChatCompletionRequestAssistantMessageArgs::default()
+                    .tool_calls(function)
+                    .content(value.content)
+                    .build()?
+                    .into(),
+                None => ChatCompletionRequestAssistantMessageArgs::default()
+                    .content(value.content)
+                    .build()?
+                    .into(),
+            }),
+            MessageType::HumanMessage => {
+                let content: ChatCompletionRequestUserMessageContent = match value.images {
+                    Some(images) => images
+                        .into_iter()
+                        .map(|image| {
+                            ChatCompletionRequestMessageContentPartImageArgs::default()
+                                .image_url(image.image_url)
+                                .build()
+                                .map(Into::into)
+                        })
+                        .collect::<Result<Vec<_>, _>>()?
+                        .into(),
+                    None => value.content.into(),
+                };
+
+                Ok(ChatCompletionRequestUserMessageArgs::default()
+                    .content(content)
+                    .build()?
+                    .into())
+            }
+            MessageType::SystemMessage => Ok(ChatCompletionRequestSystemMessageArgs::default()
+                .content(value.content)
+                .build()?
+                .into()),
+            MessageType::ToolMessage => Ok(ChatCompletionRequestToolMessageArgs::default()
+                .content(value.content)
+                .tool_call_id(value.id.unwrap_or_default())
+                .build()?
+                .into()),
+        }
     }
 }
