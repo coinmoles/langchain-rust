@@ -1,5 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
+use async_openai::types::ChatCompletionTool;
+
 use crate::{
     agent::AgentError,
     chain::LLMChainBuilder,
@@ -50,10 +52,11 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
         let mut llm = llm;
 
         let prompt = OpenAiToolAgent::create_prompt(system_prompt, initial_prompt)?;
+
         let tools_openai = tools
             .values()
-            .map(|tool| tool.into_openai_tool())
-            .collect::<Result<Vec<_>, _>>()
+            .map(|tool| tool.try_into_opeai_tool())
+            .collect::<Result<Vec<ChatCompletionTool>, _>>()
             .map_err(LLMError::from)?;
         llm.add_options(CallOptions::new().with_tools(tools_openai));
         let chain = Box::new(LLMChainBuilder::new().prompt(prompt).llm(llm).build()?);

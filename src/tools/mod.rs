@@ -1,6 +1,9 @@
 mod tool;
 pub use tool::*;
 
+mod tool_wrapper;
+pub use tool_wrapper::*;
+
 pub mod tool_field;
 
 pub use wolfram::*;

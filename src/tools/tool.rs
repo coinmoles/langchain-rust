@@ -1,14 +1,11 @@
-use std::collections::HashMap;
+use std::error::Error;
 use std::string::String;
-use std::sync::Arc;
-use std::{error::Error, fmt::Display};
 
 use async_openai::error::OpenAIError;
 use async_openai::types::{
     ChatCompletionTool, ChatCompletionToolArgs, ChatCompletionToolType, FunctionObjectArgs,
 };
 use async_trait::async_trait;
-use derive_new::new;
 use indoc::indoc;
 use serde_json::Value;
 
@@ -60,7 +57,19 @@ pub trait Tool: Send + Sync {
         None
     }
 
-    fn into_openai_tool(&self) -> Result<ChatCompletionTool, OpenAIError> {
+    fn to_plain_description(&self) -> String {
+        format!(
+            indoc! {"
+            > {}: {}
+            The input for this tool MUST be in the following format:
+            {}"},
+            self.name(),
+            self.description(),
+            self.parameters().properties_description()
+        )
+    }
+
+    fn try_into_opeai_tool(&self) -> Result<ChatCompletionTool, OpenAIError> {
         let tool = FunctionObjectArgs::default()
             .name(self.name().replace(" ", "_"))
             .description(self.description())
@@ -72,122 +81,4 @@ pub trait Tool: Send + Sync {
             .function(tool)
             .build()
     }
-}
-
-#[async_trait]
-pub trait ToolFunction: Default + Send + Sync + Into<Arc<dyn Tool>> {
-    type Input: Send + Sync;
-    type Result: Display + Send + Sync;
-
-    fn name(&self) -> String;
-
-    fn description(&self) -> String;
-
-    fn parameters(&self) -> ObjectField {
-        ObjectField::new_tool_input(vec![StringField::new(
-            "input",
-            Some("The input for the tool".into()),
-            true,
-            None,
-        )
-        .into()])
-    }
-
-    /// Executes the core functionality of the tool.
-    ///
-    /// Example implementation:
-    /// ```rust,ignore
-    /// async fn run(&self, input: ToolInput) -> Result<String, Box<dyn Error>> {
-    ///     self.simple_search(input).await
-    /// }
-    /// ```
-    async fn run(&self, input: Self::Input) -> Result<Self::Result, Box<dyn Error + Send + Sync>>;
-
-    /// Parses the input string, which could be a JSON value or a raw string, depending on the LLM model.
-    ///
-    /// Implement this function to extract the parameters needed for your tool. If a simple
-    /// string is sufficient, the default implementation can be used.
-    async fn parse_input(&self, input: Value) -> Result<Self::Input, Box<dyn Error + Send + Sync>>;
-
-    fn usage_limit(&self) -> Option<usize> {
-        None
-    }
-}
-
-#[derive(new)]
-#[repr(transparent)]
-pub struct ToolWrapper<T>
-where
-    T: ToolFunction,
-{
-    tool: T,
-}
-
-impl Display for dyn Tool {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            indoc! {"
-            > {}: {}
-            The input for this tool MUST be in the following format:
-            {}"},
-            self.name(),
-            self.description(),
-            self.parameters().properties_description()
-        )
-    }
-}
-
-impl<T> Display for ToolWrapper<T>
-where
-    T: ToolFunction,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            indoc! {"
-            > {}: {}
-            The input for this tool MUST be in the following format:
-            {}"},
-            self.name(),
-            self.description(),
-            self.parameters().properties_description()
-        )
-    }
-}
-
-#[async_trait]
-impl<T> Tool for ToolWrapper<T>
-where
-    T: ToolFunction,
-{
-    fn name(&self) -> String {
-        self.tool.name()
-    }
-
-    fn description(&self) -> String {
-        self.tool.description()
-    }
-
-    fn parameters(&self) -> ObjectField {
-        self.tool.parameters()
-    }
-
-    async fn call(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {
-        let input = self.tool.parse_input(input).await?;
-        let result = self.tool.run(input).await?;
-
-        Ok(result.to_string())
-    }
-
-    fn usage_limit(&self) -> Option<usize> {
-        self.tool.usage_limit()
-    }
-}
-
-pub fn map_tools(tools: Vec<Arc<dyn Tool>>) -> HashMap<String, Arc<dyn Tool>> {
-    tools
-        .into_iter()
-        .map(|tool| (tool.name().to_lowercase().replace(" ", "_"), tool))
-        .collect()
 }

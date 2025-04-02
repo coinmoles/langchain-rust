@@ -31,7 +31,7 @@ impl ConversationalAgent {
     ) -> Result<PromptTemplate, AgentError> {
         let tool_string = tools
             .values()
-            .map(|tool| tool.to_string())
+            .map(|tool| tool.to_plain_description())
             .collect::<Vec<_>>()
             .join("\n");
         let tool_names = tools.keys().cloned().collect::<Vec<_>>().join(", ");
