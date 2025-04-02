@@ -27,7 +27,12 @@ impl ArrayField {
         }
     }
 
-    pub fn new_string_array<S>(name: S, description: Option<String>, required: bool) -> Self
+    pub fn new_string_array<S>(
+        name: S,
+        description: Option<String>,
+        required: bool,
+        r#enum: Option<Vec<String>>,
+    ) -> Self
     where
         S: Into<String>,
     {
@@ -35,11 +40,16 @@ impl ArrayField {
             name,
             description,
             required,
-            StringField::new("items", None, true, None).into(),
+            StringField::new("items", None, true, r#enum).into(),
         )
     }
 
-    pub fn new_integer_array<S>(name: S, description: Option<String>, required: bool) -> Self
+    pub fn new_integer_array<S>(
+        name: S,
+        description: Option<String>,
+        required: bool,
+        r#enum: Option<Vec<i64>>,
+    ) -> Self
     where
         S: Into<String>,
     {
@@ -47,11 +57,16 @@ impl ArrayField {
             name,
             description,
             required,
-            IntegerField::new("items", None, true, None).into(),
+            IntegerField::new("items", None, true, r#enum).into(),
         )
     }
 
-    pub fn new_number_array<S>(name: S, description: Option<String>, required: bool) -> Self
+    pub fn new_number_array<S>(
+        name: S,
+        description: Option<String>,
+        required: bool,
+        r#enum: Option<Vec<f64>>,
+    ) -> Self
     where
         S: Into<String>,
     {
@@ -59,11 +74,16 @@ impl ArrayField {
             name,
             description,
             required,
-            NumberField::new("items", None, true, None).into(),
+            NumberField::new("items", None, true, r#enum).into(),
         )
     }
 
-    pub fn new_boolean_array<S>(name: S, description: Option<String>, required: bool) -> Self
+    pub fn new_boolean_array<S>(
+        name: S,
+        description: Option<String>,
+        required: bool,
+        r#enum: Option<Vec<bool>>,
+    ) -> Self
     where
         S: Into<String>,
     {
@@ -71,7 +91,7 @@ impl ArrayField {
             name,
             description,
             required,
-            BooleanField::new("items", None, true, None).into(),
+            BooleanField::new("items", None, true, r#enum).into(),
         )
     }
 }
@@ -140,7 +160,8 @@ mod tests {
 
     #[test]
     fn test_array_field_plain_description() {
-        let field = ArrayField::new_integer_array("test", Some("test description".into()), true);
+        let field =
+            ArrayField::new_integer_array("test", Some("test description".into()), true, None);
 
         assert_eq!(
             field.to_plain_description(),
@@ -148,22 +169,24 @@ mod tests {
         );
 
         let field_optional =
-            ArrayField::new_string_array("test", Some("test description".into()), false);
+            ArrayField::new_string_array("test", Some("test description".into()), false, None);
         assert_eq!(
             field_optional.to_plain_description(),
             "test (array, optional): test description\n    items (string)"
         );
 
-        let field_optional_no_description = ArrayField::new_number_array("test", None, false);
+        let field_optional_no_description =
+            ArrayField::new_number_array("test", None, false, Some(vec![1.0f64, 2f64]));
         assert_eq!(
             field_optional_no_description.to_plain_description(),
-            "test (array, optional)\n    items (number)"
+            "test (array, optional)\n    items (number): should be one of [1, 2]"
         );
     }
 
     #[test]
     fn test_array_field_openai() {
-        let field = ArrayField::new_integer_array("test", Some("test description".into()), true);
+        let field =
+            ArrayField::new_integer_array("test", Some("test description".into()), true, None);
         assert_eq!(
             field.to_openai_field(),
             json!({
@@ -176,7 +199,7 @@ mod tests {
         );
 
         let field_optional =
-            ArrayField::new_string_array("test", Some("test description".into()), false);
+            ArrayField::new_string_array("test", Some("test description".into()), false, None);
         assert_eq!(
             field_optional.to_openai_field(),
             json!({
@@ -188,7 +211,7 @@ mod tests {
             })
         );
 
-        let field_optional_no_description = ArrayField::new_number_array("test", None, false);
+        let field_optional_no_description = ArrayField::new_number_array("test", None, false, None);
         assert_eq!(
             field_optional_no_description.to_openai_field(),
             json!({

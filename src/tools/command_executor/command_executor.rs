@@ -83,6 +83,7 @@ impl ToolFunction for CommandExecutor {
                             "args",
                             Some("List of arguments for the command".into()),
                             false,
+                            None,
                         )
                         .into(),
                     ],
