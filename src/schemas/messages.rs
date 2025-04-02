@@ -1,7 +1,6 @@
 use std::fmt;
 
 use async_openai::error::OpenAIError;
-use async_openai::types::ChatCompletionMessageToolCall;
 use async_openai::types::ChatCompletionRequestAssistantMessageArgs;
 use async_openai::types::ChatCompletionRequestMessage;
 use async_openai::types::ChatCompletionRequestMessageContentPartImageArgs;
@@ -12,6 +11,7 @@ use async_openai::types::ChatCompletionRequestUserMessageContent;
 use serde::Deserialize;
 use serde::Serialize;
 
+use super::generate_result::ToolCall;
 use super::MessageType;
 
 /// Struct `ImageContent` represents an image provided to an LLM.
@@ -43,7 +43,7 @@ pub struct Message {
     pub content: String,
     pub message_type: MessageType,
     pub id: Option<String>,
-    pub tool_calls: Option<Vec<ChatCompletionMessageToolCall>>,
+    pub tool_calls: Option<Vec<ToolCall>>,
     pub images: Option<Vec<ImageContent>>,
 }
 
@@ -81,7 +81,7 @@ impl Message {
     /// # Arguments
     ///
     /// * `tool_calls` - A `serde_json::Value` representing the tool call configurations.
-    pub fn with_tool_calls(mut self, tool_calls: Vec<ChatCompletionMessageToolCall>) -> Self {
+    pub fn with_tool_calls(mut self, tool_calls: Vec<ToolCall>) -> Self {
         self.tool_calls = Some(tool_calls);
         self
     }
@@ -139,8 +139,14 @@ impl TryFrom<Message> for ChatCompletionRequestMessage {
     fn try_from(value: Message) -> Result<Self, Self::Error> {
         match value.message_type {
             MessageType::AIMessage => Ok(match value.tool_calls {
-                Some(function) => ChatCompletionRequestAssistantMessageArgs::default()
-                    .tool_calls(function)
+                Some(tool_calls) => ChatCompletionRequestAssistantMessageArgs::default()
+                    .tool_calls(
+                        tool_calls
+                            .into_iter()
+                            .map(TryInto::try_into)
+                            .collect::<Result<Vec<_>, _>>()
+                            .map_err(|e| OpenAIError::JSONDeserialize(e))?,
+                    )
                     .content(value.content)
                     .build()?
                     .into(),

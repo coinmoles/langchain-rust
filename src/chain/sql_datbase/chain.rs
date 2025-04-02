@@ -5,8 +5,10 @@ use futures::Stream;
 
 use crate::{
     chain::{chain_trait::Chain, llm_chain::LLMChain, ChainError},
-    language_models::{GenerateResult, TokenUsage},
-    schemas::{InputVariables, StreamData, TextReplacements},
+    schemas::{
+        generate_result::{GenerateResult, GenerateResultContent, TokenUsage},
+        InputVariables, StreamData, TextReplacements,
+    },
     text_replacements,
     tools::SQLDatabase,
 };
@@ -128,14 +130,14 @@ impl SQLDatabaseChain {
         .into();
 
         let output = self.llmchain.call(&mut llm_inputs).await?;
-        if let Some(tokens) = output.tokens {
+
+        if let Some(tokens) = output.usage {
             token_usage = Some(tokens);
         }
 
-        let sql_query = output.generation.trim();
         let query_result = self
             .database
-            .query(sql_query)
+            .query(output.content.text())
             .await
             .map_err(|e| ChainError::DatabaseError(e.to_string()))?;
 
@@ -143,7 +145,11 @@ impl SQLDatabaseChain {
             "input",
             format!(
                 "{}{}{}{}{}",
-                &query, QUERY_PREFIX_WITH, sql_query, STOP_WORD, &query_result,
+                &query,
+                QUERY_PREFIX_WITH,
+                output.content.text(),
+                STOP_WORD,
+                &query_result,
             ),
         );
         Ok((llm_inputs, token_usage))
@@ -162,15 +168,17 @@ impl Chain for SQLDatabaseChain {
     ) -> Result<GenerateResult, ChainError> {
         let (mut llm_inputs, mut token_usage) = self.call_builder_chains(input_variables).await?;
         let output = self.llmchain.call(&mut llm_inputs).await?;
-        if let Some(tokens) = output.tokens {
+
+        if let Some(usage) = output.usage {
             if let Some(general_result) = token_usage.as_mut() {
-                general_result.completion_tokens += tokens.completion_tokens;
-                general_result.total_tokens += tokens.total_tokens;
+                general_result.completion_tokens += usage.completion_tokens;
+                general_result.total_tokens += usage.total_tokens;
             }
         }
 
         let strs: Vec<&str> = output
-            .generation
+            .content
+            .text()
             .split("\n\n")
             .next()
             .unwrap_or("")
@@ -182,14 +190,9 @@ impl Chain for SQLDatabaseChain {
         }
         output = output.trim();
         Ok(GenerateResult {
-            generation: output.to_string(),
-            tokens: token_usage,
+            content: GenerateResultContent::Text(output.into()),
+            usage: token_usage,
         })
-    }
-
-    async fn invoke(&self, input_variables: &mut InputVariables) -> Result<String, ChainError> {
-        let result = self.call(input_variables).await?;
-        Ok(result.generation)
     }
 
     async fn stream(

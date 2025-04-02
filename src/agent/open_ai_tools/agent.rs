@@ -1,16 +1,13 @@
+use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::{collections::HashMap, error::Error};
 
-use async_openai::types::{
-    ChatCompletionMessageToolCall, ChatCompletionToolType, FunctionCall, RunToolCallObject,
-};
-use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-
+use crate::schemas::generate_result::{GenerateResultContent, ToolCall};
 use crate::{
     agent::{Agent, AgentError},
     chain::Chain,
+    language_models::LLMError,
     prompt_template,
     schemas::{
         agent::{AgentAction, AgentEvent},
@@ -52,17 +49,11 @@ impl OpenAiToolAgent {
             .iter()
             .flat_map(|(action, observation)| {
                 vec![
-                    Message::new(MessageType::AIMessage, "").with_tool_calls(vec![
-                        ChatCompletionMessageToolCall {
-                            id: action.id.clone(),
-                            r#type: ChatCompletionToolType::Function,
-                            function: FunctionCall {
-                                name: action.action.clone(),
-                                arguments: serde_json::to_string_pretty(&action.action_input)
-                                    .unwrap_or("Input parameters unknown".into()),
-                            },
-                        },
-                    ]),
+                    Message::new(MessageType::AIMessage, "").with_tool_calls(vec![ToolCall {
+                        id: action.id.clone(),
+                        name: action.action.clone(),
+                        arguments: action.action_input.clone(),
+                    }]),
                     Message::new_tool_message(Some(action.id.clone()), observation),
                 ]
             })
@@ -79,20 +70,27 @@ impl Agent for OpenAiToolAgent {
     ) -> Result<AgentEvent, AgentError> {
         let scratchpad = self.construct_scratchpad(intermediate_steps);
         inputs.insert_placeholder_replacement("agent_scratchpad", scratchpad);
-        let output: String = self.chain.call(inputs).await?.generation;
-        match serde_json::from_str::<Vec<RunToolCallObject>>(&output) {
-            Ok(tools) => {
-                let mut actions: Vec<AgentAction> = Vec::new();
-                for tool in tools {
-                    actions.push(AgentAction {
-                        id: tool.id,
-                        action: tool.function.name,
-                        action_input: Value::String(tool.function.arguments),
-                    });
-                }
-                return Ok(AgentEvent::Action(actions));
+        let output = self.chain.call(inputs).await?;
+
+        match output.content {
+            GenerateResultContent::Text(text) => Ok(AgentEvent::Finish(text)),
+            GenerateResultContent::ToolCall(tool_calls) => {
+                let agent_actions = tool_calls
+                    .into_iter()
+                    .map(|tool_call: ToolCall| AgentAction {
+                        id: tool_call.id,
+                        action: tool_call.name,
+                        action_input: tool_call.arguments,
+                    })
+                    .collect::<Vec<_>>();
+                Ok(AgentEvent::Action(agent_actions))
             }
-            Err(_) => return Ok(AgentEvent::Finish(output)),
+            GenerateResultContent::Refusal(refusal) => {
+                return Err(AgentError::LLMError(LLMError::OtherError(format!(
+                    "LLM refused to answer: {}",
+                    refusal
+                ))));
+            }
         }
     }
 

@@ -1,7 +1,7 @@
 use serde_json::Value;
 use std::io::{self, Write};
 
-use crate::language_models::TokenUsage;
+use super::generate_result::TokenUsage;
 
 #[derive(Debug, Clone)]
 pub struct StreamData {

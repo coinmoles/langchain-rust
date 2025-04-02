@@ -1,13 +1,15 @@
 use std::{collections::HashSet, error::Error, pin::Pin};
 
 use async_trait::async_trait;
-use futures::Stream;
-use futures_util::TryStreamExt;
+use futures::{Stream, TryStreamExt};
 
 use crate::{
-    language_models::{llm::LLM, GenerateResult},
+    language_models::llm::LLM,
     output_parsers::{OutputParser, SimpleParser},
-    schemas::{InputVariables, StreamData},
+    schemas::{
+        generate_result::{GenerateResult, GenerateResultContent},
+        InputVariables, StreamData,
+    },
     template::PromptTemplate,
 };
 
@@ -95,15 +97,11 @@ impl Chain for LLMChain {
     ) -> Result<GenerateResult, ChainError> {
         let prompt = self.prompt.format(input_variables)?;
         let mut output = self.llm.generate(prompt.to_messages()).await?;
-        output.generation = self.output_parser.parse(&output.generation).await?;
 
-        Ok(output)
-    }
+        if let GenerateResultContent::Text(content) = &output.content {
+            output.content = GenerateResultContent::Text(self.output_parser.parse(&content).await?);
+        }
 
-    async fn invoke(&self, input_variables: &mut InputVariables) -> Result<String, ChainError> {
-        let prompt = self.prompt.format(input_variables)?;
-
-        let output = self.llm.generate(prompt.to_messages()).await?.generation;
         Ok(output)
     }
 

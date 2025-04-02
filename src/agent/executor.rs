@@ -2,19 +2,18 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
 
-use async_openai::types::{ChatCompletionMessageToolCall, ChatCompletionToolType, FunctionCall};
 use async_trait::async_trait;
 use indoc::indoc;
 use tokio::sync::Mutex;
 
 use super::{agent::Agent, AgentError};
-use crate::schemas::{InputVariables, Message, MessageType};
 use crate::{
     chain::{chain_trait::Chain, ChainError},
-    language_models::GenerateResult,
     schemas::{
         agent::{AgentAction, AgentEvent},
+        generate_result::{GenerateResult, GenerateResultContent, ToolCall},
         memory::BaseMemory,
+        InputVariables, Message, MessageType,
     },
 };
 
@@ -197,16 +196,10 @@ impl Chain for AgentExecutor {
                         for (action, observation) in steps {
                             memory.add_message(
                                 Message::new(MessageType::AIMessage, "").with_tool_calls(vec![
-                                    ChatCompletionMessageToolCall {
+                                    ToolCall {
                                         id: action.id.clone(),
-                                        r#type: ChatCompletionToolType::Function,
-                                        function: FunctionCall {
-                                            name: action.action,
-                                            arguments: serde_json::to_string_pretty(
-                                                &action.action_input,
-                                            )
-                                            .unwrap_or("Input parameters unknown".into()),
-                                        },
+                                        name: action.action,
+                                        arguments: action.action_input,
                                     },
                                 ]),
                             );
@@ -222,7 +215,7 @@ impl Chain for AgentExecutor {
                     log::debug!("Agent finished with result:\n{}", &final_answer);
 
                     return Ok(GenerateResult {
-                        generation: final_answer,
+                        content: GenerateResultContent::Text(final_answer),
                         ..GenerateResult::default()
                     });
                 }
@@ -232,11 +225,6 @@ impl Chain for AgentExecutor {
                 }
             }
         }
-    }
-
-    async fn invoke(&self, input_variables: &mut InputVariables) -> Result<String, ChainError> {
-        let result = self.call(input_variables).await?;
-        Ok(result.generation)
     }
 
     fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>> {

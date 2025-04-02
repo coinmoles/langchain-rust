@@ -1,7 +1,10 @@
 use crate::{
-    language_models::{llm::LLM, options::CallOptions, GenerateResult, LLMError, TokenUsage},
+    language_models::{llm::LLM, options::CallOptions, LLMError},
     llm::AnthropicError,
-    schemas::{Message, MessageType, StreamData},
+    schemas::{
+        generate_result::{GenerateResult, GenerateResultContent, TokenUsage},
+        Message, MessageType, StreamData,
+    },
 };
 use async_trait::async_trait;
 use futures::{Stream, StreamExt};
@@ -113,13 +116,16 @@ impl Claude {
             .map(|c| c.text.clone())
             .unwrap_or_default();
 
-        let tokens = Some(TokenUsage {
+        let usage = Some(TokenUsage {
             prompt_tokens: res.usage.input_tokens,
             completion_tokens: res.usage.output_tokens,
             total_tokens: res.usage.input_tokens + res.usage.output_tokens,
         });
 
-        Ok(GenerateResult { tokens, generation })
+        Ok(GenerateResult {
+            content: GenerateResultContent::Text(generation),
+            usage,
+        })
     }
 
     fn build_payload(&self, messages: Vec<Message>, stream: bool) -> Payload {
@@ -164,7 +170,7 @@ impl LLM for Claude {
                     }
                 }
                 let generate_result = GenerateResult {
-                    generation: complete_response,
+                    content: GenerateResultContent::Text(complete_response),
                     ..GenerateResult::default()
                 };
                 Ok(generate_result)
@@ -172,6 +178,7 @@ impl LLM for Claude {
             None => self.generate(messages).await,
         }
     }
+
     async fn stream(
         &self,
         messages: Vec<Message>,

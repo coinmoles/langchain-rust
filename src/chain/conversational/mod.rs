@@ -7,10 +7,12 @@ use futures_util::{pin_mut, StreamExt};
 use tokio::sync::Mutex;
 
 use crate::{
-    language_models::GenerateResult,
+    language_models::LLMError,
     schemas::{
-        memory::BaseMemory, messages::Message, InputVariables, MessageType, StreamData,
-        TextReplacements,
+        generate_result::{GenerateResult, GenerateResultContent},
+        memory::BaseMemory,
+        messages::Message,
+        InputVariables, MessageType, StreamData, TextReplacements,
     },
     text_replacements,
 };
@@ -85,7 +87,19 @@ impl Chain for ConversationalChain {
 
         let mut memory = self.memory.lock().await;
         memory.add_message(human_message);
-        memory.add_message(Message::new(MessageType::AIMessage, &result.generation));
+
+        match &result.content {
+            GenerateResultContent::Text(text) => {
+                memory.add_message(Message::new(MessageType::AIMessage, text));
+            }
+            GenerateResultContent::ToolCall(tool_calls) => {
+                Message::new(MessageType::AIMessage, String::new())
+                    .with_tool_calls(tool_calls.clone());
+            }
+            GenerateResultContent::Refusal(refusal) => {
+                return Err(LLMError::OtherError(refusal.into()).into())
+            }
+        }
         Ok(result)
     }
 

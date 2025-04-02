@@ -1,5 +1,4 @@
-use std::fmt;
-use std::pin::Pin;
+use std::{fmt, pin::Pin};
 
 pub use async_openai::config::{AzureConfig, Config, OpenAIConfig};
 
@@ -11,11 +10,18 @@ use async_trait::async_trait;
 use futures::{Stream, StreamExt};
 
 use crate::{
-    language_models::{llm::LLM, options::CallOptions, GenerateResult, LLMError, TokenUsage},
-    schemas::{messages::Message, MessageType, StreamData},
+    language_models::{llm::LLM, options::CallOptions, LLMError},
+    schemas::{
+        generate_result::{GenerateResult, TokenUsage},
+        messages::Message,
+        MessageType, StreamData,
+    },
 };
 
-use super::request::OpenAIRequest;
+use super::{
+    helper::{construct_chat_completion_response, select_choice},
+    request::OpenAIRequest,
+};
 
 #[derive(Clone)]
 pub enum OpenAIModel {
@@ -101,84 +107,49 @@ impl Default for OpenAI<OpenAIConfig> {
 #[async_trait]
 impl<C: Config + Send + Sync + 'static> LLM for OpenAI<C> {
     async fn generate(&self, prompt: Vec<Message>) -> Result<GenerateResult, LLMError> {
-        let prompt = self.process_prompt(prompt);
+        let messages = self.process_prompt(prompt);
 
         let client = Client::with_config(self.config.clone()).with_http_client(
             reqwest::Client::builder()
                 .connection_verbose(true)
                 .build()?,
         );
-        let request = OpenAIRequest::build_request(&self.model, prompt, &self.options)?;
+        let request = OpenAIRequest::build_request(&self.model, messages, &self.options)?;
 
         match &self.options.stream_option {
             Some(stream_option) => {
-                let mut stream = client
+                let stream = client
                     .chat()
                     .create_stream_byot::<_, CreateChatCompletionStreamResponse>(request)
                     .await?;
-                let mut complete_response = String::new();
-                let mut token_usage = TokenUsage::new(0, 0);
-                while let Some(response) = stream.next().await {
-                    let response = response?;
 
-                    if let Some(usage) = response.usage {
-                        token_usage = token_usage.sum(&TokenUsage::new(
-                            usage.prompt_tokens,
-                            usage.completion_tokens,
-                        ));
-                    }
-                    for chat_choice in response.choices.into_iter() {
-                        if let Some(content) = chat_choice.delta.content {
-                            complete_response.push_str(&content);
+                let response =
+                    construct_chat_completion_response(stream, &stream_option.streaming_func)
+                        .await?;
 
-                            if let Some(streaming_func) = &stream_option.streaming_func {
-                                let mut func = streaming_func.lock().await;
-                                let _ = func(&content).await;
-                            }
-                        }
-                    }
-                }
-                Ok(GenerateResult {
-                    tokens: Some(token_usage),
-                    generation: complete_response,
-                })
+                let choice: async_openai::types::ChatChoice = select_choice(response.choices)
+                    .ok_or(LLMError::ContentNotFound("No choices".into()))?;
+
+                let result =
+                    GenerateResult::new(choice.message.try_into()?, response.usage.map(Into::into));
+
+                Ok(result)
             }
             None => {
                 let response = client
                     .chat()
                     .create_byot::<_, CreateChatCompletionResponse>(request)
                     .await?;
-                let mut generate_result = GenerateResult::default();
 
-                if let Some(usage) = response.usage {
-                    generate_result.tokens = Some(TokenUsage {
-                        prompt_tokens: usage.prompt_tokens,
-                        completion_tokens: usage.completion_tokens,
-                        total_tokens: usage.total_tokens,
-                    });
-                }
+                let choice: async_openai::types::ChatChoice = select_choice(response.choices)
+                    .ok_or(LLMError::ContentNotFound("No choices".into()))?;
 
-                if let Some(choice) = response.choices.first() {
-                    generate_result.generation = choice.message.content.clone().unwrap_or_default();
-                    if let Some(function) = &choice.message.tool_calls {
-                        if !function.is_empty() {
-                            generate_result.generation =
-                                serde_json::to_string(&function).unwrap_or_default();
-                        }
-                    }
-                } else {
-                    generate_result.generation = "".to_string();
-                }
+                let result =
+                    GenerateResult::new(choice.message.try_into()?, response.usage.map(Into::into));
 
-                Ok(generate_result)
+                Ok(result)
             }
         }
-    }
-
-    async fn invoke(&self, prompt: &str) -> Result<String, LLMError> {
-        self.generate(vec![Message::new(MessageType::HumanMessage, prompt)])
-            .await
-            .map(|res| res.generation)
     }
 
     async fn stream(
@@ -339,35 +310,6 @@ mod tests {
                 eprintln!("Error calling generate: {:?}", e);
             }
         }
-    }
-
-    #[test]
-    #[ignore]
-    async fn test_openai_stream() {
-        // Setup the OpenAI client with the necessary options
-        let open_ai = OpenAI::default().with_model(OpenAIModel::Gpt35.to_string());
-
-        // Define a set of messages to send to the generate function
-        let messages = vec![Message::new(
-            MessageType::HumanMessage,
-            "Hello, how are you?",
-        )];
-
-        open_ai
-            .stream(messages)
-            .await
-            .unwrap()
-            .for_each(|result| async {
-                match result {
-                    Ok(stream_data) => {
-                        println!("Stream Data: {:?}", stream_data.content);
-                    }
-                    Err(e) => {
-                        eprintln!("Error calling generate: {:?}", e);
-                    }
-                }
-            })
-            .await;
     }
 
     #[test]

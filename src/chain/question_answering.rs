@@ -1,9 +1,10 @@
 use std::{error::Error, pin::Pin};
 
 use crate::{
-    language_models::{llm::LLM, GenerateResult},
+    language_models::llm::LLM,
     schemas::{
-        messages::Message, Document, InputVariables, MessageType, StreamData, TextReplacements,
+        generate_result::GenerateResult, messages::Message, Document, InputVariables, MessageType,
+        StreamData, TextReplacements,
     },
     template::MessageTemplate,
     text_replacements,

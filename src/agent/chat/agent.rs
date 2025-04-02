@@ -1,6 +1,5 @@
 use std::{collections::HashMap, error::Error, sync::Arc};
 
-use async_openai::types::{ChatCompletionMessageToolCall, ChatCompletionToolType, FunctionCall};
 use async_trait::async_trait;
 
 use crate::{
@@ -9,6 +8,7 @@ use crate::{
     prompt_template,
     schemas::{
         agent::{AgentAction, AgentEvent},
+        generate_result::ToolCall,
         InputVariables, Message, MessageType,
     },
     template::{MessageOrTemplate, MessageTemplate, PromptTemplate},
@@ -61,17 +61,11 @@ impl ConversationalAgent {
             .iter()
             .flat_map(|(action, result)| {
                 vec![
-                    Message::new(MessageType::AIMessage, "").with_tool_calls(vec![
-                        ChatCompletionMessageToolCall {
-                            id: action.id.clone(),
-                            r#type: ChatCompletionToolType::Function,
-                            function: FunctionCall {
-                                name: action.action.clone(),
-                                arguments: serde_json::to_string_pretty(&action.action_input)
-                                    .unwrap_or("Input parameters unknown".into()),
-                            },
-                        },
-                    ]),
+                    Message::new(MessageType::AIMessage, "").with_tool_calls(vec![ToolCall {
+                        id: action.id.clone(),
+                        name: action.action.clone(),
+                        arguments: action.action_input.clone(),
+                    }]),
                     Message::new_tool_message(Some(action.id.clone()), result),
                 ]
             })
@@ -88,9 +82,10 @@ impl Agent for ConversationalAgent {
     ) -> Result<AgentEvent, AgentError> {
         let scratchpad = self.construct_scratchpad(intermediate_steps);
         inputs.insert_placeholder_replacement("agent_scratchpad", scratchpad);
-        let output = self.chain.call(inputs).await?.generation;
-        log::trace!("Agent output: {}", output);
-        parse_agent_output(&output)
+        let output = self.chain.call(inputs).await?;
+
+        log::trace!("Agent output: {}", output.content.text());
+        parse_agent_output(&output.content.text())
     }
 
     fn get_tool(&self, tool_name: &str) -> Option<Arc<dyn Tool>> {

@@ -1,21 +1,17 @@
 use futures::Stream;
 use futures_util::{pin_mut, StreamExt};
-use std::{
-    collections::{HashMap, HashSet},
-    error::Error,
-    pin::Pin,
-    sync::Arc,
-};
+use std::{collections::HashSet, error::Error, pin::Pin, sync::Arc};
 
 use async_stream::stream;
 use async_trait::async_trait;
-use serde_json::{json, Value};
 use tokio::sync::Mutex;
 
 use crate::{
     chain::{Chain, ChainError, CondenseQuestionPromptBuilder, StuffQABuilder, DEFAULT_RESULT_KEY},
-    language_models::{GenerateResult, TokenUsage},
-    schemas::{BaseMemory, InputVariables, Message, MessageType, Retriever, StreamData},
+    schemas::{
+        generate_result::{GenerateResult, TokenUsage},
+        BaseMemory, InputVariables, Message, MessageType, Retriever, StreamData,
+    },
 };
 // _conversationalRetrievalQADefaultInputKey             = "question"
 // _conversationalRetrievalQADefaultSourceDocumentKey    = "source_documents"
@@ -58,15 +54,15 @@ impl ConversationalRetrieverChain {
                             .into(),
                     )
                     .await?;
-                if let Some(tokens) = result.tokens {
-                    token_usage = Some(tokens);
+
+                if let Some(usage) = result.usage {
+                    token_usage = Some(usage);
                 };
-                result.generation
             }
-            false => input.to_string(),
+            false => input,
         };
 
-        Ok((question, token_usage))
+        Ok((question.into(), token_usage))
     }
 }
 
@@ -81,77 +77,77 @@ impl Chain for ConversationalRetrieverChain {
         Ok(result)
     }
 
-    async fn execute(
-        &self,
-        input_variables: &mut InputVariables,
-    ) -> Result<HashMap<String, Value>, ChainError> {
-        let mut token_usage: Option<TokenUsage> = None;
-        let input_variable = &input_variables
-            .get_text_replacement(&self.input_key)
-            .ok_or(ChainError::MissingInputVariable(self.input_key.clone()))?;
+    // async fn execute(
+    //     &self,
+    //     input_variables: &mut InputVariables,
+    // ) -> Result<HashMap<String, Value>, ChainError> {
+    //     let mut token_usage: Option<TokenUsage> = None;
+    //     let input_variable = &input_variables
+    //         .get_text_replacement(&self.input_key)
+    //         .ok_or(ChainError::MissingInputVariable(self.input_key.clone()))?;
 
-        let human_message = Message::new(MessageType::HumanMessage, input_variable);
-        let history = {
-            let memory = self.memory.lock().await;
-            memory.messages()
-        };
+    //     let human_message = Message::new(MessageType::HumanMessage, input_variable);
+    //     let history = {
+    //         let memory = self.memory.lock().await;
+    //         memory.messages()
+    //     };
 
-        let (question, token) = self.get_question(&history, &human_message.content).await?;
-        if let Some(token) = token {
-            token_usage = Some(token);
-        }
+    //     let (question, token) = self.get_question(&history, &human_message.content).await?;
+    //     if let Some(token) = token {
+    //         token_usage = Some(token);
+    //     }
 
-        let documents = self
-            .retriever
-            .get_relevant_documents(&question)
-            .await
-            .map_err(|e| ChainError::RetrieverError(e.to_string()))?;
+    //     let documents = self
+    //         .retriever
+    //         .get_relevant_documents(&question)
+    //         .await
+    //         .map_err(|e| ChainError::RetrieverError(e.to_string()))?;
 
-        let mut output = self
-            .combine_documents_chain
-            .call(
-                &mut StuffQABuilder::new()
-                    .documents(&documents)
-                    .question(question.clone())
-                    .build()
-                    .into(),
-            )
-            .await?;
+    //     let mut output = self
+    //         .combine_documents_chain
+    //         .call(
+    //             &mut StuffQABuilder::new()
+    //                 .documents(&documents)
+    //                 .question(question.clone())
+    //                 .build()
+    //                 .into(),
+    //         )
+    //         .await?;
 
-        if let Some(tokens) = &output.tokens {
-            if let Some(mut token_usage) = token_usage {
-                token_usage.add(tokens);
-                output.tokens = Some(token_usage)
-            }
-        }
+    //     if let Some(tokens) = &output.usage {
+    //         if let Some(mut token_usage) = token_usage {
+    //             token_usage.add(tokens);
+    //             output.usage = Some(token_usage)
+    //         }
+    //     }
 
-        {
-            let mut memory = self.memory.lock().await;
-            memory.add_message(human_message);
-            memory.add_message(Message::new(MessageType::AIMessage, &output.generation));
-        }
+    //     {
+    //         let mut memory = self.memory.lock().await;
+    //         memory.add_message(human_message);
+    //         memory.add_message(Message::new(MessageType::AIMessage, &output.generation));
+    //     }
 
-        let mut result = HashMap::new();
-        result.insert(self.output_key.clone(), json!(output.generation));
+    //     let mut result = HashMap::new();
+    //     result.insert(self.output_key.clone(), json!(output.generation));
 
-        result.insert(DEFAULT_RESULT_KEY.to_string(), json!(output));
+    //     result.insert(DEFAULT_RESULT_KEY.to_string(), json!(output));
 
-        if self.return_source_documents {
-            result.insert(
-                CONVERSATIONAL_RETRIEVAL_QA_DEFAULT_SOURCE_DOCUMENT_KEY.to_string(),
-                json!(documents),
-            );
-        }
+    //     if self.return_source_documents {
+    //         result.insert(
+    //             CONVERSATIONAL_RETRIEVAL_QA_DEFAULT_SOURCE_DOCUMENT_KEY.to_string(),
+    //             json!(documents),
+    //         );
+    //     }
 
-        if self.rephrase_question {
-            result.insert(
-                CONVERSATIONAL_RETRIEVAL_QA_DEFAULT_GENERATED_QUESTION_KEY.to_string(),
-                json!(question),
-            );
-        }
+    //     if self.rephrase_question {
+    //         result.insert(
+    //             CONVERSATIONAL_RETRIEVAL_QA_DEFAULT_GENERATED_QUESTION_KEY.to_string(),
+    //             json!(question),
+    //         );
+    //     }
 
-        Ok(result)
-    }
+    //     Ok(result)
+    // }
 
     async fn stream(
         &self,

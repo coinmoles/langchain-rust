@@ -6,12 +6,9 @@ use std::{
 
 use async_trait::async_trait;
 use futures::Stream;
-use serde_json::{json, Value};
+use serde_json::Value;
 
-use crate::{
-    language_models::GenerateResult,
-    schemas::{InputVariables, StreamData},
-};
+use crate::schemas::{generate_result::GenerateResult, InputVariables, StreamData};
 
 use super::ChainError;
 
@@ -85,7 +82,7 @@ pub trait Chain: Sync + Send {
     async fn invoke(&self, input_variables: &mut InputVariables) -> Result<String, ChainError> {
         self.call(input_variables)
             .await
-            .map(|result| result.generation)
+            .map(|result| format!("{:#?}", result.content))
     }
 
     /// Execute the `Chain` and return the result of the generation process
@@ -120,21 +117,23 @@ pub trait Chain: Sync + Send {
     /// };
     /// # };
     /// ```
+    /// BROKEN!!
     async fn execute(
         &self,
-        input_variables: &mut InputVariables,
+        _input_variables: &mut InputVariables,
     ) -> Result<HashMap<String, Value>, ChainError> {
-        let result = self.call(input_variables).await?;
-        let mut output = HashMap::new();
-        let output_key = self
-            .get_output_keys()
-            .first()
-            .unwrap_or(&DEFAULT_OUTPUT_KEY.to_string())
-            .clone();
-        output.insert(output_key, json!(result.generation));
-        output.insert(DEFAULT_RESULT_KEY.to_string(), json!(result));
-        Ok(output)
+        // let result = self.call(input_variables).await?;
+        // let mut output = HashMap::new();
+        // let output_key = self
+        //     .get_output_keys()
+        //     .first()
+        //     .unwrap_or(&DEFAULT_OUTPUT_KEY.to_string())
+        //     .clone();
+        // output.insert(output_key, result.content);
+        // output.insert(DEFAULT_RESULT_KEY.to_string(), json!(result));
+        Ok(HashMap::new())
     }
+
     /// Stream the `Chain` and get an asynchronous stream of chain generations.
     /// The input is a set of variables passed as a `PromptArgs` hashmap.
     /// If the chain have memroy, the tream method will not be able to automaticaly

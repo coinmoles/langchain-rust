@@ -8,8 +8,10 @@ use serde_json::{json, Value};
 
 use crate::{
     chain::{Chain, ChainError, DEFAULT_OUTPUT_KEY, DEFAULT_RESULT_KEY},
-    language_models::{GenerateResult, TokenUsage},
-    schemas::InputVariables,
+    schemas::{
+        generate_result::{GenerateResult, TokenUsage},
+        InputVariables,
+    },
 };
 
 //THIS IS EXPERIMENTAL
@@ -37,7 +39,7 @@ impl Chain for SequentialChain {
     async fn invoke(&self, input_variables: &mut InputVariables) -> Result<String, ChainError> {
         self.call(input_variables)
             .await
-            .map(|result| result.generation)
+            .map(|result| result.content.text().into())
     }
 
     fn get_input_keys(&self) -> HashSet<String> {
@@ -72,7 +74,7 @@ impl Chain for SequentialChain {
             //add the generation to keep track of the final generation
             final_result.generation = result.generation;
             //Add to the token if it exist
-            if let Some(token) = &result.tokens {
+            if let Some(token) = &result.usage {
                 match final_token_usage {
                     Some(token_usage) => {
                         final_token_usage = Some(token_usage.sum(token));
@@ -85,7 +87,7 @@ impl Chain for SequentialChain {
         }
 
         //add the filan token count to the result
-        final_result.tokens = final_token_usage;
+        final_result.usage = final_token_usage;
         output_result.insert(DEFAULT_RESULT_KEY.to_string(), json!(final_result));
         Ok(output_result)
     }
