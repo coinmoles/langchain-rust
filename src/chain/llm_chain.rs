@@ -102,6 +102,8 @@ impl Chain for LLMChain {
             output.content = GenerateResultContent::Text(self.output_parser.parse(&content).await?);
         }
 
+        log::trace!("Agent output: {:#?}", output);
+
         Ok(output)
     }
 
