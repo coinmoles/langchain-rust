@@ -160,7 +160,7 @@ impl LLM for Claude {
 
                     if let Some(streaming_func) = &stream_option.streaming_func {
                         let mut func = streaming_func.lock().await;
-                        let _ = func(data.content).await;
+                        let _ = func(&data.content).await;
                     }
                 }
                 let generate_result = GenerateResult {

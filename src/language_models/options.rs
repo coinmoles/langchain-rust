@@ -24,11 +24,11 @@ impl StreamOption {
     //TODO:Check if this should be a &str instead of a String
     pub fn with_streaming_func<F, Fut>(mut self, mut func: F) -> Self
     where
-        F: FnMut(String) -> Fut + Send + 'static,
+        F: FnMut(&str) -> Fut + Send + 'static,
         Fut: Future<Output = Result<(), ()>> + Send + 'static,
     {
         let func = Arc::new(Mutex::new(
-            move |s: String| -> Pin<Box<dyn Future<Output = Result<(), ()>> + Send>> {
+            move |s: &str| -> Pin<Box<dyn Future<Output = Result<(), ()>> + Send>> {
                 Box::pin(func(s))
             },
         ));

@@ -127,15 +127,13 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAI<C> {
                             usage.completion_tokens,
                         ));
                     }
-                    for chat_choice in response.choices.iter() {
-                        let chat_choice: ChatChoiceStream = chat_choice.clone();
-
+                    for chat_choice in response.choices.into_iter() {
                         if let Some(content) = chat_choice.delta.content {
                             complete_response.push_str(&content);
 
                             if let Some(streaming_func) = &stream_option.streaming_func {
                                 let mut func = streaming_func.lock().await;
-                                let _ = func(content).await;
+                                let _ = func(&content).await;
                             }
                         }
                     }
@@ -257,8 +255,9 @@ mod tests {
         // This function will append the content received from the stream to `message_complete`
         let streaming_func = {
             let message_complete = message_complete.clone();
-            move |content: String| {
+            move |content: &str| {
                 let message_complete = message_complete.clone();
+                let content = content.to_owned();
                 async move {
                     let mut message_complete_lock = message_complete.lock().await;
                     println!("Content: {:?}", content);
@@ -299,8 +298,9 @@ mod tests {
         // This function will append the content received from the stream to `message_complete`
         let streaming_func = {
             let message_complete = message_complete.clone();
-            move |content: String| {
+            move |content: &str| {
                 let message_complete = message_complete.clone();
+                let content = content.to_owned();
                 async move {
                     let content = serde_json::from_str::<ChatChoiceStream>(&content).unwrap();
                     if content.finish_reason.is_some() {
