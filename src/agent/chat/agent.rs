@@ -29,15 +29,15 @@ impl ConversationalAgent {
         initial_prompt: &str,
         tools: &HashMap<String, Arc<dyn Tool>>,
     ) -> Result<PromptTemplate, AgentError> {
+        let tool_names = tools.keys().cloned().collect::<Vec<_>>().join(", ");
         let tool_string = tools
             .values()
             .map(|tool| tool.to_plain_description())
             .collect::<Vec<_>>()
             .join("\n");
-        let tool_names = tools.keys().cloned().collect::<Vec<_>>().join(", ");
         let input_variables_fstring: InputVariables = text_replacements! {
+            "tool_names" => tool_names,
             "tools" => tool_string,
-            "tool_names" => tool_names
         }
         .into();
 
@@ -47,13 +47,14 @@ impl ConversationalAgent {
         )
         .format(&input_variables_fstring)?;
 
-        let formatter = prompt_template![
+        let prompt = prompt_template![
             system_prompt,
             MessageOrTemplate::Placeholder("chat_history".into()),
             MessageTemplate::from_jinja2(MessageType::HumanMessage, initial_prompt),
             MessageOrTemplate::Placeholder("agent_scratchpad".into())
         ];
-        Ok(formatter)
+
+        Ok(prompt)
     }
 
     fn construct_scratchpad(&self, intermediate_steps: &[(AgentAction, String)]) -> Vec<Message> {
@@ -84,7 +85,6 @@ impl Agent for ConversationalAgent {
         inputs.insert_placeholder_replacement("agent_scratchpad", scratchpad);
         let output = self.chain.call(inputs).await?;
 
-        log::trace!("Agent output: {}", output.content.text());
         parse_agent_output(&output.content.text())
     }
 
