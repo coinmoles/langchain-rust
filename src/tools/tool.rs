@@ -21,22 +21,18 @@ pub trait Tool: Send + Sync {
     /// Provides a description of what the tool does and when to use it.
     fn description(&self) -> String;
 
-    /// This are the parametters for OpenAi-like function call.
-    /// You should return a jsnon like this one
+    /// Parameters for OpenAI function call.
+    ///
+    /// If not implemented, it will default to
     /// ```json
     /// {
-    ///     "type": "object",
-    ///     "properties": {
-    ///         "command": {
-    ///             "type": "string",
-    ///             "description": "The raw command you want executed"
-    ///                 }
+    ///     "input": {
+    ///         "type": "string",
+    ///         "description": "The input for the tool"
     ///     },
-    ///     "required": ["command"]
+    ///     required: ["input"]
     /// }
-    ///
-    /// If there s no implementation the defaul will be the self.description()
-    ///```
+    /// ```
     fn parameters(&self) -> ObjectField {
         ObjectField::new_tool_input(vec![StringField::new(
             "input",
@@ -45,6 +41,13 @@ pub trait Tool: Send + Sync {
             None,
         )
         .into()])
+    }
+
+    /// Value for `strict` in the OpenAI function call
+    ///
+    /// If not implemented, it will default to `false`
+    fn strict(&self) -> bool {
+        false
     }
 
     /// Processes an input string and executes the tool's functionality, returning a `Result`.
@@ -74,6 +77,7 @@ pub trait Tool: Send + Sync {
             .name(self.name().replace(" ", "_"))
             .description(self.description())
             .parameters(self.parameters().to_openai_field())
+            .strict(self.strict())
             .build()?;
 
         ChatCompletionToolArgs::default()

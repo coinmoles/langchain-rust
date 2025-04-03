@@ -4,8 +4,10 @@ use async_trait::async_trait;
 use derive_new::new;
 use serde_json::Value;
 
-use super::{tool_field::{ObjectField, StringField}, Tool};
-
+use super::{
+    tool_field::{ObjectField, StringField},
+    Tool,
+};
 
 #[async_trait]
 pub trait ToolFunction: Default + Send + Sync + Into<Arc<dyn Tool>> {
@@ -24,6 +26,10 @@ pub trait ToolFunction: Default + Send + Sync + Into<Arc<dyn Tool>> {
             None,
         )
         .into()])
+    }
+
+    fn strict(&self) -> bool {
+        false
     }
 
     /// Executes the core functionality of the tool.
@@ -71,6 +77,10 @@ where
 
     fn parameters(&self) -> ObjectField {
         self.tool.parameters()
+    }
+
+    fn strict(&self) -> bool {
+        self.tool.strict()
     }
 
     async fn call(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {
