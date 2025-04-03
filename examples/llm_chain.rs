@@ -1,7 +1,7 @@
 use langchain_rust::{
     chain::{Chain, LLMChainBuilder},
     language_models::llm::LLM,
-    llm::openai::OpenAI,
+    llm::{openai::OpenAI, OpenAIConfig},
     placeholder_replacements, prompt_template,
     schemas::{messages::Message, InputVariables, MessageType},
     template::{MessageOrTemplate, MessageTemplate},
@@ -12,8 +12,10 @@ use langchain_rust::{
 async fn main() {
     //We can then initialize the model:
     // If you'd prefer not to set an environment variable you can pass the key in directly via the `openai_api_key` named parameter when initiating the OpenAI LLM class:
-    //let open_ai = OpenAI::default().with_api_key("...");
-    let open_ai = OpenAI::default();
+    // let open_ai = OpenAI::builder()
+    //     .with_api_config(OpenAIConfig::default().with_api_key("..."))
+    //     .build();
+    let open_ai: OpenAI<OpenAIConfig> = OpenAI::default();
 
     //Once you've installed and initialized the LLM of your choice, we can try using it! Let's ask it what LangSmith is - this is something that wasn't present in the training data so it shouldn't have a very good response.
     let resp = open_ai.invoke("What is rust").await.unwrap();

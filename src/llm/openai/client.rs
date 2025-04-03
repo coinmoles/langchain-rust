@@ -1,10 +1,10 @@
-use std::{fmt, pin::Pin};
+use std::pin::Pin;
 
 pub use async_openai::config::{AzureConfig, Config, OpenAIConfig};
 
 use async_openai::{
     types::{CreateChatCompletionResponse, CreateChatCompletionStreamResponse},
-    Client,
+    Client as OpenAIClient,
 };
 use async_trait::async_trait;
 use futures::{Stream, StreamExt};
@@ -21,68 +21,30 @@ use crate::{
 use super::{
     helper::{construct_chat_completion_response, select_choice},
     request::OpenAIRequest,
+    OpenAIBuilder, OpenAIModel,
 };
 
 #[derive(Clone)]
-pub enum OpenAIModel {
-    Gpt35,
-    Gpt4,
-    Gpt4Turbo,
-    Gpt4o,
-    Gpt4oMini,
-}
-
-impl fmt::Display for OpenAIModel {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            OpenAIModel::Gpt35 => write!(f, "gpt-3.5-turbo"),
-            OpenAIModel::Gpt4 => write!(f, "gpt-4"),
-            OpenAIModel::Gpt4Turbo => write!(f, "gpt-4-turbo-preview"),
-            OpenAIModel::Gpt4o => write!(f, "gpt-4o"),
-            OpenAIModel::Gpt4oMini => write!(f, "gpt-4o-mini"),
-        }
-    }
-}
-
-impl From<OpenAIModel> for String {
-    fn from(val: OpenAIModel) -> Self {
-        val.to_string()
-    }
-}
-
-#[derive(Clone)]
 pub struct OpenAI<C: Config> {
-    config: C,
-    options: CallOptions,
+    client: OpenAIClient<C>,
     model: String,
+    call_options: CallOptions,
 }
 
 impl<C: Config> OpenAI<C> {
-    pub fn new(config: C) -> Self {
+    pub fn new<S>(client: OpenAIClient<C>, model: S, call_options: CallOptions) -> Self
+    where
+        S: Into<String>,
+    {
         Self {
-            config,
-            options: CallOptions::default(),
-            model: OpenAIModel::Gpt4oMini.to_string(),
+            client,
+            model: model.into(),
+            call_options,
         }
     }
 
-    pub fn with_model<S: Into<String>>(mut self, model: S) -> Self {
-        self.model = model.into();
-        self
-    }
-
-    pub fn with_config(mut self, config: C) -> Self {
-        self.config = config;
-        self
-    }
-
-    pub fn with_options(mut self, options: CallOptions) -> Self {
-        self.options = options;
-        self
-    }
-
     fn process_prompt(&self, prompt: Vec<Message>) -> Vec<Message> {
-        if self.options.system_is_assistant {
+        if self.call_options.system_is_assistant {
             prompt
                 .into_iter()
                 .map(|message| match message.message_type {
@@ -98,9 +60,19 @@ impl<C: Config> OpenAI<C> {
     }
 }
 
+impl<C: Config + Default> OpenAI<C> {
+    pub fn builder() -> OpenAIBuilder<C> {
+        OpenAIBuilder::default()
+    }
+}
+
 impl Default for OpenAI<OpenAIConfig> {
     fn default() -> Self {
-        Self::new(OpenAIConfig::default())
+        Self::new(
+            OpenAIClient::default(),
+            OpenAIModel::Gpt4oMini,
+            CallOptions::default(),
+        )
     }
 }
 
@@ -109,14 +81,14 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAI<C> {
     async fn generate(&self, prompt: Vec<Message>) -> Result<GenerateResult, LLMError> {
         let messages = self.process_prompt(prompt);
 
-        let client = Client::with_config(self.config.clone()).with_http_client(
+        let client = self.client.clone().with_http_client(
             reqwest::Client::builder()
                 .connection_verbose(true)
                 .build()?,
         );
-        let request = OpenAIRequest::build_request(&self.model, messages, &self.options)?;
+        let request = OpenAIRequest::build_request(&self.model, messages, &self.call_options)?;
 
-        match &self.options.stream_option {
+        match &self.call_options.stream_option {
             Some(stream_option) => {
                 let stream = client
                     .chat()
@@ -158,10 +130,10 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAI<C> {
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, LLMError>> + Send>>, LLMError> {
         let messages = self.process_prompt(messages);
 
-        let client = Client::with_config(self.config.clone());
-        let request = OpenAIRequest::build_request(&self.model, messages, &self.options)?;
+        let request = OpenAIRequest::build_request(&self.model, messages, &self.call_options)?;
 
-        let original_stream = client
+        let original_stream = self
+            .client
             .chat()
             .create_stream_byot::<_, CreateChatCompletionStreamResponse>(request)
             .await?;
@@ -194,8 +166,8 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAI<C> {
         Ok(Box::pin(new_stream))
     }
 
-    fn add_options(&mut self, options: CallOptions) {
-        self.options.merge_options(options)
+    fn add_call_options(&mut self, call_options: CallOptions) {
+        self.call_options.merge_options(call_options)
     }
 }
 
@@ -237,12 +209,13 @@ mod tests {
                 }
             }
         };
-        let options = CallOptions::new()
+        let call_options = CallOptions::new()
             .with_stream(StreamOption::default().with_streaming_func(streaming_func));
         // Setup the OpenAI client with the necessary options
-        let open_ai = OpenAI::new(OpenAIConfig::default())
+        let open_ai: OpenAI<OpenAIConfig> = OpenAI::builder()
             .with_model(OpenAIModel::Gpt35.to_string()) // You can change the model as needed
-            .with_options(options);
+            .with_call_options(call_options)
+            .build();
 
         // Define a set of messages to send to the generate function
 
@@ -285,12 +258,13 @@ mod tests {
             }
         };
         // Define the streaming function as an async block without capturing external references directly
-        let options = CallOptions::new()
+        let call_options = CallOptions::new()
             .with_stream(StreamOption::default().with_streaming_func(streaming_func));
         // Setup the OpenAI client with the necessary options
-        let open_ai = OpenAI::new(OpenAIConfig::default())
+        let open_ai: OpenAI<OpenAIConfig> = OpenAI::builder()
             .with_model(OpenAIModel::Gpt35.to_string()) // You can change the model as needed
-            .with_options(options);
+            .with_call_options(call_options)
+            .build();
 
         // Define a set of messages to send to the generate function
         let messages = vec![Message::new(
@@ -337,10 +311,10 @@ mod tests {
             .build()
             .unwrap()];
 
-        let llm = OpenAI::default()
-            .with_model(OpenAIModel::Gpt35)
-            .with_config(OpenAIConfig::new())
-            .with_options(CallOptions::new().with_tools(tools));
+        let llm: OpenAI<OpenAIConfig> = OpenAI::builder()
+            .with_call_options(CallOptions::new().with_tools(tools))
+            .build();
+
         let response = llm
             .invoke("Use the command line to create a new rust project. Execute the first command.")
             .await
@@ -352,8 +326,9 @@ mod tests {
     #[ignore]
     async fn test_generate_with_image_message() {
         // Setup the OpenAI client with the necessary options
-        let open_ai =
-            OpenAI::new(OpenAIConfig::default()).with_model(OpenAIModel::Gpt4o.to_string());
+        let open_ai: OpenAI<OpenAIConfig> = OpenAI::builder()
+            .with_model(OpenAIModel::Gpt4o.to_string())
+            .build();
 
         // Convert image to base64
         let image = std::fs::read("./src/llm/test_data/example.jpg").unwrap();

@@ -26,7 +26,7 @@ pub trait Chain: Sync + Send {
     /// ```rust,ignore
     /// # use crate::my_crate::{Chain, ConversationalChainBuilder, OpenAI, OpenAIModel, SimpleMemory, PromptArgs, prompt_args};
     /// # async {
-    /// let llm = OpenAI::default().with_model(OpenAIModel::Gpt35);
+    /// let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt35).builder();
     /// let memory = SimpleMemory::new();
     ///
     /// let chain = ConversationalChainBuilder::new()

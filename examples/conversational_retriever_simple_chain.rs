@@ -40,7 +40,7 @@
 // }
 // #[tokio::main]
 // async fn main() {
-//     let llm = OpenAI::default().with_model(OpenAIModel::Gpt35.to_string());
+//     let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt35.to_string()).build();
 //     let prompt = prompt_template![
 //         Message::new(MessageType::SystemMessage, "You are a helpful assistant"),
 //         MessageTemplate::from_jinja2(

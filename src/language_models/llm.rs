@@ -24,7 +24,7 @@ pub trait LLM: Sync + Send + LLMClone {
 
     /// This is useful when you want to create a chain and override
     /// LLM options
-    fn add_options(&mut self, _options: CallOptions);
+    fn add_call_options(&mut self, call_options: CallOptions);
 
     //This is usefull when using non chat models
     fn messages_to_string(&self, messages: &[Message]) -> String {

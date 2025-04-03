@@ -101,6 +101,7 @@ impl Agent for ConversationalAgent {
 mod tests {
     use std::{error::Error, sync::Arc};
 
+    use async_openai::config::OpenAIConfig;
     use async_trait::async_trait;
     use serde_json::Value;
 
@@ -145,7 +146,9 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_invoke_agent() {
-        let llm = OpenAI::default().with_model(OpenAIModel::Gpt4.to_string());
+        let llm: OpenAI<OpenAIConfig> = OpenAI::builder()
+            .with_model(OpenAIModel::Gpt4.to_string())
+            .build();
         let memory = SimpleMemory::new();
         let tool_calc = Calc::default();
         let agent = ConversationalAgentBuilder::new()

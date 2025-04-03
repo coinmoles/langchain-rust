@@ -1,6 +1,9 @@
 use langchain_rust::{
     chain::{Chain, LLMChainBuilder},
-    llm::openai::{OpenAI, OpenAIModel},
+    llm::{
+        openai::{OpenAI, OpenAIModel},
+        OpenAIConfig,
+    },
     schemas::MessageType,
     template::MessageTemplate,
     text_replacements,
@@ -14,7 +17,7 @@ async fn main() {
         "Give me a creative name for a store that sells: {{producto}}",
     );
 
-    let llm = OpenAI::default().with_model(OpenAIModel::Gpt35);
+    let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt35).build();
     let chain = LLMChainBuilder::new()
         .prompt(prompt)
         .llm(llm)

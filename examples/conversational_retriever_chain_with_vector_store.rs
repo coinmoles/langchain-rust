@@ -10,7 +10,7 @@ use langchain_rust::{
     chain::StuffQABuilder,
     chain::{Chain, ConversationalRetrieverChainBuilder},
     embedding::openai::openai_embedder::OpenAiEmbedder,
-    llm::{OpenAI, OpenAIModel},
+    llm::OpenAI,
     memory::SimpleMemory,
     prompt_template,
     schemas::Document,
@@ -22,7 +22,10 @@ use langchain_rust::{
 #[cfg(feature = "postgres")]
 #[tokio::main]
 async fn main() {
-    use langchain_rust::schemas::InputVariables;
+    use langchain_rust::{
+        llm::{OpenAIConfig, OpenAIModel},
+        schemas::InputVariables,
+    };
 
     let documents = vec![
         Document::new(format!(
@@ -56,7 +59,7 @@ async fn main() {
         println!("Error adding documents: {:?}", e);
     });
 
-    let llm = OpenAI::default().with_model(OpenAIModel::Gpt35.to_string());
+    let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt35).build();
     let prompt = prompt_template![
         Message::new(MessageType::SystemMessage, "You are a helpful assistant"),
         MessageTemplate::from_jinja2(

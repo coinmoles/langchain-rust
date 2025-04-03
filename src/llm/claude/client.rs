@@ -219,8 +219,8 @@ impl LLM for Claude {
         Ok(Box::pin(processed_stream))
     }
 
-    fn add_options(&mut self, options: CallOptions) {
-        self.options.merge_options(options)
+    fn add_call_options(&mut self, call_options: CallOptions) {
+        self.options.merge_options(call_options)
     }
 }
 

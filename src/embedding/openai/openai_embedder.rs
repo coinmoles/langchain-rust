@@ -4,13 +4,13 @@ use crate::embedding::{embedder_trait::Embedder, EmbedderError};
 pub use async_openai::config::{AzureConfig, Config, OpenAIConfig};
 use async_openai::{
     types::{CreateEmbeddingRequestArgs, EmbeddingInput},
-    Client,
+    Client as OpenAIClient,
 };
 use async_trait::async_trait;
 
 #[derive(Debug)]
 pub struct OpenAiEmbedder<C: Config> {
-    config: C,
+    api_config: C,
     model: String,
 }
 
@@ -23,7 +23,7 @@ impl<C: Config + Send + Sync + 'static> From<OpenAiEmbedder<C>> for Box<dyn Embe
 impl<C: Config> OpenAiEmbedder<C> {
     pub fn new(config: C) -> Self {
         OpenAiEmbedder {
-            config,
+            api_config: config,
             model: String::from("text-embedding-ada-002"),
         }
     }
@@ -33,8 +33,8 @@ impl<C: Config> OpenAiEmbedder<C> {
         self
     }
 
-    pub fn with_config(mut self, config: C) -> Self {
-        self.config = config;
+    pub fn with_api_config(mut self, api_config: C) -> Self {
+        self.api_config = api_config;
         self
     }
 }
@@ -48,7 +48,7 @@ impl Default for OpenAiEmbedder<OpenAIConfig> {
 #[async_trait]
 impl<C: Config + Send + Sync> Embedder for OpenAiEmbedder<C> {
     async fn embed_documents(&self, documents: &[String]) -> Result<Vec<Vec<f64>>, EmbedderError> {
-        let client = Client::with_config(self.config.clone());
+        let client = OpenAIClient::with_config(self.api_config.clone());
 
         let request = CreateEmbeddingRequestArgs::default()
             .model(&self.model)
@@ -73,7 +73,7 @@ impl<C: Config + Send + Sync> Embedder for OpenAiEmbedder<C> {
     }
 
     async fn embed_query(&self, text: &str) -> Result<Vec<f64>, EmbedderError> {
-        let client = Client::with_config(self.config.clone());
+        let client = OpenAIClient::with_config(self.api_config.clone());
 
         let request = CreateEmbeddingRequestArgs::default()
             .model(&self.model)

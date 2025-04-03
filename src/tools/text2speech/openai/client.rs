@@ -13,7 +13,7 @@ use crate::tools::{SpeechStorage, Tool};
 
 #[derive(Clone)]
 pub struct Text2SpeechOpenAI<C: Config> {
-    config: C,
+    api_config: C,
     model: SpeechModel,
     voice: Voice,
     storage: Option<Arc<dyn SpeechStorage>>,
@@ -22,9 +22,9 @@ pub struct Text2SpeechOpenAI<C: Config> {
 }
 
 impl<C: Config> Text2SpeechOpenAI<C> {
-    pub fn new(config: C) -> Self {
+    pub fn new(api_config: C) -> Self {
         Self {
-            config,
+            api_config,
             model: SpeechModel::Tts1,
             voice: Voice::Alloy,
             storage: None,
@@ -58,8 +58,8 @@ impl<C: Config> Text2SpeechOpenAI<C> {
         self
     }
 
-    pub fn with_config(mut self, config: C) -> Self {
-        self.config = config;
+    pub fn with_api_config(mut self, api_config: C) -> Self {
+        self.api_config = api_config;
         self
     }
 }

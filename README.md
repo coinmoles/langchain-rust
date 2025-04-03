@@ -303,12 +303,14 @@ use langchain_rust::{
 async fn main() {
     //We can then initialize the model:
     // If you'd prefer not to set an environment variable you can pass the key in directly via the `openai_api_key` named parameter when initiating the OpenAI LLM class:
-    // let open_ai = OpenAI::default()
-    //     .with_config(
+    // let open_ai = OpenAI::builder()
+    //     .with_api_config(
     //         OpenAIConfig::default()
     //             .with_api_key("<your_key>"),
-    //     ).with_model(OpenAIModel::Gpt4oMini.to_string());
-    let open_ai = OpenAI::default().with_model(OpenAIModel::Gpt4oMini.to_string());
+    //     )
+    //     .with_model(OpenAIModel::Gpt4oMini.to_string())
+    //     .build();
+    let open_ai: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt4oMini).build();
 
 
     //Once you've installed and initialized the LLM of your choice, we can try using it! Let's ask it what LangSmith is - this is something that wasn't present in the training data so it shouldn't have a very good response.

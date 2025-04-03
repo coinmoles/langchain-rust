@@ -134,6 +134,8 @@ impl Chain for LLMChain {
 
 #[cfg(test)]
 mod tests {
+    use async_openai::config::OpenAIConfig;
+
     use crate::{
         llm::openai::{OpenAI, OpenAIModel},
         prompt_template,
@@ -159,7 +161,7 @@ mod tests {
         // Use the `message_formatter` macro to construct the formatter
         let prompt = prompt_template!(human_message_prompt);
 
-        let llm = OpenAI::default().with_model(OpenAIModel::Gpt35.to_string());
+        let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt35).build();
         let chain = LLMChainBuilder::new()
             .prompt(prompt)
             .llm(llm)

@@ -162,6 +162,8 @@ impl Chain for ConversationalChain {
 
 #[cfg(test)]
 mod tests {
+    use async_openai::config::OpenAIConfig;
+
     use crate::{
         chain::conversational::builder::ConversationalChainBuilder,
         llm::openai::{OpenAI, OpenAIModel},
@@ -173,7 +175,9 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_invoke_conversational() {
-        let llm = OpenAI::default().with_model(OpenAIModel::Gpt35.to_string());
+        let llm: OpenAI<OpenAIConfig> = OpenAI::builder()
+            .with_model(OpenAIModel::Gpt35.to_string())
+            .build();
         let chain = ConversationalChainBuilder::new()
             .llm(llm)
             .build()

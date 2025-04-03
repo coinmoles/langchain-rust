@@ -1,10 +1,15 @@
 #[cfg(feature = "ollama")]
-use langchain_rust::{language_models::llm::LLM, llm::ollama::client::Ollama};
+use langchain_rust::language_models::llm::LLM;
 
 #[cfg(feature = "ollama")]
 #[tokio::main]
 async fn main() {
-    let ollama = Ollama::default().with_model("llama3.2");
+    use langchain_rust::llm::{OpenAI, OpenAIConfig};
+
+    let ollama = OpenAI::builder()
+        .with_api_config(OpenAIConfig::default().with_api_base("Ollama API base"))
+        .with_model("llama3.2")
+        .build();
 
     let response = ollama.invoke("Hi").await.unwrap();
     println!("{}", response);

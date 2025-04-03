@@ -10,7 +10,7 @@
 
 // #[tokio::main]
 // async fn main() {
-//     let llm = OpenAI::default().with_model(OpenAIModel::Gpt35);
+//     let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt35).build();
 //     let prompt = MessageTemplate::from_jinja2(
 //         MessageType::HumanMessage,
 //         "Dame un nombre creativo para una tienda que vende: {{producto}}",

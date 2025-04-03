@@ -1,7 +1,10 @@
 use langchain_rust::{
     agent::{AgentExecutor, ConversationalAgentBuilder},
     chain::Chain,
-    llm::openai::{OpenAI, OpenAIModel},
+    llm::{
+        openai::{OpenAI, OpenAIModel},
+        OpenAIConfig,
+    },
     memory::SimpleMemory,
     schemas::InputVariables,
     text_replacements,
@@ -10,7 +13,7 @@ use langchain_rust::{
 
 #[tokio::main]
 async fn main() {
-    let llm = OpenAI::default().with_model(OpenAIModel::Gpt4Turbo);
+    let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt4Turbo).build();
     let memory = SimpleMemory::new();
     let command_executor = CommandExecutor::default();
     let agent = ConversationalAgentBuilder::new()

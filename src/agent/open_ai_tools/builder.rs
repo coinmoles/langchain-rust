@@ -58,7 +58,7 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
             .map(|tool| tool.try_into_opeai_tool())
             .collect::<Result<Vec<ChatCompletionTool>, _>>()
             .map_err(LLMError::from)?;
-        llm.add_options(CallOptions::new().with_tools(tools_openai));
+        llm.add_call_options(CallOptions::new().with_tools(tools_openai));
         let chain = Box::new(LLMChainBuilder::new().prompt(prompt).llm(llm).build()?);
 
         Ok(OpenAiToolAgent { chain, tools })
