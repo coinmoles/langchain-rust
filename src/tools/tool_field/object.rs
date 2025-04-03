@@ -95,6 +95,9 @@ impl ToolField for ObjectField {
             fields.insert("description".into(), description.into());
         }
 
+        let additional_properties = self.additional_properties.unwrap_or(true);
+        fields.insert("additionalProperties".into(), additional_properties.into());
+
         Value::Object(fields)
     }
 
@@ -206,7 +209,8 @@ mod tests {
             json!({
                 "type": "object",
                 "properties": {},
-                "required": []
+                "required": [],
+                "additionalProperties": true
             })
         );
 
@@ -244,7 +248,8 @@ mod tests {
                         "description": "Max number of articles to search"
                     }
                 },
-                "required": ["query"]
+                "required": ["query"],
+                "additionalProperties": true
             })
         )
     }
