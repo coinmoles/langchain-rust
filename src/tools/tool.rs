@@ -34,13 +34,12 @@ pub trait Tool: Send + Sync {
     /// }
     /// ```
     fn parameters(&self) -> ObjectField {
-        ObjectField::new_tool_input(vec![StringField::new(
-            "input",
-            Some("The input for the tool".into()),
+        ObjectField::new_tool_input(
+            vec![
+                StringField::new("input", Some("The input for the tool".into()), true, None).into(),
+            ],
             true,
-            None,
         )
-        .into()])
     }
 
     /// Value for `strict` in the OpenAI function call

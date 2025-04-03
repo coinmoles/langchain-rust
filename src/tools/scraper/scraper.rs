@@ -23,14 +23,22 @@ impl ToolFunction for WebScrapper {
     fn description(&self) -> String {
         "Scan a url and return the content of the web page.".into()
     }
+
     fn parameters(&self) -> ObjectField {
-        ObjectField::new_tool_input(vec![StringField::new(
-            "input",
-            Some("The URL to scrape, MUST be a working URL".into()),
+        ObjectField::new_tool_input(
+            vec![StringField::new(
+                "input",
+                Some("The URL to scrape, MUST be a working URL".into()),
+                true,
+                None,
+            )
+            .into()],
             true,
-            None,
         )
-        .into()])
+    }
+
+    fn strict(&self) -> bool {
+        true
     }
 
     async fn parse_input(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {

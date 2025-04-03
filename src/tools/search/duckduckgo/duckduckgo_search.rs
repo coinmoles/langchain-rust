@@ -100,13 +100,17 @@ impl ToolFunction for DuckDuckGoSearch {
     }
 
     fn parameters(&self) -> ObjectField {
-        ObjectField::new_tool_input(vec![StringField::new(
-            "query",
-            Some("Search query to look up".into()),
+        ObjectField::new_tool_input(
+            vec![
+                StringField::new("query", Some("Search query to look up".into()), true, None)
+                    .into(),
+            ],
             true,
-            None,
         )
-        .into()])
+    }
+
+    fn strict(&self) -> bool {
+        true
     }
 
     async fn parse_input(&self, input: Value) -> Result<Self::Input, Box<dyn Error + Send + Sync>> {

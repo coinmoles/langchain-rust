@@ -30,8 +30,10 @@ impl ObjectField {
         }
     }
 
-    pub fn new_tool_input(properties: Vec<Box<dyn ToolField>>) -> Self {
-        Self::new("input", None, true, properties, None)
+    pub fn new_tool_input(properties: Vec<Box<dyn ToolField>>, strict: bool) -> Self {
+        let additional_properties = if strict { Some(false) } else { None };
+
+        Self::new("input", None, true, properties, additional_properties)
     }
 
     pub fn properties_description(&self) -> String {

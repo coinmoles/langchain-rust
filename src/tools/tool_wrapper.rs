@@ -19,13 +19,12 @@ pub trait ToolFunction: Default + Send + Sync + Into<Arc<dyn Tool>> {
     fn description(&self) -> String;
 
     fn parameters(&self) -> ObjectField {
-        ObjectField::new_tool_input(vec![StringField::new(
-            "input",
-            Some("The input for the tool".into()),
+        ObjectField::new_tool_input(
+            vec![
+                StringField::new("input", Some("The input for the tool".into()), true, None).into(),
+            ],
             true,
-            None,
         )
-        .into()])
     }
 
     fn strict(&self) -> bool {
