@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::{collections::HashMap, error::Error};
 
-use crate::schemas::{GenerateResultContent, ToolCall};
+use crate::schemas::{AgentResult, GenerateResultContent, ToolCall};
 use crate::{
     agent::{Agent, AgentError},
     chain::Chain,
@@ -62,21 +62,24 @@ impl Agent for OpenAiToolAgent {
         &self,
         intermediate_steps: &[(ToolCall, String)],
         inputs: &mut InputVariables,
-    ) -> Result<AgentEvent, AgentError> {
+    ) -> Result<AgentResult, AgentError> {
         let scratchpad = self.construct_scratchpad(intermediate_steps);
         inputs.insert_placeholder_replacement("agent_scratchpad", scratchpad);
         let output = self.chain.call(inputs).await?;
 
-        match output.content {
-            GenerateResultContent::Text(text) => Ok(AgentEvent::Finish(text)),
-            GenerateResultContent::ToolCall(tool_calls) => Ok(AgentEvent::Action(tool_calls)),
+        let content = match output.content {
+            GenerateResultContent::Text(text) => AgentEvent::Finish(text),
+            GenerateResultContent::ToolCall(tool_calls) => AgentEvent::Action(tool_calls),
             GenerateResultContent::Refusal(refusal) => {
                 return Err(AgentError::LLMError(LLMError::OtherError(format!(
                     "LLM refused to answer: {}",
                     refusal
                 ))));
             }
-        }
+        };
+        let usage = output.usage;
+
+        Ok(AgentResult { content, usage })
     }
 
     fn get_tool(&self, tool_name: &str) -> Option<Arc<dyn Tool>> {

@@ -10,9 +10,8 @@ use super::{agent::Agent, AgentError, FinalAnswerValidator};
 use crate::{
     chain::{chain_trait::Chain, ChainError},
     schemas::{
-        agent_plan::AgentEvent,
-        memory::BaseMemory,
-        InputVariables, Message, MessageType, {GenerateResult, GenerateResultContent, ToolCall},
+        agent_plan::AgentEvent, memory::BaseMemory, AgentResult, GenerateResult,
+        GenerateResultContent, InputVariables, Message, MessageType, TokenUsage, ToolCall,
     },
 };
 
@@ -75,6 +74,7 @@ impl Chain for AgentExecutor {
         let mut steps: Vec<(ToolCall, String)> = Vec::new();
         let mut use_counts: HashMap<String, usize> = HashMap::new();
         let mut consecutive_fails: usize = 0;
+        let mut total_usage: Option<TokenUsage> = None;
 
         if let Some(memory) = &self.memory {
             let memory: tokio::sync::MutexGuard<'_, dyn BaseMemory> = memory.lock().await;
@@ -104,10 +104,25 @@ impl Chain for AgentExecutor {
                 return Err(ChainError::AgentError("Too many consecutive fails".into()));
             }
 
-            let agent_event = self.agent.plan(&steps, input_variables).await;
+            let AgentResult { content, usage } =
+                match self.agent.plan(&steps, input_variables).await {
+                    Ok(agent_event) => agent_event,
+                    Err(e) => {
+                        consecutive_fails += 1;
+                        log::warn!("Error: {} ({} consecutive fails)", e, consecutive_fails);
+                        continue 'step;
+                    }
+                };
 
-            match agent_event {
-                Ok(AgentEvent::Action(tool_calls)) => {
+            total_usage = match (total_usage, usage) {
+                (None, None) => None,
+                (Some(total_usage), None) => Some(total_usage),
+                (None, Some(usage)) => Some(usage),
+                (Some(total_usage), Some(usage)) => Some(total_usage.merge(&usage)),
+            };
+
+            match content {
+                AgentEvent::Action(tool_calls) => {
                     if self
                         .max_iterations
                         .is_some_and(|max_iterations| steps.len() >= max_iterations)
@@ -156,8 +171,8 @@ impl Chain for AgentExecutor {
                             }
                         }
 
-                        let observation = match tool.call(tool_call.arguments.clone()).await {
-                            Ok(observation) => observation,
+                        let result = match tool.call(tool_call.arguments.clone()).await {
+                            Ok(result) => result,
                             Err(e) => {
                                 log::warn!(
                                     "Tool '{}' encountered an error: {}",
@@ -180,13 +195,13 @@ impl Chain for AgentExecutor {
                             }
                         };
 
-                        log::debug!("Tool {} result:\n{}", &tool_call.name, &observation);
+                        log::debug!("Tool {} result:\n{}", &tool_call.name, &result);
 
-                        steps.push((tool_call, observation));
+                        steps.push((tool_call, result));
                         consecutive_fails = 0;
                     }
                 }
-                Ok(AgentEvent::Finish(final_answer)) => {
+                AgentEvent::Finish(final_answer) => {
                     if let Some(validator) = &self.final_answer_validator {
                         if !validator.validate_final_answer(&final_answer, &steps) {
                             log::warn!(
@@ -231,12 +246,8 @@ impl Chain for AgentExecutor {
 
                     return Ok(GenerateResult {
                         content: GenerateResultContent::Text(final_answer),
-                        ..GenerateResult::default()
+                        usage: total_usage,
                     });
-                }
-                Err(e) => {
-                    consecutive_fails += 1;
-                    log::warn!("Error: {} ({} consecutive fails)", e, consecutive_fails);
                 }
             }
         }

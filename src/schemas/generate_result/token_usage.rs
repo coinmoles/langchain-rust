@@ -19,6 +19,16 @@ impl TokenUsage {
     }
 }
 
+impl TokenUsage {
+    pub fn merge(&self, other: &TokenUsage) -> Self {
+        TokenUsage {
+            prompt_tokens: self.prompt_tokens + other.prompt_tokens,
+            completion_tokens: self.completion_tokens + other.completion_tokens,
+            total_tokens: self.total_tokens + other.total_tokens,
+        }
+    }
+}
+
 // Convert from async-openai type
 impl From<CompletionUsage> for TokenUsage {
     fn from(usage: CompletionUsage) -> Self {

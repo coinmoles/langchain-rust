@@ -3,7 +3,7 @@ use std::{error::Error, sync::Arc};
 use async_trait::async_trait;
 
 use crate::{
-    schemas::{agent_plan::AgentEvent, InputVariables, ToolCall},
+    schemas::{AgentResult, InputVariables, ToolCall},
     tools::Tool,
 };
 
@@ -15,7 +15,7 @@ pub trait Agent: Send + Sync {
         &self,
         intermediate_steps: &[(ToolCall, String)],
         inputs: &mut InputVariables,
-    ) -> Result<AgentEvent, AgentError>;
+    ) -> Result<AgentResult, AgentError>;
 
     fn get_tool(&self, tool_name: &str) -> Option<Arc<dyn Tool>>;
 

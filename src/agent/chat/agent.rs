@@ -6,7 +6,7 @@ use crate::{
     agent::{agent::Agent, AgentError},
     chain::chain_trait::Chain,
     prompt_template,
-    schemas::{agent_plan::AgentEvent, InputVariables, Message, MessageType, ToolCall},
+    schemas::{AgentResult, InputVariables, Message, MessageType, ToolCall},
     template::{MessageOrTemplate, MessageTemplate, PromptTemplate},
     text_replacements,
     tools::Tool,
@@ -73,12 +73,15 @@ impl Agent for ConversationalAgent {
         &self,
         intermediate_steps: &[(ToolCall, String)],
         inputs: &mut InputVariables,
-    ) -> Result<AgentEvent, AgentError> {
+    ) -> Result<AgentResult, AgentError> {
         let scratchpad = self.construct_scratchpad(intermediate_steps);
         inputs.insert_placeholder_replacement("agent_scratchpad", scratchpad);
         let output = self.chain.call(inputs).await?;
 
-        parse_agent_output(&output.content.text())
+        let content = parse_agent_output(&output.content.text())?;
+        let usage = output.usage;
+
+        Ok(AgentResult { content, usage })
     }
 
     fn get_tool(&self, tool_name: &str) -> Option<Arc<dyn Tool>> {
