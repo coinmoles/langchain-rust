@@ -99,26 +99,26 @@ impl Chain for AgentExecutor {
 
             match agent_event {
                 Ok(AgentEvent::Action(actions)) => {
-                    for action in actions {
-                        if self
-                            .max_iterations
-                            .is_some_and(|max_iterations| steps.len() >= max_iterations)
-                        {
-                            log::warn!(
-                                "Max iteration ({}) reached, forcing final answer",
-                                self.max_iterations.unwrap()
-                            );
-                            input_variables.insert_placeholder_replacement(
-                                "ultimatum",
-                                vec![
-                                    Message::new(MessageType::AIMessage, ""),
-                                    Message::new(MessageType::HumanMessage, FORCE_FINAL_ANSWER),
-                                ],
-                            );
-                            // TODO: Add ultimatum template
-                            continue 'step;
-                        }
+                    if self
+                        .max_iterations
+                        .is_some_and(|max_iterations| steps.len() >= max_iterations)
+                    {
+                        log::warn!(
+                            "Max iteration ({}) reached, forcing final answer",
+                            self.max_iterations.unwrap()
+                        );
+                        input_variables.insert_placeholder_replacement(
+                            "ultimatum",
+                            vec![
+                                Message::new(MessageType::AIMessage, ""),
+                                Message::new(MessageType::HumanMessage, FORCE_FINAL_ANSWER),
+                            ],
+                        );
+                        // TODO: Add ultimatum template
+                        continue 'step;
+                    }
 
+                    for action in actions {
                         log::debug!(
                             indoc! {"
                                 Agent Action:
