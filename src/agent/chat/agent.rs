@@ -8,7 +8,6 @@ use crate::{
     prompt_template,
     schemas::{
         agent::{AgentAction, AgentEvent},
-        generate_result::ToolCall,
         InputVariables, Message, MessageType,
     },
     template::{MessageOrTemplate, MessageTemplate, PromptTemplate},
@@ -63,12 +62,8 @@ impl ConversationalAgent {
             .iter()
             .flat_map(|(action, result)| {
                 vec![
-                    Message::new(MessageType::AIMessage, "").with_tool_calls(vec![ToolCall {
-                        id: action.id.clone(),
-                        name: action.action.clone(),
-                        arguments: action.action_input.clone(),
-                    }]),
-                    Message::new_tool_message(Some(action.id.clone()), result),
+                    Message::new(MessageType::AIMessage, action),
+                    Message::new(MessageType::HumanMessage, result),
                 ]
             })
             .collect::<Vec<_>>()

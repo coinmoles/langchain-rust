@@ -1,3 +1,6 @@
+use std::fmt::{self, Display};
+
+use indoc::indoc;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::mpsc;
@@ -7,6 +10,31 @@ pub struct AgentAction {
     pub id: String,
     pub action: String,
     pub action_input: Value,
+}
+
+impl Display for AgentAction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            indoc! {r#"
+            {{ 
+                "action": "{}", 
+                "action_input": {} 
+            }}"#},
+            self.action,
+            serde_json::to_string_pretty(&self.action_input)
+                .unwrap_or_else(|_| self.action_input.to_string())
+                .lines()
+                .enumerate()
+                .map(|(i, line)| if i == 0 {
+                    line.into()
+                } else {
+                    format!("    {}", line)
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        )
+    }
 }
 
 #[derive(Debug)]
