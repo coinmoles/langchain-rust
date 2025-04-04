@@ -4,9 +4,6 @@ pub use generate_result::*;
 pub mod agent_plan;
 pub use agent_plan::*;
 
-pub mod memory;
-pub use memory::*;
-
 mod input_variable;
 pub use input_variable::*;
 

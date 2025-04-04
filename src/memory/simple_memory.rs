@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use tokio::sync::Mutex;
 
-use crate::schemas::{memory::BaseMemory, messages::Message};
+use crate::schemas::messages::Message;
+
+use super::Memory;
 
 pub struct SimpleMemory {
     messages: Vec<Message>,
@@ -22,19 +24,19 @@ impl Default for SimpleMemory {
     }
 }
 
-impl From<SimpleMemory> for Arc<dyn BaseMemory> {
+impl From<SimpleMemory> for Arc<dyn Memory> {
     fn from(val: SimpleMemory) -> Self {
         Arc::new(val)
     }
 }
 
-impl From<SimpleMemory> for Arc<Mutex<dyn BaseMemory>> {
+impl From<SimpleMemory> for Arc<Mutex<dyn Memory>> {
     fn from(val: SimpleMemory) -> Self {
         Arc::new(Mutex::new(val))
     }
 }
 
-impl BaseMemory for SimpleMemory {
+impl Memory for SimpleMemory {
     fn messages(&self) -> Vec<Message> {
         self.messages.clone()
     }

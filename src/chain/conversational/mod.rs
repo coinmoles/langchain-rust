@@ -8,11 +8,10 @@ use tokio::sync::Mutex;
 
 use crate::{
     language_models::LLMError,
+    memory::Memory,
     schemas::{
-        {GenerateResult, GenerateResultContent},
-        memory::BaseMemory,
-        messages::Message,
-        InputVariables, MessageType, StreamData, TextReplacements,
+        messages::Message, GenerateResult, GenerateResultContent, InputVariables, MessageType,
+        StreamData, TextReplacements,
     },
     text_replacements,
 };
@@ -57,7 +56,7 @@ impl Default for ConversationalChainPromptBuilder {
 pub struct ConversationalChain {
     llm: LLMChain,
     input_key: String,
-    pub memory: Arc<Mutex<dyn BaseMemory>>,
+    pub memory: Arc<Mutex<dyn Memory>>,
 }
 
 //Conversational Chain is a simple chain to interact with ai as a string of messages

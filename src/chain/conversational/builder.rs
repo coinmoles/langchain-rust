@@ -5,9 +5,9 @@ use tokio::sync::Mutex;
 use crate::{
     chain::{llm_chain::LLMChainBuilder, ChainError, DEFAULT_OUTPUT_KEY},
     language_models::llm::LLM,
-    memory::SimpleMemory,
+    memory::{Memory, SimpleMemory},
     output_parsers::OutputParser,
-    schemas::{memory::BaseMemory, MessageType},
+    schemas::MessageType,
     template::{MessageTemplate, PromptTemplate},
 };
 
@@ -15,7 +15,7 @@ use super::{prompt::DEFAULT_TEMPLATE, ConversationalChain, DEFAULT_INPUT_VARIABL
 
 pub struct ConversationalChainBuilder {
     llm: Option<Box<dyn LLM>>,
-    memory: Option<Arc<Mutex<dyn BaseMemory>>>,
+    memory: Option<Arc<Mutex<dyn Memory>>>,
     output_key: Option<String>,
     output_parser: Option<Box<dyn OutputParser>>,
     input_key: Option<String>,
@@ -49,7 +49,7 @@ impl ConversationalChainBuilder {
         self
     }
 
-    pub fn memory(mut self, memory: Arc<Mutex<dyn BaseMemory>>) -> Self {
+    pub fn memory(mut self, memory: Arc<Mutex<dyn Memory>>) -> Self {
         self.memory = Some(memory);
         self
     }

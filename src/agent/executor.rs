@@ -9,9 +9,10 @@ use tokio::sync::Mutex;
 use super::{agent::Agent, AgentError, FinalAnswerValidator};
 use crate::{
     chain::{chain_trait::Chain, ChainError},
+    memory::Memory,
     schemas::{
-        agent_plan::AgentEvent, memory::BaseMemory, AgentResult, GenerateResult,
-        GenerateResultContent, InputVariables, Message, MessageType, TokenUsage, ToolCall,
+        agent_plan::AgentEvent, AgentResult, GenerateResult, GenerateResultContent, InputVariables,
+        Message, MessageType, TokenUsage, ToolCall,
     },
 };
 
@@ -22,7 +23,7 @@ pub struct AgentExecutor {
     max_iterations: Option<usize>,
     max_consecutive_fails: Option<usize>,
     break_if_tool_error: bool,
-    pub memory: Option<Arc<Mutex<dyn BaseMemory>>>,
+    pub memory: Option<Arc<Mutex<dyn Memory>>>,
     final_answer_validator: Option<Box<dyn FinalAnswerValidator>>,
 }
 
@@ -46,7 +47,7 @@ impl AgentExecutor {
         self
     }
 
-    pub fn with_memory(mut self, memory: Arc<Mutex<dyn BaseMemory>>) -> Self {
+    pub fn with_memory(mut self, memory: Arc<Mutex<dyn Memory>>) -> Self {
         self.memory = Some(memory);
         self
     }
@@ -77,7 +78,7 @@ impl Chain for AgentExecutor {
         let mut total_usage: Option<TokenUsage> = None;
 
         if let Some(memory) = &self.memory {
-            let memory: tokio::sync::MutexGuard<'_, dyn BaseMemory> = memory.lock().await;
+            let memory: tokio::sync::MutexGuard<'_, dyn Memory> = memory.lock().await;
             input_variables.insert_placeholder_replacement("chat_history", memory.messages());
         // TODO: Possibly implement messages parsing
         } else {
@@ -216,12 +217,12 @@ impl Chain for AgentExecutor {
                     if let Some(memory) = &self.memory {
                         let mut memory = memory.lock().await;
 
-                        memory.add_user_message(
-                            match &input_variables.get_text_replacement("input") {
-                                Some(input) => input,
-                                None => &"",
-                            },
-                        );
+                        memory.add_message(Message::new(
+                            MessageType::HumanMessage,
+                            input_variables
+                                .get_text_replacement("input")
+                                .unwrap_or(&String::new()),
+                        ));
 
                         for (tool_call, observation) in steps {
                             memory.add_message(
@@ -239,7 +240,10 @@ impl Chain for AgentExecutor {
                             ));
                         }
 
-                        memory.add_ai_message(&final_answer);
+                        memory.add_message(Message::new(
+                            MessageType::AIMessage,
+                            final_answer.clone(),
+                        ));
                     }
 
                     log::debug!("Agent finished with result:\n{}", &final_answer);
