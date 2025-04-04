@@ -6,30 +6,37 @@ Overall, Assistant is a powerful system that can help with a wide range of tasks
 
 pub const SUFFIX: &str = r#"
 
-RESPONSE FORMAT INSTRUCTIONS
-----------------------------
+<RESPONSE_FORMAT_INSTRUCTIONS>
+- You have two options(**YOU MUST NOT RETURN BOTH AT THE SAME TIME; ONLY ONE OF THEM IS ALLOWED**):
+    1. Use a tool
+    2. Give your best final answer
+- You may repeat tool use cycle as many times as needed before giving your final answer
+- ALL RESPONSES MUST BE IN JSON FORMAT
+</RESPONSE_FORMAT_INSTRUCTIONS>
 
-You MUST either use a tool (use one at time) OR give your best final answer not both at the same time. When responding, you must use the following format:
 
-```json
-{
-    "action": string, \\ The action to take, should be one of [{{tool_names}}]
-    "action_input": object \\ The input to the action, JSON object. The structure object depends on the action you are taking, and is specified in the tool description below.
-}
-```
-This Action/Action Input/Result can repeat N times. 
-
-Once you know the final answer, you must give it using the following format:
-You MUST NOT return a final_answer until all required tools have been used and you are ready to give the most complete and helpful response to the user’s original question.
-NEVER return tool use plan as a final answer.
-
-```json
-{
-    "final_answer": string \\ Your final answer must be the great and the most complete as possible, it must be outcome described,
-}
-```
-
+Option 1 : Use a tool
 The following is the description of the tools available to you:
-{{tools}}"#;
+{{tools}}
+- **NEVER RETURN TOOL USE PLAN AS A FINAL ANSWER**
+
+<TOOL_USAGE_OUTPUT_FORMAT>
+{
+    "action": (string), The action to take; MUST BE one of [{{tool_names}}]
+    "action_input": (object), The input to the action, JSON object. The structure object depends on the action you are taking, and is specified in the tool description below.
+}
+</TOOL_USAGE_OUTPUT_FORMAT>
+
+
+Option 2 : Give your best final answer
+- Only return a final answer once all required tools have been used
+- **NEVER RETURN TOOL USE PLAN AS A FINAL ANSWER**
+
+<FINAL_ANSWER_OUTPUT_FORMAT>
+{
+    "final_answer": (string), Your final answer must be the robust and COMPLETE; it must be outcome described
+}
+</FINAL_ANSWER_OUTPUT_FORMAT>
+"#;
 
 pub const DEFAULT_INITIAL_PROMPT: &str = r#"{{input}}"#;

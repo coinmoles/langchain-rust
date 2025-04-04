@@ -63,8 +63,9 @@ pub trait Tool: Send + Sync {
         format!(
             indoc! {"
             > {}: {}
-            The input for this tool MUST be in the following format:
-            {}"},
+            <INPUT_FORMAT>
+            {}
+            </INPUT_FORMAT>"},
             self.name(),
             self.description(),
             self.parameters().properties_description()
