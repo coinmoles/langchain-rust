@@ -7,8 +7,7 @@ use crate::{
     language_models::llm::LLM,
     output_parsers::{OutputParser, SimpleParser},
     schemas::{
-        {GenerateResult, GenerateResultContent},
-        InputVariables, StreamData,
+        InputVariables, StreamData, {GenerateResult, GenerateResultContent},
     },
     template::PromptTemplate,
 };
@@ -102,7 +101,7 @@ impl Chain for LLMChain {
             output.content = GenerateResultContent::Text(self.output_parser.parse(&content).await?);
         }
 
-        log::trace!("Agent output: {:#?}", output);
+        log::trace!("Agent output: {}", output);
 
         Ok(output)
     }
