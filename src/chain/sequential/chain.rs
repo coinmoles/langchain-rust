@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use crate::{
     chain::{Chain, ChainError, DEFAULT_OUTPUT_KEY, DEFAULT_RESULT_KEY},
     schemas::{
-        generate_result::{GenerateResult, TokenUsage},
+        {GenerateResult, TokenUsage},
         InputVariables,
     },
 };

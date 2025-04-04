@@ -6,7 +6,7 @@ use futures::Stream;
 use crate::{
     chain::{load_stuff_qa, Chain, ChainError, LLMChain},
     language_models::llm::LLM,
-    schemas::{generate_result::GenerateResult, InputVariables, StreamData},
+    schemas::{GenerateResult, InputVariables, StreamData},
 };
 
 const COMBINE_DOCUMENTS_DEFAULT_INPUT_KEY: &str = "input_documents";

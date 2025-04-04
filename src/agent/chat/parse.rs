@@ -5,7 +5,7 @@ use serde_json::Value;
 
 use crate::{
     agent::AgentError,
-    schemas::{agent::AgentEvent, AgentAction},
+    schemas::{agent_plan::AgentEvent, ToolCall},
 };
 
 pub fn parse_agent_output(text: &str) -> Result<AgentEvent, AgentError> {
@@ -44,10 +44,10 @@ fn parse_with_regex(text: &str) -> Option<AgentEvent> {
     ) {
         let action = action.get(1)?.as_str();
         let action_input = action_input.get(1)?.as_str();
-        Some(AgentEvent::Action(vec![AgentAction {
+        Some(AgentEvent::Action(vec![ToolCall {
             id: uuid::Uuid::new_v4().to_string(),
-            action: fix_text(action),
-            action_input: serde_json::from_str(action_input).ok()?,
+            name: fix_text(action),
+            arguments: serde_json::from_str(action_input).ok()?,
         }]))
     } else {
         None
@@ -174,11 +174,11 @@ mod tests {
         let parsed_output = parse_agent_output(test_output);
 
         match parsed_output {
-            Ok(AgentEvent::Action(agent_actions)) => {
-                assert!(agent_actions.len() == 1);
-                let agent_action = &agent_actions[0];
-                assert_eq!(agent_action.action, "generate");
-                assert_eq!(agent_action.action_input, "Hello, world!");
+            Ok(AgentEvent::Action(tool_calls)) => {
+                assert!(tool_calls.len() == 1);
+                let tool_call = &tool_calls[0];
+                assert_eq!(tool_call.name, "generate");
+                assert_eq!(tool_call.arguments, "Hello, world!");
             }
             _ => panic!("Expected AgentEvent::Action, got {:#?}", parsed_output),
         }

@@ -11,7 +11,7 @@ use async_openai::types::ChatCompletionRequestUserMessageContent;
 use serde::Deserialize;
 use serde::Serialize;
 
-use super::generate_result::ToolCall;
+use super::ToolCall;
 use super::MessageType;
 
 /// Struct `ImageContent` represents an image provided to an LLM.

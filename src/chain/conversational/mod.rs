@@ -9,7 +9,7 @@ use tokio::sync::Mutex;
 use crate::{
     language_models::LLMError,
     schemas::{
-        generate_result::{GenerateResult, GenerateResultContent},
+        {GenerateResult, GenerateResultContent},
         memory::BaseMemory,
         messages::Message,
         InputVariables, MessageType, StreamData, TextReplacements,

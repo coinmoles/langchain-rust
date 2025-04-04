@@ -1,5 +1,10 @@
+use std::fmt::{self, Display};
+
 use async_openai::types::{ChatCompletionMessageToolCall, ChatCompletionToolType, FunctionCall};
+use indoc::indoc;
 use serde::{Deserialize, Serialize};
+
+use crate::utils::helper::add_indent;
 
 #[derive(Debug, Clone)]
 pub struct ToolCall {
@@ -88,5 +93,25 @@ impl<'de> Deserialize<'de> for ToolCall {
         let openai_rep = ChatCompletionMessageToolCall::deserialize(deserializer)?;
 
         openai_rep.try_into().map_err(serde::de::Error::custom)
+    }
+}
+
+impl Display for ToolCall {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            indoc! {r#"
+            {{ 
+                "action": "{}", 
+                "action_input": {} 
+            }}"#},
+            self.name,
+            add_indent(
+                &serde_json::to_string_pretty(&self.arguments)
+                    .unwrap_or_else(|_| self.arguments.to_string()),
+                4,
+                false
+            )
+        )
     }
 }

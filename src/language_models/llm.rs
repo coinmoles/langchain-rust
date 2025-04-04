@@ -3,7 +3,7 @@ use std::pin::Pin;
 use async_trait::async_trait;
 use futures::Stream;
 
-use crate::schemas::{generate_result::GenerateResult, Message, MessageType, StreamData};
+use crate::schemas::{GenerateResult, Message, MessageType, StreamData};
 
 use super::{options::CallOptions, LLMError};
 

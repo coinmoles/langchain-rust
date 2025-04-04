@@ -6,7 +6,7 @@ use futures::Stream;
 use crate::{
     chain::{chain_trait::Chain, llm_chain::LLMChain, ChainError},
     schemas::{
-        generate_result::{GenerateResult, GenerateResultContent, TokenUsage},
+        {GenerateResult, GenerateResultContent, TokenUsage},
         InputVariables, StreamData, TextReplacements,
     },
     text_replacements,

@@ -1,7 +1,8 @@
 pub mod generate_result;
+pub use generate_result::*;
 
-pub mod agent;
-pub use agent::*;
+pub mod agent_plan;
+pub use agent_plan::*;
 
 pub mod memory;
 pub use memory::*;

@@ -7,7 +7,7 @@ use crate::{
     language_models::llm::LLM,
     output_parsers::{OutputParser, SimpleParser},
     schemas::{
-        generate_result::{GenerateResult, GenerateResultContent},
+        {GenerateResult, GenerateResultContent},
         InputVariables, StreamData,
     },
     template::PromptTemplate,

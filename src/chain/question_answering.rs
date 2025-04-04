@@ -3,7 +3,7 @@ use std::{error::Error, pin::Pin};
 use crate::{
     language_models::llm::LLM,
     schemas::{
-        generate_result::GenerateResult, messages::Message, Document, InputVariables, MessageType,
+        GenerateResult, messages::Message, Document, InputVariables, MessageType,
         StreamData, TextReplacements,
     },
     template::MessageTemplate,

@@ -2,7 +2,7 @@ use crate::{
     language_models::{llm::LLM, options::CallOptions, LLMError},
     llm::AnthropicError,
     schemas::{
-        generate_result::{GenerateResult, GenerateResultContent, TokenUsage},
+        {GenerateResult, GenerateResultContent, TokenUsage},
         Message, MessageType, StreamData,
     },
 };

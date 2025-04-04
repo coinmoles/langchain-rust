@@ -3,16 +3,13 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::{collections::HashMap, error::Error};
 
-use crate::schemas::generate_result::{GenerateResultContent, ToolCall};
+use crate::schemas::{GenerateResultContent, ToolCall};
 use crate::{
     agent::{Agent, AgentError},
     chain::Chain,
     language_models::LLMError,
     prompt_template,
-    schemas::{
-        agent::{AgentAction, AgentEvent},
-        InputVariables, Message, MessageType,
-    },
+    schemas::{agent_plan::AgentEvent, InputVariables, Message, MessageType},
     template::{MessageOrTemplate, MessageTemplate, PromptTemplate},
     tools::Tool,
 };
@@ -45,17 +42,14 @@ impl OpenAiToolAgent {
         Ok(prompt)
     }
 
-    fn construct_scratchpad(&self, intermediate_steps: &[(AgentAction, String)]) -> Vec<Message> {
+    fn construct_scratchpad(&self, intermediate_steps: &[(ToolCall, String)]) -> Vec<Message> {
         intermediate_steps
             .iter()
-            .flat_map(|(action, observation)| {
+            .flat_map(|(tool_call, result)| {
                 vec![
-                    Message::new(MessageType::AIMessage, "").with_tool_calls(vec![ToolCall {
-                        id: action.id.clone(),
-                        name: action.action.clone(),
-                        arguments: action.action_input.clone(),
-                    }]),
-                    Message::new_tool_message(Some(action.id.clone()), observation),
+                    Message::new(MessageType::AIMessage, "")
+                        .with_tool_calls(vec![tool_call.clone()]),
+                    Message::new_tool_message(Some(tool_call.id.clone()), result),
                 ]
             })
             .collect::<Vec<_>>()
@@ -66,7 +60,7 @@ impl OpenAiToolAgent {
 impl Agent for OpenAiToolAgent {
     async fn plan(
         &self,
-        intermediate_steps: &[(AgentAction, String)],
+        intermediate_steps: &[(ToolCall, String)],
         inputs: &mut InputVariables,
     ) -> Result<AgentEvent, AgentError> {
         let scratchpad = self.construct_scratchpad(intermediate_steps);
@@ -75,17 +69,7 @@ impl Agent for OpenAiToolAgent {
 
         match output.content {
             GenerateResultContent::Text(text) => Ok(AgentEvent::Finish(text)),
-            GenerateResultContent::ToolCall(tool_calls) => {
-                let agent_actions = tool_calls
-                    .into_iter()
-                    .map(|tool_call: ToolCall| AgentAction {
-                        id: tool_call.id,
-                        action: tool_call.name,
-                        action_input: tool_call.arguments,
-                    })
-                    .collect::<Vec<_>>();
-                Ok(AgentEvent::Action(agent_actions))
-            }
+            GenerateResultContent::ToolCall(tool_calls) => Ok(AgentEvent::Action(tool_calls)),
             GenerateResultContent::Refusal(refusal) => {
                 return Err(AgentError::LLMError(LLMError::OtherError(format!(
                     "LLM refused to answer: {}",

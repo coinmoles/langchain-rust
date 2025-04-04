@@ -9,7 +9,7 @@ use tokio::sync::Mutex;
 use crate::{
     chain::{Chain, ChainError, CondenseQuestionPromptBuilder, StuffQABuilder, DEFAULT_RESULT_KEY},
     schemas::{
-        generate_result::{GenerateResult, TokenUsage},
+        {GenerateResult, TokenUsage},
         BaseMemory, InputVariables, Message, MessageType, Retriever, StreamData,
     },
 };

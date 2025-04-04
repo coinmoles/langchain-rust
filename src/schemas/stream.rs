@@ -1,7 +1,7 @@
 use serde_json::Value;
 use std::io::{self, Write};
 
-use super::generate_result::TokenUsage;
+use super::TokenUsage;
 
 #[derive(Debug, Clone)]
 pub struct StreamData {

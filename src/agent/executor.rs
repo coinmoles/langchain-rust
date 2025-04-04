@@ -10,10 +10,9 @@ use super::{agent::Agent, AgentError, FinalAnswerValidator};
 use crate::{
     chain::{chain_trait::Chain, ChainError},
     schemas::{
-        agent::{AgentAction, AgentEvent},
-        generate_result::{GenerateResult, GenerateResultContent, ToolCall},
+        agent_plan::AgentEvent,
         memory::BaseMemory,
-        InputVariables, Message, MessageType,
+        InputVariables, Message, MessageType, {GenerateResult, GenerateResultContent, ToolCall},
     },
 };
 
@@ -73,7 +72,7 @@ impl Chain for AgentExecutor {
         &self,
         input_variables: &mut InputVariables,
     ) -> Result<GenerateResult, ChainError> {
-        let mut steps: Vec<(AgentAction, String)> = Vec::new();
+        let mut steps: Vec<(ToolCall, String)> = Vec::new();
         let mut use_counts: HashMap<String, usize> = HashMap::new();
         let mut consecutive_fails: usize = 0;
 
@@ -108,7 +107,7 @@ impl Chain for AgentExecutor {
             let agent_event = self.agent.plan(&steps, input_variables).await;
 
             match agent_event {
-                Ok(AgentEvent::Action(actions)) => {
+                Ok(AgentEvent::Action(tool_calls)) => {
                     if self
                         .max_iterations
                         .is_some_and(|max_iterations| steps.len() >= max_iterations)
@@ -128,24 +127,15 @@ impl Chain for AgentExecutor {
                         continue 'step;
                     }
 
-                    for action in actions {
-                        log::debug!(
-                            indoc! {"
-                                Agent Action:
-                                  action: {}
-                                  input:
-                                    {:#?}
-                            "},
-                            &action.action,
-                            &action.action_input
-                        );
+                    for tool_call in tool_calls {
+                        log::debug!("{}", tool_call);
 
-                        let tool_name = action.action.to_lowercase().replace(" ", "_");
+                        let tool_name = tool_call.name.to_lowercase().replace(" ", "_");
                         let Some(tool) = self.agent.get_tool(&tool_name) else {
                             consecutive_fails += 1;
                             log::warn!(
                                 "Agent tried to use nonexistent tool {}, retrying ({} consecutive fails)",
-                                action.action,
+                                tool_call.name,
                                 consecutive_fails
                             );
                             continue 'step;
@@ -158,7 +148,7 @@ impl Chain for AgentExecutor {
                                 consecutive_fails += 1;
                                 log::warn!(
                                     "Agent repeatedly using tool {} (usage limit: {}), preventing further use ({} consecutive fails)",
-                                    action.action,
+                                    tool_call.name,
                                     usage_limit,
                                     consecutive_fails
                                 );
@@ -166,10 +156,14 @@ impl Chain for AgentExecutor {
                             }
                         }
 
-                        let observation = match tool.call(action.action_input.clone()).await {
+                        let observation = match tool.call(tool_call.arguments.clone()).await {
                             Ok(observation) => observation,
                             Err(e) => {
-                                log::warn!("Tool '{}' encountered an error: {}", &action.action, e);
+                                log::warn!(
+                                    "Tool '{}' encountered an error: {}",
+                                    &tool_call.name,
+                                    e
+                                );
                                 if self.break_if_tool_error {
                                     return Err(ChainError::AgentError(
                                         AgentError::ToolError(e.to_string()).to_string(),
@@ -186,9 +180,9 @@ impl Chain for AgentExecutor {
                             }
                         };
 
-                        log::debug!("Tool {} result:\n{}", &action.action, &observation);
+                        log::debug!("Tool {} result:\n{}", &tool_call.name, &observation);
 
-                        steps.push((action, observation));
+                        steps.push((tool_call, observation));
                         consecutive_fails = 0;
                     }
                 }
@@ -214,18 +208,18 @@ impl Chain for AgentExecutor {
                             },
                         );
 
-                        for (action, observation) in steps {
+                        for (tool_call, observation) in steps {
                             memory.add_message(
                                 Message::new(MessageType::AIMessage, "").with_tool_calls(vec![
                                     ToolCall {
-                                        id: action.id.clone(),
-                                        name: action.action,
-                                        arguments: action.action_input,
+                                        id: tool_call.id.clone(),
+                                        name: tool_call.name,
+                                        arguments: tool_call.arguments,
                                     },
                                 ]),
                             );
                             memory.add_message(Message::new_tool_message::<_, &str>(
-                                Some(&action.id),
+                                Some(&tool_call.id),
                                 observation,
                             ));
                         }

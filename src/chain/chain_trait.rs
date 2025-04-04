@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use futures::Stream;
 use serde_json::Value;
 
-use crate::schemas::{generate_result::GenerateResult, InputVariables, StreamData};
+use crate::schemas::{GenerateResult, InputVariables, StreamData};
 
 use super::ChainError;
 

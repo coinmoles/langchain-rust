@@ -6,10 +6,7 @@ use crate::{
     agent::{agent::Agent, AgentError},
     chain::chain_trait::Chain,
     prompt_template,
-    schemas::{
-        agent::{AgentAction, AgentEvent},
-        InputVariables, Message, MessageType,
-    },
+    schemas::{agent_plan::AgentEvent, InputVariables, Message, MessageType, ToolCall},
     template::{MessageOrTemplate, MessageTemplate, PromptTemplate},
     text_replacements,
     tools::Tool,
@@ -57,12 +54,12 @@ impl ConversationalAgent {
         Ok(prompt)
     }
 
-    fn construct_scratchpad(&self, intermediate_steps: &[(AgentAction, String)]) -> Vec<Message> {
+    fn construct_scratchpad(&self, intermediate_steps: &[(ToolCall, String)]) -> Vec<Message> {
         intermediate_steps
             .iter()
-            .flat_map(|(action, result)| {
+            .flat_map(|(tool_call, result)| {
                 vec![
-                    Message::new(MessageType::AIMessage, action),
+                    Message::new(MessageType::AIMessage, tool_call),
                     Message::new(MessageType::HumanMessage, result),
                 ]
             })
@@ -74,7 +71,7 @@ impl ConversationalAgent {
 impl Agent for ConversationalAgent {
     async fn plan(
         &self,
-        intermediate_steps: &[(AgentAction, String)],
+        intermediate_steps: &[(ToolCall, String)],
         inputs: &mut InputVariables,
     ) -> Result<AgentEvent, AgentError> {
         let scratchpad = self.construct_scratchpad(intermediate_steps);
