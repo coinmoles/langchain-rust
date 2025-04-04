@@ -9,6 +9,8 @@ use crate::{
 };
 
 pub fn parse_agent_output(text: &str) -> Result<AgentEvent, AgentError> {
+    let text = remove_thought(text);
+
     let json = parse_json_markdown(text).or_else(|| parse_partial_json(text, false));
 
     let agent_event = match json {
@@ -17,6 +19,15 @@ pub fn parse_agent_output(text: &str) -> Result<AgentEvent, AgentError> {
     };
 
     agent_event.ok_or(AgentError::InvalidFormatError(text.into()))
+}
+
+fn remove_thought(text: &str) -> &str {
+    if text.contains("</think>") {
+        let parts: Vec<&str> = text.split("</think>").collect();
+        parts.last().unwrap_or(&"").trim()
+    } else {
+        text
+    }
 }
 
 fn fix_text(text: &str) -> String {
@@ -278,6 +289,28 @@ mod tests {
                 println!("{}", final_answer);
             }
             _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
+        }
+    }
+
+    #[test]
+    fn test_remove_thoughts() {
+        let text = indoc! {r#"
+            <think> This is a thought </think>
+            {
+                "action": "generate",
+                "action_input": "Hello, world!"
+            }
+        "#};
+
+        let result = parse_agent_output(text).unwrap();
+        match result {
+            AgentEvent::Action(tool_calls) => {
+                assert_eq!(tool_calls.len(), 1);
+                let tool_call = &tool_calls[0];
+                assert_eq!(tool_call.name, "generate");
+                assert_eq!(tool_call.arguments, "Hello, world!");
+            }
+            _ => panic!("Expected AgentEvent::Action, got {:#?}", result),
         }
     }
 }
