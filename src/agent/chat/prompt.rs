@@ -14,12 +14,14 @@ You MUST either use a tool (use one at time) OR give your best final answer not 
 ```json
 {
     "action": string, \\ The action to take, should be one of [{{tool_names}}]
-    "action_input": object \\ The input to the action, object enclosed in curly braces
+    "action_input": object \\ The input to the action, JSON object. The structure object depends on the action you are taking, and is specified in the tool description below.
 }
 ```
 This Action/Action Input/Result can repeat N times. 
 
 Once you know the final answer, you must give it using the following format:
+You MUST NOT return a final_answer until all required tools have been used and you are ready to give the most complete and helpful response to the user’s original question.
+NEVER return tool use plan as a final answer.
 
 ```json
 {
