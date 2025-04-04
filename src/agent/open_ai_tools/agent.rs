@@ -38,7 +38,8 @@ impl OpenAiToolAgent {
             Message::new(MessageType::SystemMessage, system_prompt),
             MessageOrTemplate::Placeholder("chat_history".into()),
             MessageTemplate::from_jinja2(MessageType::HumanMessage, initial_prompt),
-            MessageOrTemplate::Placeholder("agent_scratchpad".into())
+            MessageOrTemplate::Placeholder("agent_scratchpad".into()),
+            MessageOrTemplate::Placeholder("ultimatum".into())
         ];
 
         Ok(prompt)
