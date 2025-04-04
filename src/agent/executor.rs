@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use indoc::indoc;
 use tokio::sync::Mutex;
 
-use super::{agent::Agent, AgentError};
+use super::{agent::Agent, AgentError, FinalAnswerValidator};
 use crate::{
     chain::{chain_trait::Chain, ChainError},
     schemas::{
@@ -25,6 +25,7 @@ pub struct AgentExecutor {
     max_consecutive_fails: Option<usize>,
     break_if_tool_error: bool,
     pub memory: Option<Arc<Mutex<dyn BaseMemory>>>,
+    final_answer_validator: Option<Box<dyn FinalAnswerValidator>>,
 }
 
 impl AgentExecutor {
@@ -38,6 +39,7 @@ impl AgentExecutor {
             max_consecutive_fails: Some(3),
             break_if_tool_error: false,
             memory: None,
+            final_answer_validator: None,
         }
     }
 
@@ -53,6 +55,14 @@ impl AgentExecutor {
 
     pub fn with_break_if_tool_error(mut self, break_if_tool_error: bool) -> Self {
         self.break_if_tool_error = break_if_tool_error;
+        self
+    }
+
+    pub fn with_final_answer_validator<V>(mut self, final_answer_validator: V) -> Self
+    where
+        V: FinalAnswerValidator + Send + Sync + 'static,
+    {
+        self.final_answer_validator = Some(Box::new(final_answer_validator));
         self
     }
 }
@@ -183,6 +193,17 @@ impl Chain for AgentExecutor {
                     }
                 }
                 Ok(AgentEvent::Finish(final_answer)) => {
+                    if let Some(validator) = &self.final_answer_validator {
+                        if !validator.validate_final_answer(&final_answer, &steps) {
+                            log::warn!(
+                                "Final answer validation failed ({} consecutive fails)\nAnswer:{}",
+                                consecutive_fails,
+                                final_answer
+                            );
+                            continue 'step;
+                        }
+                    }
+
                     if let Some(memory) = &self.memory {
                         let mut memory = memory.lock().await;
 
