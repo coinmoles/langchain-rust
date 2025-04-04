@@ -1,5 +1,7 @@
 use serde_json::{Map, Value};
 
+use crate::utils::helper::add_indent;
+
 use super::{BooleanField, IntegerField, NumberField, StringField, ToolField};
 
 pub struct ArrayField {
@@ -128,13 +130,7 @@ impl ToolField for ArrayField {
             "array, optional"
         };
 
-        let items_description = self
-            .field
-            .to_plain_description()
-            .lines()
-            .map(|line| format!("    {}", line))
-            .collect::<Vec<_>>()
-            .join("\n");
+        let items_description = add_indent(&self.field.to_plain_description(), 4, true);
 
         match &self.description {
             Some(description) => format!(

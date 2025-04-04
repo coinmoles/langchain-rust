@@ -1,5 +1,7 @@
 use serde_json::{Map, Value};
 
+use crate::utils::helper::add_indent;
+
 use super::ToolField;
 
 pub struct ObjectField {
@@ -44,11 +46,7 @@ impl ObjectField {
             .collect::<Vec<_>>()
             .join(",\n");
 
-        let properties = properties
-            .lines()
-            .map(|line| format!("    {}", line))
-            .collect::<Vec<_>>()
-            .join("\n");
+        let properties = add_indent(&properties, 4, true);
 
         if properties.is_empty() {
             "{}".into()

@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::mpsc;
 
+use crate::utils::helper::add_indent;
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AgentAction {
     pub id: String,
@@ -22,17 +24,12 @@ impl Display for AgentAction {
                 "action_input": {} 
             }}"#},
             self.action,
-            serde_json::to_string_pretty(&self.action_input)
-                .unwrap_or_else(|_| self.action_input.to_string())
-                .lines()
-                .enumerate()
-                .map(|(i, line)| if i == 0 {
-                    line.into()
-                } else {
-                    format!("    {}", line)
-                })
-                .collect::<Vec<_>>()
-                .join("\n")
+            add_indent(
+                &serde_json::to_string_pretty(&self.action_input)
+                    .unwrap_or_else(|_| self.action_input.to_string()),
+                4,
+                false
+            )
         )
     }
 }
