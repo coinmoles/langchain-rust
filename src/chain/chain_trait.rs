@@ -82,7 +82,7 @@ pub trait Chain: Sync + Send {
     async fn invoke(&self, input_variables: &mut InputVariables) -> Result<String, ChainError> {
         self.call(input_variables)
             .await
-            .map(|result| format!("{:#?}", result.content))
+            .map(|result| result.content.text().into())
     }
 
     /// Execute the `Chain` and return the result of the generation process
