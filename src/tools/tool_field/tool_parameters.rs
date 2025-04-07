@@ -1,4 +1,4 @@
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 use super::{parse_value::parse_tool_parameters_from_value, ObjectField, ToolField};
 
@@ -34,6 +34,14 @@ impl TryFrom<Value> for ToolParameters {
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         parse_tool_parameters_from_value(value)
+    }
+}
+
+impl TryFrom<Map<String, Value>> for ToolParameters {
+    type Error = serde_json::Error;
+
+    fn try_from(value: Map<String, Value>) -> Result<Self, Self::Error> {
+        parse_tool_parameters_from_value(Value::Object(value))
     }
 }
 

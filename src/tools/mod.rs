@@ -24,5 +24,8 @@ pub use command_executor::*;
 mod text2speech;
 pub use text2speech::*;
 
+mod mcp;
+pub use mcp::*;
+
 mod results;
 pub use results::*;

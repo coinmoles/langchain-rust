@@ -82,6 +82,7 @@ qdrant-client = { version = "1.13.0", optional = true }
 mistralai-client = { version = "0.14.0", optional = true }
 indoc = "2.0.6"
 derive-new = "0.7.0"
+rmcp = { version = "0.1.5", features = ["client", "tower", "transport-sse"] }
 
 
 [features]
