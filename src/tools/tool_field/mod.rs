@@ -10,3 +10,6 @@ pub use array::*;
 
 mod object;
 pub use object::*;
+
+mod parse_value;
+pub use parse_value::*;
