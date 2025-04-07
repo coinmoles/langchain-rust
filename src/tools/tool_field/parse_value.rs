@@ -198,7 +198,7 @@ fn remove_object_properties(
     let properties = match obj.remove("properties") {
         Some(Value::Object(properties)) => properties,
         Some(other) => return Err(DeError::invalid_type(to_unexpected(&other), &"an object")),
-        None => return Err(DeError::missing_field("properties")),
+        None => Map::new(),
     };
 
     properties
