@@ -12,11 +12,12 @@ pub trait ToolFieldPrimitive {
     fn required(&self) -> bool;
     fn type_name(&self) -> &str;
     fn r#enum(&self) -> Option<&Vec<Self::FieldType>>;
+    fn clone_box(&self) -> Box<dyn ToolField>;
 }
 
 impl<F, T> ToolField for F
 where
-    F: ToolFieldPrimitive<FieldType = T>,
+    F: ToolFieldPrimitive<FieldType = T> + Send + Sync,
     T: Into<Value> + Display + Clone,
 {
     fn name(&self) -> &str {
@@ -72,5 +73,9 @@ where
         };
 
         format!("{} ({}){}", self.name(), type_info, description)
+    }
+
+    fn clone_box(&self) -> Box<dyn ToolField> {
+        self.clone_box()
     }
 }

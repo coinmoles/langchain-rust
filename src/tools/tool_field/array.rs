@@ -11,6 +11,17 @@ pub struct ArrayField {
     field: Box<dyn ToolField>,
 }
 
+impl Clone for ArrayField {
+    fn clone(&self) -> Self {
+        Self {
+            name: self.name.clone(),
+            description: self.description.clone(),
+            required: self.required,
+            field: self.field.clone_box(),
+        }
+    }
+}
+
 impl ArrayField {
     pub fn new<S>(
         name: S,
@@ -139,6 +150,10 @@ impl ToolField for ArrayField {
             ),
             None => format!("{} ({})\n{}", self.name, type_info, items_description),
         }
+    }
+
+    fn clone_box(&self) -> Box<dyn ToolField> {
+        Box::new(self.clone())
     }
 }
 

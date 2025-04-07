@@ -2,6 +2,7 @@ use crate::tools::tool_field::ToolField;
 
 use super::ToolFieldPrimitive;
 
+#[derive(Clone)]
 pub struct NumberField {
     name: String,
     description: Option<String>,
@@ -53,6 +54,10 @@ impl ToolFieldPrimitive for NumberField {
 
     fn r#enum(&self) -> Option<&Vec<f64>> {
         self.r#enum.as_ref()
+    }
+
+    fn clone_box(&self) -> Box<dyn ToolField> {
+        Box::new(self.clone())
     }
 }
 

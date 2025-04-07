@@ -12,6 +12,18 @@ pub struct ObjectField {
     additional_properties: Option<bool>,
 }
 
+impl Clone for ObjectField {
+    fn clone(&self) -> Self {
+        Self {
+            name: self.name.clone(),
+            description: self.description.clone(),
+            required: self.required,
+            properties: self.properties.iter().map(|p| p.clone_box()).collect(),
+            additional_properties: self.additional_properties,
+        }
+    }
+}
+
 impl ObjectField {
     pub fn new<S>(
         name: S,
@@ -108,6 +120,10 @@ impl ToolField for ObjectField {
             type_info,
             self.properties_description()
         )
+    }
+
+    fn clone_box(&self) -> Box<dyn ToolField> {
+        Box::new(self.clone())
     }
 }
 

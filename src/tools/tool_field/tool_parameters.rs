@@ -2,6 +2,7 @@ use serde_json::Value;
 
 use super::{parse_value::parse_tool_parameters_from_value, ObjectField, ToolField};
 
+#[derive(Clone)]
 pub struct ToolParameters(ObjectField);
 
 impl ToolParameters {
