@@ -6,19 +6,18 @@ Overall, Assistant is a powerful system that can help with a wide range of tasks
 
 pub const SUFFIX: &str = r#"
 
-<RESPONSE_FORMAT_INSTRUCTIONS>
-- You have two options(**YOU MUST NOT RETURN BOTH AT THE SAME TIME; ONLY ONE OF THEM IS ALLOWED**):
+<INSTRUCTIONS>
+- You have two options:
     1. Use a tool
-    2. Give your best final answer
+    2. Give your final answer
 - You may repeat tool use cycle as many times as needed before giving your final answer
+- When not using a tool, directly give your final answer
 - ALL RESPONSES MUST BE IN JSON FORMAT
-</RESPONSE_FORMAT_INSTRUCTIONS>
 
-
-Option 1 : Use a tool
+Option 1 : Use a tool (If you have tools and you need to use them)
 The following is the description of the tools available to you:
 {{tools}}
-- **NEVER RETURN TOOL USE PLAN AS A FINAL ANSWER**
+- IF YOU DON'T HAVE TOOLS, PASS THIS OPTION
 
 <TOOL_USAGE_OUTPUT_FORMAT>
 {
@@ -37,6 +36,9 @@ Option 2 : Give your best final answer
     "final_answer": (string), Your final answer must be the robust and COMPLETE; it must be outcome described
 }
 </FINAL_ANSWER_OUTPUT_FORMAT>
+
+</INSTRUCTIONS>
+
 "#;
 
 pub const DEFAULT_INITIAL_PROMPT: &str = r#"{{input}}"#;
