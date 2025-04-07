@@ -5,7 +5,7 @@ use serde_json::Value;
 use std::{error::Error, sync::Arc};
 
 use crate::tools::{
-    tool_field::{ObjectField, StringField},
+    tool_field::{StringField, ToolParameters},
     Tool, ToolFunction, ToolWrapper,
 };
 
@@ -24,8 +24,8 @@ impl ToolFunction for WebScrapper {
         "Scan a url and return the content of the web page.".into()
     }
 
-    fn parameters(&self) -> ObjectField {
-        ObjectField::new_tool_input(
+    fn parameters(&self) -> ToolParameters {
+        ToolParameters::new(
             vec![StringField::new(
                 "input",
                 Some("The URL to scrape, MUST be a working URL".into()),
@@ -33,7 +33,7 @@ impl ToolFunction for WebScrapper {
                 None,
             )
             .into()],
-            true,
+            Some(false),
         )
     }
 

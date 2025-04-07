@@ -9,9 +9,9 @@ use async_trait::async_trait;
 use indoc::indoc;
 use serde_json::Value;
 
-use crate::tools::tool_field::{ObjectField, StringField};
+use crate::tools::tool_field::StringField;
 
-use super::tool_field::ToolField;
+use super::tool_field::ToolParameters;
 
 #[async_trait]
 pub trait Tool: Send + Sync {
@@ -33,12 +33,12 @@ pub trait Tool: Send + Sync {
     ///     required: ["input"]
     /// }
     /// ```
-    fn parameters(&self) -> ObjectField {
-        ObjectField::new_tool_input(
+    fn parameters(&self) -> ToolParameters {
+        ToolParameters::new(
             vec![
                 StringField::new("input", Some("The input for the tool".into()), true, None).into(),
             ],
-            true,
+            Some(false),
         )
     }
 

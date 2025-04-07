@@ -5,7 +5,7 @@ use derive_new::new;
 use serde_json::Value;
 
 use super::{
-    tool_field::{ObjectField, StringField},
+    tool_field::{StringField, ToolParameters},
     Tool,
 };
 
@@ -18,12 +18,12 @@ pub trait ToolFunction: Default + Send + Sync + Into<Arc<dyn Tool>> {
 
     fn description(&self) -> String;
 
-    fn parameters(&self) -> ObjectField {
-        ObjectField::new_tool_input(
+    fn parameters(&self) -> ToolParameters {
+        ToolParameters::new(
             vec![
                 StringField::new("input", Some("The input for the tool".into()), true, None).into(),
             ],
-            true,
+            Some(false),
         )
     }
 
@@ -74,7 +74,7 @@ where
         self.tool.description()
     }
 
-    fn parameters(&self) -> ObjectField {
+    fn parameters(&self) -> ToolParameters {
         self.tool.parameters()
     }
 

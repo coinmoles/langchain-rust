@@ -11,7 +11,7 @@ use url::Url;
 
 use crate::tools::{
     search::article::Article,
-    tool_field::{ObjectField, StringField},
+    tool_field::{StringField, ToolParameters},
     FormattedVec, Tool, ToolFunction, ToolWrapper,
 };
 
@@ -99,13 +99,13 @@ impl ToolFunction for DuckDuckGoSearch {
         .into()
     }
 
-    fn parameters(&self) -> ObjectField {
-        ObjectField::new_tool_input(
+    fn parameters(&self) -> ToolParameters {
+        ToolParameters::new(
             vec![
                 StringField::new("query", Some("Search query to look up".into()), true, None)
                     .into(),
             ],
-            true,
+            Some(false),
         )
     }
 

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::tools::{
-    tool_field::{ArrayField, ObjectField, StringField},
+    tool_field::{ArrayField, ObjectField, StringField, ToolParameters},
     Tool, ToolFunction, ToolWrapper,
 };
 
@@ -63,11 +63,8 @@ impl ToolFunction for CommandExecutor {
         )
     }
 
-    fn parameters(&self) -> ObjectField {
-        ObjectField::new(
-            "input",
-            None,
-            true,
+    fn parameters(&self) -> ToolParameters {
+        ToolParameters::new(
             vec![ArrayField::new(
                 "commands",
                 Some("An array of command objects to be executed".into()),

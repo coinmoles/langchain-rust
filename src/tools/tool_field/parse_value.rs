@@ -5,9 +5,12 @@ use crate::utils::helper::to_unexpected;
 
 use super::{
     ArrayField, BooleanField, IntegerField, NumberField, ObjectField, StringField, ToolField,
+    ToolParameters,
 };
 
-pub fn parse_tool_input_from_value(value: Value) -> Result<ObjectField, serde_json::Error> {
+pub(super) fn parse_tool_parameters_from_value(
+    value: Value,
+) -> Result<ToolParameters, serde_json::Error> {
     let mut obj = match value {
         Value::Object(obj) => obj,
         other => return Err(DeError::invalid_type(to_unexpected(&other), &"an object")),
@@ -20,7 +23,7 @@ pub fn parse_tool_input_from_value(value: Value) -> Result<ObjectField, serde_js
         Some(other) => return Err(DeError::invalid_type(to_unexpected(&other), &"a boolean")),
         None => None,
     };
-    let field = ObjectField::new("input", None, true, properties, additional_properties);
+    let field = ToolParameters::new(properties, additional_properties);
     Ok(field)
 }
 
