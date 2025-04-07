@@ -1,7 +1,6 @@
 use std::{error::Error, sync::Arc};
 
 use async_trait::async_trait;
-use indoc::indoc;
 use serde_json::Value;
 
 use crate::tools::{Tool, ToolFunction, ToolWrapper};
@@ -154,15 +153,15 @@ impl ToolFunction for SerpApi {
     type Result = String;
 
     fn name(&self) -> String {
-        String::from("GoogleSearch")
+        "Google Search".into()
     }
+
     fn description(&self) -> String {
-        indoc! {"
-        A wrapper around Google Search.
-            Useful for when you need to answer questions about current events.
-            Always one of the first options when you need to find information on internet
-            Input should be a search query"}
-        .into()
+        r#"A wrapper around Google Search."
+        "Useful for when you need to answer questions about current events."
+        "Always one of the first options when you need to find information on internet"
+        "Input should be a search query"#
+            .into()
     }
 
     async fn parse_input(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {

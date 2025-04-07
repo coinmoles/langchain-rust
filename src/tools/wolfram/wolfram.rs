@@ -119,16 +119,15 @@ impl ToolFunction for Wolfram {
     type Result = String;
 
     fn name(&self) -> String {
-        String::from("Wolfram")
+        "Wolfram".into()
     }
 
     fn description(&self) -> String {
-        String::from(
-            "Wolfram Solver leverages the Wolfram Alpha computational engine
-            to solve complex queries. Input should be a valid mathematical 
-            expression or query formulated in a way that Wolfram Alpha can 
-            interpret.",
-        )
+        r#"Wolfram Solver leverages the Wolfram Alpha computational engine"s
+        "to solve complex queries. Input should be a valid mathematical "s
+        "expression or query formulated in a way that Wolfram Alpha can "s
+        "interpret."#
+            .into()
     }
 
     async fn parse_input(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {

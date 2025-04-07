@@ -18,8 +18,9 @@ impl ToolFunction for WebScrapper {
     type Result = String;
 
     fn name(&self) -> String {
-        String::from("Web Scraper")
+        "Web Scraper".into()
     }
+
     fn description(&self) -> String {
         "Scan a url and return the content of the web page.".into()
     }

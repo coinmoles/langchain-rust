@@ -2,7 +2,6 @@ use std::{collections::HashMap, error::Error, sync::Arc};
 
 use async_trait::async_trait;
 use derive_new::new;
-use indoc::indoc;
 use reqwest::Client;
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
@@ -89,14 +88,13 @@ impl ToolFunction for DuckDuckGoSearch {
     type Result = FormattedVec<Article>;
 
     fn name(&self) -> String {
-        "DuckDuckGo Search".to_string()
+        "DuckDuckGo Search".into()
     }
 
     fn description(&self) -> String {
-        indoc! {"
-        Search the web using Duckduckgo.
-        Useful for when you need to answer questions about current events."}
-        .into()
+        r#"Search the web using DuckDuckGo."
+        "Useful for when you need to answer questions about current events."#
+            .into()
     }
 
     fn parameters(&self) -> ToolParameters {

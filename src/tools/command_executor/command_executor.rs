@@ -50,8 +50,9 @@ impl ToolFunction for CommandExecutor {
     type Result = String;
 
     fn name(&self) -> String {
-        String::from("Command_Executor")
+        "Command Executor".into()
     }
+
     fn description(&self) -> String {
         format!(
             r#""This tool let you run command on the terminal"

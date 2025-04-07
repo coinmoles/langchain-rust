@@ -73,7 +73,7 @@ impl Default for Text2SpeechOpenAI<OpenAIConfig> {
 #[async_trait]
 impl<C: Config + Send + Sync> Tool for Text2SpeechOpenAI<C> {
     fn name(&self) -> String {
-        "Text2SpeechOpenAI".to_string()
+        "Text2SpeechOpenAI".into()
     }
 
     fn description(&self) -> String {
@@ -81,7 +81,7 @@ impl<C: Config + Send + Sync> Tool for Text2SpeechOpenAI<C> {
         "Useful for when you need to convert text to speech. "
         "It supports multiple languages, including English, German, Polish, "
         "Spanish, Italian, French, Portuguese""#
-            .to_string()
+            .into()
     }
 
     async fn call(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {
