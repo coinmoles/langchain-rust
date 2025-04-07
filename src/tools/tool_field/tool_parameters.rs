@@ -35,3 +35,40 @@ impl TryFrom<Value> for ToolParameters {
         parse_tool_parameters_from_value(value)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    #[test]
+    fn test_try_from_value() {
+        let value = json!({
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "properties": {
+                "a": {
+                    "format": "int32",
+                    "type": "integer",
+                },
+                "b": {
+                    "format": "int32",
+                    "type": "integer",
+                },
+            },
+            "required": ["a", "b"],
+            "title": "StructRequest",
+            "type": "object",
+        });
+
+        let tool_parameters = super::ToolParameters::try_from(value).unwrap();
+        println!("{:#?}", tool_parameters.to_openai_field());
+
+        let value2 = json!({
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "EmptyObject",
+            "type": "object",
+        });
+
+        let tool_parameters2 = super::ToolParameters::try_from(value2).unwrap();
+        println!("{:#?}", tool_parameters2.to_openai_field());
+    }
+}
