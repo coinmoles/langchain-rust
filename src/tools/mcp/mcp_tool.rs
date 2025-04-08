@@ -66,7 +66,7 @@ impl McpTool {
                 let tool = McpTool::new(
                     tool.name.into(),
                     tool.description.into(),
-                    (*tool.input_schema).clone().try_into()?,
+                    tool.input_schema.as_ref().try_into()?,
                     Arc::clone(&client),
                 );
 
