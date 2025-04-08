@@ -67,7 +67,7 @@ pub trait Tool: Send + Sync {
             <INPUT_FORMAT>
             {}
             </INPUT_FORMAT>"},
-            self.name(),
+            self.name().to_lowercase().replace(" ", "_"),
             self.description(),
             self.parameters().properties_description()
         )
@@ -75,7 +75,7 @@ pub trait Tool: Send + Sync {
 
     fn try_into_opeai_tool(&self) -> Result<ChatCompletionTool, OpenAIError> {
         let tool = FunctionObjectArgs::default()
-            .name(self.name().replace(" ", "_"))
+            .name(self.name().to_lowercase().replace(" ", "_"))
             .description(self.description())
             .parameters(self.parameters().to_openai_field())
             .strict(self.strict())
