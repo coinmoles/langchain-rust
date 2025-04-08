@@ -10,7 +10,7 @@ use super::{
 };
 
 #[async_trait]
-pub trait ToolFunction: Default + Send + Sync {
+pub trait ToolFunction: Send + Sync {
     type Input: Send + Sync;
     type Result: Display + Send + Sync;
 
