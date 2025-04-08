@@ -24,5 +24,10 @@ pub use command_executor::*;
 mod text2speech;
 pub use text2speech::*;
 
+#[cfg(feature = "mcp")]
+mod mcp;
+#[cfg(feature = "mcp")]
+pub use mcp::*;
+
 mod results;
 pub use results::*;

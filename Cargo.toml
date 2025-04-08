@@ -82,6 +82,11 @@ qdrant-client = { version = "1.13.0", optional = true }
 mistralai-client = { version = "0.14.0", optional = true }
 indoc = "2.0.6"
 derive-new = "0.7.0"
+rmcp = { version = "0.1.5", features = [
+    "client",
+    "tower",
+    "transport-sse",
+], optional = true }
 
 
 [features]
@@ -114,6 +119,7 @@ tree-sitter = [
     "dep:tree-sitter-scala",
     "dep:tree-sitter-typescript",
 ]
+mcp = ["dep:rmcp"]
 
 [dev-dependencies]
 base64 = "0.22.1"

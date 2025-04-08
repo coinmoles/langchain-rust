@@ -9,14 +9,9 @@ use super::{
 };
 
 pub(super) fn parse_tool_parameters_from_value(
-    value: Value,
+    obj: &mut Map<String, Value>,
 ) -> Result<ToolParameters, serde_json::Error> {
-    let mut obj = match value {
-        Value::Object(obj) => obj,
-        other => return Err(DeError::invalid_type(to_unexpected(&other), &"an object")),
-    };
-
-    let properties = remove_object_properties(&mut obj)?;
+    let properties = remove_object_properties(obj)?;
     let additional_properties = match obj.remove("additionalProperties") {
         Some(Value::Bool(additional_properties)) => Some(additional_properties),
         Some(Value::Null) => None,
@@ -32,9 +27,8 @@ fn parse_property_from_value(
     name: String,
     required: bool,
 ) -> Result<Box<dyn ToolField>, serde_json::Error> {
-    let mut obj = match value {
-        Value::Object(obj) => obj,
-        other => return Err(DeError::invalid_type(to_unexpected(&other), &"an object")),
+    let Value::Object(mut obj) = value else {
+        return Err(DeError::invalid_type(to_unexpected(&value), &"an object"));
     };
 
     let description = match obj.remove("description") {
