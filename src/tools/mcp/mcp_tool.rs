@@ -1,6 +1,11 @@
 use async_trait::async_trait;
-use rmcp::model::{CallToolRequestParam, RawContent, ResourceContents};
+use rmcp::{
+    model::{CallToolRequestParam, ClientCapabilities, ClientInfo, Implementation},
+    transport::SseTransport,
+    ServiceExt,
+};
 use serde_json::Value;
+use url::Url;
 
 use std::{borrow::Cow, error::Error, sync::Arc};
 
@@ -28,6 +33,48 @@ impl McpTool {
             parameters,
             client,
         }
+    }
+}
+
+impl McpTool {
+    pub async fn get_tools_from_server(
+        url: Url,
+    ) -> Result<Vec<Box<dyn Tool>>, Box<dyn Error + Send + Sync>> {
+        let transport = SseTransport::start(url).await?;
+
+        let client_info = ClientInfo {
+            protocol_version: Default::default(),
+            capabilities: ClientCapabilities::default(),
+            client_info: Implementation {
+                name: "MCP Client".to_string(),
+                version: "0.0.1".to_string(),
+            },
+        };
+
+        let client = client_info
+            .serve(transport)
+            .await
+            .inspect_err(|e| log::error!("Failed to connect to MCP server: {:?}", e))?;
+
+        let client = Arc::new(client);
+
+        let tools = client
+            .list_all_tools()
+            .await?
+            .into_iter()
+            .map(|tool| -> Result<Box<dyn Tool>, serde_json::Error> {
+                let tool = McpTool::new(
+                    tool.name.into(),
+                    tool.description.into(),
+                    (*tool.input_schema).clone().try_into()?,
+                    Arc::clone(&client),
+                );
+
+                Ok(Box::new(tool))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(tools)
     }
 }
 
