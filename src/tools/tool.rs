@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::error::Error;
 use std::string::String;
 
@@ -85,4 +86,11 @@ pub trait Tool: Send + Sync {
             .function(tool)
             .build()
     }
+}
+
+pub fn map_tools(tools: Vec<Box<dyn Tool>>) -> HashMap<String, Box<dyn Tool>> {
+    tools
+        .into_iter()
+        .map(|tool| (tool.name().to_lowercase().replace(" ", "_"), tool))
+        .collect()
 }

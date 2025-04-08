@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, fmt::Display, sync::Arc};
+use std::{error::Error, fmt::Display};
 
 use async_trait::async_trait;
 use derive_new::new;
@@ -10,7 +10,7 @@ use super::{
 };
 
 #[async_trait]
-pub trait ToolFunction: Default + Send + Sync + Into<Arc<dyn Tool>> {
+pub trait ToolFunction: Default + Send + Sync {
     type Input: Send + Sync;
     type Result: Display + Send + Sync;
 
@@ -94,9 +94,11 @@ where
     }
 }
 
-pub fn map_tools(tools: Vec<Arc<dyn Tool>>) -> HashMap<String, Arc<dyn Tool>> {
-    tools
-        .into_iter()
-        .map(|tool| (tool.name().to_lowercase().replace(" ", "_"), tool))
-        .collect()
+impl<T> From<T> for Box<dyn Tool>
+where
+    T: ToolFunction + 'static,
+{
+    fn from(tool: T) -> Self {
+        Box::new(ToolWrapper::new(tool))
+    }
 }

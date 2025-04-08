@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, sync::Arc};
+use std::{collections::HashMap, error::Error};
 
 use async_trait::async_trait;
 
@@ -16,14 +16,14 @@ use super::{parse::parse_agent_output, prompt::SUFFIX};
 
 pub struct ConversationalAgent {
     pub(crate) chain: Box<dyn Chain>,
-    pub(crate) tools: HashMap<String, Arc<dyn Tool>>,
+    pub(crate) tools: HashMap<String, Box<dyn Tool>>,
 }
 
 impl ConversationalAgent {
     pub fn create_prompt(
         system_prompt: &str,
         initial_prompt: &str,
-        tools: &HashMap<String, Arc<dyn Tool>>,
+        tools: &HashMap<String, Box<dyn Tool>>,
     ) -> Result<PromptTemplate, AgentError> {
         let tool_names = tools.keys().cloned().collect::<Vec<_>>().join(", ");
         let tool_string = tools
@@ -84,8 +84,8 @@ impl Agent for ConversationalAgent {
         Ok(AgentResult { content, usage })
     }
 
-    fn get_tool(&self, tool_name: &str) -> Option<Arc<dyn Tool>> {
-        self.tools.get(tool_name).cloned()
+    fn get_tool(&self, tool_name: &str) -> Option<&Box<dyn Tool>> {
+        self.tools.get(tool_name)
     }
 
     fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>> {
@@ -95,7 +95,7 @@ impl Agent for ConversationalAgent {
 
 #[cfg(test)]
 mod tests {
-    use std::{error::Error, sync::Arc};
+    use std::error::Error;
 
     use async_openai::config::OpenAIConfig;
     use async_trait::async_trait;
@@ -108,7 +108,7 @@ mod tests {
         memory::SimpleMemory,
         schemas::InputVariables,
         text_replacements,
-        tools::{map_tools, Tool, ToolFunction, ToolWrapper},
+        tools::{map_tools, ToolFunction},
     };
 
     #[derive(Default)]
@@ -130,12 +130,6 @@ mod tests {
         }
         async fn run(&self, _input: String) -> Result<i128, Box<dyn Error + Send + Sync>> {
             Ok(25)
-        }
-    }
-
-    impl From<Calc> for Arc<dyn Tool> {
-        fn from(val: Calc) -> Self {
-            Arc::new(ToolWrapper::new(val))
         }
     }
 

@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use std::{collections::HashMap, error::Error};
 
 use crate::schemas::{AgentResult, GenerateResultContent, ToolCall};
@@ -23,7 +22,7 @@ pub struct LogTools {
 
 pub struct OpenAiToolAgent {
     pub(crate) chain: Box<dyn Chain>,
-    pub(crate) tools: HashMap<String, Arc<dyn Tool>>,
+    pub(crate) tools: HashMap<String, Box<dyn Tool>>,
 }
 
 impl OpenAiToolAgent {
@@ -82,8 +81,8 @@ impl Agent for OpenAiToolAgent {
         Ok(AgentResult { content, usage })
     }
 
-    fn get_tool(&self, tool_name: &str) -> Option<Arc<dyn Tool>> {
-        self.tools.get(tool_name).cloned()
+    fn get_tool(&self, tool_name: &str) -> Option<&Box<dyn Tool>> {
+        self.tools.get(tool_name)
     }
 
     fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>> {

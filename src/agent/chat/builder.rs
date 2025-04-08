@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use crate::{
     agent::AgentError, chain::llm_chain::LLMChainBuilder, language_models::llm::LLM, tools::Tool,
@@ -10,7 +10,7 @@ use super::{
 };
 
 pub struct ConversationalAgentBuilder<'a, 'b> {
-    tools: Option<HashMap<String, Arc<dyn Tool>>>,
+    tools: Option<HashMap<String, Box<dyn Tool>>>,
     system_prompt: Option<&'a str>,
     initial_prompt: Option<&'b str>,
 }
@@ -24,7 +24,7 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
         }
     }
 
-    pub fn tools(mut self, tools: HashMap<String, Arc<dyn Tool>>) -> Self {
+    pub fn tools(mut self, tools: HashMap<String, Box<dyn Tool>>) -> Self {
         self.tools = Some(tools);
         self
     }
