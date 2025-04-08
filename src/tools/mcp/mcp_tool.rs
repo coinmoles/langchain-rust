@@ -6,7 +6,7 @@ use std::{borrow::Cow, error::Error, sync::Arc};
 
 use crate::tools::{tool_field::ToolParameters, Tool};
 
-use super::McpService;
+use super::{parse_mcp_response, McpService};
 
 pub struct McpTool {
     name: Cow<'static, str>,
@@ -68,36 +68,7 @@ impl Tool for McpTool {
         let content = tool_result
             .content
             .into_iter()
-            .map(|v: rmcp::model::Annotated<RawContent>| match v.raw {
-                RawContent::Text(content) => content.text,
-                RawContent::Image(content) => content.data,
-                RawContent::Resource(content) => match content.resource {
-                    ResourceContents::TextResourceContents {
-                        uri,
-                        mime_type,
-                        text,
-                    } => {
-                        format!(
-                            "[Resource]({}){}: {}",
-                            uri,
-                            mime_type.map(|s| format!(" ({})", s)).unwrap_or_default(),
-                            text,
-                        )
-                    }
-                    ResourceContents::BlobResourceContents {
-                        uri,
-                        mime_type,
-                        blob,
-                    } => {
-                        format!(
-                            "[Resource]({}){}: {}",
-                            uri,
-                            mime_type.map(|s| format!(" ({})", s)).unwrap_or_default(),
-                            blob
-                        )
-                    }
-                },
-            })
+            .map(parse_mcp_response)
             .collect::<Vec<_>>()
             .join("\n");
 
