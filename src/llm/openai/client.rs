@@ -12,9 +12,8 @@ use futures::{Stream, StreamExt};
 use crate::{
     language_models::{llm::LLM, options::CallOptions, LLMError},
     schemas::{
-        {GenerateResult, TokenUsage},
         messages::Message,
-        MessageType, StreamData,
+        MessageType, StreamData, {GenerateResult, TokenUsage},
     },
 };
 

@@ -17,7 +17,7 @@ pub trait Agent: Send + Sync {
         inputs: &mut InputVariables,
     ) -> Result<AgentResult, AgentError>;
 
-    fn get_tool(&self, tool_name: &str) -> Option<&Box<dyn Tool>>;
+    async fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool>;
 
     fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>>;
 }

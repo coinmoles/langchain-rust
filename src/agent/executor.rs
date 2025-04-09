@@ -139,7 +139,6 @@ impl Chain for AgentExecutor {
                                 Message::new(MessageType::HumanMessage, FORCE_FINAL_ANSWER),
                             ],
                         );
-                        // TODO: Add ultimatum template
                         continue 'step;
                     }
 
@@ -147,7 +146,7 @@ impl Chain for AgentExecutor {
                         log::debug!("{}", tool_call);
 
                         let tool_name = tool_call.name.to_lowercase().replace(" ", "_");
-                        let Some(tool) = self.agent.get_tool(&tool_name) else {
+                        let Some(tool) = self.agent.get_tool(&tool_name).await else {
                             consecutive_fails += 1;
                             log::warn!(
                                 "Agent tried to use nonexistent tool {}, retrying ({} consecutive fails)",

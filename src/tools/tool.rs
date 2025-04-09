@@ -1,8 +1,6 @@
-use std::collections::HashMap;
 use std::error::Error;
 use std::string::String;
 
-use async_openai::error::OpenAIError;
 use async_openai::types::{
     ChatCompletionTool, ChatCompletionToolArgs, ChatCompletionToolType, FunctionObjectArgs,
 };
@@ -73,24 +71,19 @@ pub trait Tool: Send + Sync {
         )
     }
 
-    fn try_into_opeai_tool(&self) -> Result<ChatCompletionTool, OpenAIError> {
+    fn into_openai_tool(&self) -> ChatCompletionTool {
         let tool = FunctionObjectArgs::default()
             .name(self.name().to_lowercase().replace(" ", "_"))
             .description(self.description())
             .parameters(self.parameters().to_openai_field())
             .strict(self.strict())
-            .build()?;
+            .build()
+            .unwrap_or_else(|e| unreachable!("All fields must be set: {}", e));
 
         ChatCompletionToolArgs::default()
             .r#type(ChatCompletionToolType::Function)
             .function(tool)
             .build()
+            .unwrap_or_else(|e| unreachable!("All fields must be set: {}", e))
     }
-}
-
-pub fn map_tools(tools: Vec<Box<dyn Tool>>) -> HashMap<String, Box<dyn Tool>> {
-    tools
-        .into_iter()
-        .map(|tool| (tool.name().to_lowercase().replace(" ", "_"), tool))
-        .collect()
 }

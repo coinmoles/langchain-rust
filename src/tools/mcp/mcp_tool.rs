@@ -93,7 +93,7 @@ impl Tool for McpTool {
     }
 
     fn strict(&self) -> bool {
-        true
+        false
     }
 
     async fn call(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {

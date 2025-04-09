@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, error::Error};
 
 use crate::schemas::{AgentResult, GenerateResultContent, ToolCall};
+use crate::tools::Toolbox;
 use crate::{
     agent::{Agent, AgentError},
     chain::Chain,
@@ -23,6 +24,7 @@ pub struct LogTools {
 pub struct OpenAiToolAgent {
     pub(crate) chain: Box<dyn Chain>,
     pub(crate) tools: HashMap<String, Box<dyn Tool>>,
+    pub(crate) toolboxes: Vec<Box<dyn Toolbox>>,
 }
 
 impl OpenAiToolAgent {
@@ -81,8 +83,18 @@ impl Agent for OpenAiToolAgent {
         Ok(AgentResult { content, usage })
     }
 
-    fn get_tool(&self, tool_name: &str) -> Option<&Box<dyn Tool>> {
-        self.tools.get(tool_name)
+    async fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool> {
+        if let Some(tool) = self.tools.get(tool_name).map(|t| t.as_ref()) {
+            return Some(tool);
+        }
+
+        for toolbox in &self.toolboxes {
+            if let Ok(tool) = toolbox.get_tool(tool_name).await {
+                return Some(tool);
+            }
+        }
+
+        None
     }
 
     fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>> {

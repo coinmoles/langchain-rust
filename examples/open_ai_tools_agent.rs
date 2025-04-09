@@ -8,9 +8,7 @@ use langchain_rust::{
     memory::SimpleMemory,
     schemas::InputVariables,
     text_replacements,
-    tools::{
-        map_tools, CommandExecutor, DuckDuckGoSearch, SerpApi, Tool, ToolFunction, ToolWrapper,
-    },
+    tools::{CommandExecutor, DuckDuckGoSearch, SerpApi, Tool, ToolFunction, ToolWrapper},
 };
 
 use serde_json::Value;
@@ -55,13 +53,14 @@ async fn main() {
     let tool_calc = Date::default();
     let command_executor = CommandExecutor::default();
     let agent = OpenAiToolAgentBuilder::new()
-        .tools(map_tools(vec![
-            serpapi_tool.into(),
-            tool_calc.into(),
-            command_executor.into(),
-            duckduckgo_tool.into(),
-        ]))
+        .tools(vec![
+            serpapi_tool.into_boxed_tool(),
+            tool_calc.into_boxed_tool(),
+            command_executor.into_boxed_tool(),
+            duckduckgo_tool.into_boxed_tool(),
+        ])
         .build(llm)
+        .await
         .unwrap();
 
     let executor = AgentExecutor::from_agent(agent).with_memory(memory.into());

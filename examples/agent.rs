@@ -8,7 +8,7 @@ use langchain_rust::{
     memory::SimpleMemory,
     schemas::InputVariables,
     text_replacements,
-    tools::{map_tools, CommandExecutor},
+    tools::{CommandExecutor, ToolFunction},
 };
 
 #[tokio::main]
@@ -17,8 +17,9 @@ async fn main() {
     let memory = SimpleMemory::new();
     let command_executor = CommandExecutor::default();
     let agent = ConversationalAgentBuilder::new()
-        .tools(map_tools(vec![command_executor.into()]))
+        .tools(vec![command_executor.into_boxed_tool()])
         .build(llm)
+        .await
         .unwrap();
 
     let executor = AgentExecutor::from_agent(agent).with_memory(memory.into());

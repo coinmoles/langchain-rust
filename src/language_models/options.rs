@@ -21,7 +21,6 @@ impl fmt::Debug for StreamOption {
 }
 
 impl StreamOption {
-    //TODO:Check if this should be a &str instead of a String
     pub fn with_streaming_func<F, Fut>(mut self, mut func: F) -> Self
     where
         F: FnMut(&str) -> Fut + Send + 'static,

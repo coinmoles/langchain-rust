@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error};
+use std::{collections::HashMap, error::Error, sync::Arc};
 
 use async_trait::async_trait;
 
@@ -9,7 +9,7 @@ use crate::{
     schemas::{AgentResult, InputVariables, Message, MessageType, ToolCall},
     template::{MessageOrTemplate, MessageTemplate, PromptTemplate},
     text_replacements,
-    tools::Tool,
+    tools::{Tool, Toolbox},
 };
 
 use super::{parse::parse_agent_output, prompt::SUFFIX};
@@ -17,6 +17,7 @@ use super::{parse::parse_agent_output, prompt::SUFFIX};
 pub struct ConversationalAgent {
     pub(crate) chain: Box<dyn Chain>,
     pub(crate) tools: HashMap<String, Box<dyn Tool>>,
+    pub(crate) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
 }
 
 impl ConversationalAgent {
@@ -84,8 +85,18 @@ impl Agent for ConversationalAgent {
         Ok(AgentResult { content, usage })
     }
 
-    fn get_tool(&self, tool_name: &str) -> Option<&Box<dyn Tool>> {
-        self.tools.get(tool_name)
+    async fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool> {
+        if let Some(tool) = self.tools.get(tool_name).map(|t| t.as_ref()) {
+            return Some(tool);
+        }
+
+        for toolbox in &self.toolboxes {
+            if let Ok(tool) = toolbox.get_tool(tool_name).await {
+                return Some(tool);
+            }
+        }
+
+        None
     }
 
     fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>> {
@@ -108,7 +119,7 @@ mod tests {
         memory::SimpleMemory,
         schemas::InputVariables,
         text_replacements,
-        tools::{map_tools, ToolFunction},
+        tools::ToolFunction,
     };
 
     #[derive(Default)]
@@ -142,8 +153,9 @@ mod tests {
         let memory = SimpleMemory::new();
         let tool_calc = Calc::default();
         let agent = ConversationalAgentBuilder::new()
-            .tools(map_tools(vec![tool_calc.into()]))
+            .tools(vec![tool_calc.into_boxed_tool()])
             .build(llm)
+            .await
             .unwrap();
         let mut input_variables: InputVariables = text_replacements! {
             "input" => "hola,Me llamo luis, y tengo 10 anos, y estudio Computer scinence",

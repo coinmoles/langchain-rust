@@ -10,7 +10,10 @@ use super::{
 };
 
 #[async_trait]
-pub trait ToolFunction: Send + Sync {
+pub trait ToolFunction: Send + Sync
+where
+    Self: Sized + 'static,
+{
     type Input: Send + Sync;
     type Result: Display + Send + Sync;
 
@@ -49,6 +52,10 @@ pub trait ToolFunction: Send + Sync {
 
     fn usage_limit(&self) -> Option<usize> {
         None
+    }
+
+    fn into_boxed_tool(self) -> Box<dyn Tool> {
+        Box::new(ToolWrapper::new(self))
     }
 }
 
@@ -91,14 +98,5 @@ where
 
     fn usage_limit(&self) -> Option<usize> {
         self.tool.usage_limit()
-    }
-}
-
-impl<T> From<T> for Box<dyn Tool>
-where
-    T: ToolFunction + 'static,
-{
-    fn from(tool: T) -> Self {
-        Box::new(ToolWrapper::new(tool))
     }
 }
