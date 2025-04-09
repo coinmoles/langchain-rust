@@ -74,15 +74,48 @@ fn parse_partial_json(s: &str, strict: bool) -> Option<Value> {
         return None;
     }
 
+    let multiline_removed = remove_multiline(s);
+    if let Ok(val) = serde_json::from_str::<Value>(&multiline_removed) {
+        return Some(val);
+    }
+
     // Step 2: Try parsing the cleaned version
-    let cleaned = remove_trailing_commas(s);
-    if let Ok(val) = serde_json::from_str::<Value>(&cleaned) {
+    let comma_cleaned = remove_trailing_commas(&multiline_removed);
+    if let Ok(val) = serde_json::from_str::<Value>(&comma_cleaned) {
         return Some(val);
     }
 
     // Step 3: Attempt to balance braces/brackets
-    let balanced = balance_parenthesis(&cleaned);
+    let balanced = balance_parenthesis(&comma_cleaned);
     serde_json::from_str(&balanced).ok()
+}
+
+fn remove_multiline(s: &str) -> String {
+    let mut cleaned = String::new();
+    let mut inside_string = false;
+    let mut escaped = false;
+
+    for c in s.chars() {
+        match c {
+            '"' if !escaped => {
+                inside_string = !inside_string;
+                cleaned.push(c);
+            }
+            '\\' if inside_string => {
+                escaped = !escaped;
+                cleaned.push(c);
+            }
+            '\n' if inside_string => {
+                cleaned.push_str("\\n");
+            }
+            _ => {
+                escaped = false;
+                cleaned.push(c);
+            }
+        }
+    }
+
+    cleaned
 }
 
 fn remove_trailing_commas(s: &str) -> String {
@@ -311,6 +344,26 @@ mod tests {
                 assert_eq!(tool_call.arguments, "Hello, world!");
             }
             _ => panic!("Expected AgentEvent::Action, got {:#?}", result),
+        }
+    }
+
+    #[test]
+    fn test_final_answer_multiline() {
+        let text = indoc! {r#"
+        {
+            "final_answer": "Cyclin-dependent kinases (CDKs) have long been established as critical regulators of the cell cycle, driving cellular progression through distinct phases and presenting attractive targets for oncological intervention [Molecular mechanisms of cell death: recommendations of the Nomenclature Committee on Cell Death 2018](https://doi.org/10.1038/s41418-017-0012-4). Initially developed as cytotoxic agents, CDK inhibitors – including palbociclib, ribociclib, and abemaciclib – have demonstrated significant clinical efficacy in hormone receptor-positive, HER2-negative breast cancer, and are increasingly being investigated in other malignancies [Effects and mechanisms of innate immune molecules on inhibiting nasopharyngeal carcinoma](https://doi.org/10.1097/cm9.0000000000000132). However, growing clinical evidence reveals that the effects of CDK inhibition extend beyond cell cycle arrest, encompassing significant modulation of the host immune landscape. This emerging paradigm suggests that CDK inhibitors may exert both direct and indirect effects on immune cell function, potentially contributing to both therapeutic efficacy and immune-related adverse events.
+
+        The intricate interplay between CDK inhibition and immune function centres, in part, on the modulation of key pro-inflammatory signalling pathways, particularly the nuclear factor kappa B (NF-κB) pathway. NF-κB is a pleiotropic transcription factor central to the regulation of inflammatory responses, controlling the expression of a diverse array of genes involved in immune cell activation, cytokine production, and survival [Mechanisms and functions of p38 MAPK signalling](https://doi.org/10.1042/bj20100323).  Activation of NF-κB is typically triggered by upstream signalling cascades initiated by pattern recognition receptors, such as Toll-like receptors (TLRs), or through cytokine receptor signalling. These signals converge on the IκB kinase (IKK) complex, leading to IκB phosphorylation, ubiquitination, and subsequent degradation, thereby liberating NF-κB to translocate to the nucleus and initiate transcriptional programs. Emerging evidence suggests that CDK inhibition can disrupt this delicate balance, potentially leading to aberrant NF-κB activation. 
+
+        The precise mechanisms linking CDK inhibition to NF-κB activation remain incompletely understood but likely involve complex interactions between multiple signalling pathways. While the precise molecular details are still under investigation, potential mechanisms include altered regulation of upstream kinases (such as RIP1 and IKK) involved in NF-κB activation, and/or modulation of NF-κB transcriptional activity itself. A comprehensive understanding of these mechanisms is crucial not only for elucidating the immunological consequences of CDK inhibitor therapy, but also for developing strategies to mitigate potential immune-related toxicities and maximize therapeutic benefit. Further investigation into the underlying mechanisms is therefore warranted and will be a focus of current research."
+        }"#};
+
+        let result = parse_agent_output(text).unwrap();
+        match result {
+            AgentEvent::Finish(final_answer) => {
+                println!("{}", final_answer);
+            }
+            _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
         }
     }
 }
