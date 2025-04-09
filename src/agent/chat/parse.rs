@@ -156,7 +156,7 @@ fn balance_parenthesis(s: &str) -> String {
 }
 
 fn parse_json_markdown(json_markdown: &str) -> Option<Value> {
-    let re = Regex::new(r"```(?:json)?\s*([\s\S]+?)\s*```").unwrap();
+    let re = Regex::new(r"```(?:(?:[\w+-]\s*)+)?\s*\n\s*([\s\S]+?)\s*```").unwrap();
     if let Some(caps) = re.captures(json_markdown) {
         if let Some(json_str) = caps.get(1) {
             return parse_partial_json(json_str.as_str(), false);
