@@ -54,8 +54,10 @@ fn take_action(value: &mut Value) -> Option<(String, String, Value)> {
 
 /// Helper function to extract the final answer from the JSON value.
 fn take_final_answer(value: &mut Value) -> Option<String> {
-    match value.get_mut("final_answer")?.take() {
-        Value::String(value) => Some(value),
-        _ => None,
-    }
+    let final_answer = match value.get_mut("final_answer")?.take() {
+        Value::String(value) => value,
+        other => serde_json::to_string_pretty(value).unwrap_or_else(|_| other.to_string()),
+    };
+
+    Some(final_answer)
 }
