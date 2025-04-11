@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use serde_json::{Map, Value};
 
 use crate::utils::helper::add_indent;
@@ -29,12 +31,19 @@ impl ObjectField {
         name: S,
         description: Option<String>,
         required: bool,
-        properties: Vec<Box<dyn ToolField>>,
+        mut properties: Vec<Box<dyn ToolField>>,
         additional_properties: Option<bool>,
     ) -> Self
     where
         S: Into<String>,
     {
+        properties.sort_by(|a, b| match (a.required(), b.required()) {
+            (true, true) => Ordering::Equal,
+            (true, false) => Ordering::Less,
+            (false, true) => Ordering::Greater,
+            (false, false) => Ordering::Equal,
+        });
+
         Self {
             name: name.into(),
             description,
