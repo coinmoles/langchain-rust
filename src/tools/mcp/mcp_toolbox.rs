@@ -170,6 +170,5 @@ mod tests {
             println!("{:#?}", tool.into_openai_tool());
             println!("{:#?}", tool.usage_limit());
         }
-
     }
 }

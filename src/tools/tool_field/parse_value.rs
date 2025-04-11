@@ -40,6 +40,34 @@ fn parse_property_from_value(
 
     let r#type = match obj.remove("type").ok_or(DeError::missing_field("type"))? {
         Value::String(r#type) => r#type,
+        Value::Array(types) => {
+            if types.is_empty() {
+                return Err(DeError::invalid_length(0, &"more than 1"));
+            }
+
+            let types = types
+                .into_iter()
+                .map(|v| match v {
+                    Value::String(s) => Ok(s),
+                    other => Err(DeError::invalid_type(to_unexpected(&other), &"string")),
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+
+            let types_str = format!("{:#?}", types);
+
+            types
+                .into_iter()
+                .find(|t| {
+                    matches!(
+                        t.as_str(),
+                        "string" | "integer" | "number" | "boolean" | "array" | "object"
+                    )
+                })
+                .ok_or(DeError::invalid_value(
+                    serde::de::Unexpected::Str(&types_str),
+                    &"string, integer, number, boolean, array or object",
+                ))?
+        }
         other => return Err(DeError::invalid_type(to_unexpected(&other), &"a string")),
     };
 
