@@ -11,24 +11,49 @@ pub struct BooleanField {
 }
 
 impl BooleanField {
-    pub fn new<S>(
-        name: S,
-        description: Option<String>,
+    pub fn new_full(
+        name: impl Into<String>,
+        description: Option<impl Into<String>>,
         required: bool,
         r#enum: Option<Vec<bool>>,
-    ) -> Self
-    where
-        S: Into<String>,
-    {
-        BooleanField {
+    ) -> Self {
+        Self {
             name: name.into(),
-            description,
+            description: description.map(Into::into),
             required,
-            r#enum: r#enum.map(|options| {
-                let mut options = options.clone();
-                options.dedup();
-                options
-            }),
+            r#enum,
+        }
+    }
+
+    pub fn new(name: impl Into<String>) -> Self {
+        Self::new_full(name, None::<&str>, true, None)
+    }
+
+    pub fn description(self, description: impl Into<String>) -> Self {
+        Self {
+            description: Some(description.into()),
+            ..self
+        }
+    }
+
+    pub fn required(self) -> Self {
+        Self {
+            required: true,
+            ..self
+        }
+    }
+
+    pub fn optional(self) -> Self {
+        Self {
+            required: false,
+            ..self
+        }
+    }
+
+    pub fn r#enum(self, r#enum: impl IntoIterator<Item = bool>) -> Self {
+        Self {
+            r#enum: Some(r#enum.into_iter().collect()),
+            ..self
         }
     }
 }
@@ -76,42 +101,35 @@ mod tests {
 
     #[test]
     fn test_boolean_field_plain_description() {
-        let field = BooleanField::new("test", Some("test description".into()), true, None);
+        let field = BooleanField::new("test").description("test description");
         assert_eq!(
             field.to_plain_description(),
             "test (boolean): test description"
         );
 
-        let optional_field =
-            BooleanField::new("test", Some("test description".into()), false, None);
+        let optional_field = BooleanField::new("test")
+            .description("test description")
+            .optional();
         assert_eq!(
             optional_field.to_plain_description(),
             "test (boolean, optional): test description"
         );
 
-        let enum_field = BooleanField::new(
-            "test",
-            Some("test description".into()),
-            true,
-            Some([true, false].into_iter().collect()),
-        );
+        let enum_field = BooleanField::new("test")
+            .description("test description")
+            .r#enum([true, false]);
         assert_eq!(
             enum_field.to_plain_description(),
             "test (boolean): test description, should be one of [true, false]"
         );
 
-        let enum_field_without_description = BooleanField::new(
-            "test",
-            None,
-            true,
-            Some([true, false].into_iter().collect()),
-        );
+        let enum_field_without_description = BooleanField::new("test").r#enum([true, false]);
         assert_eq!(
             enum_field_without_description.to_plain_description(),
             "test (boolean): should be one of [true, false]"
         );
 
-        let field_without_description = BooleanField::new("test", None, true, None);
+        let field_without_description = BooleanField::new("test");
         assert_eq!(
             field_without_description.to_plain_description(),
             "test (boolean)"
@@ -120,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_boolean_field_openai() {
-        let field = BooleanField::new("test", Some("test description".into()), true, None);
+        let field = BooleanField::new("test").description("test description");
         assert_eq!(
             field.to_openai_field(),
             json!({
@@ -129,12 +147,9 @@ mod tests {
             })
         );
 
-        let enum_field = BooleanField::new(
-            "test",
-            Some("test description".into()),
-            true,
-            Some([true, false].into_iter().collect()),
-        );
+        let enum_field = BooleanField::new("test")
+            .description("test description")
+            .r#enum([true, false]);
         assert_eq!(
             enum_field.to_openai_field(),
             json!({
@@ -144,7 +159,7 @@ mod tests {
             })
         );
 
-        let field_without_description = BooleanField::new("test", None, true, None);
+        let field_without_description = BooleanField::new("test");
         assert_eq!(
             field_without_description.to_openai_field(),
             json!({

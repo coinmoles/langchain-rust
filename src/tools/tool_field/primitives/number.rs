@@ -11,24 +11,53 @@ pub struct NumberField {
 }
 
 impl NumberField {
-    pub fn new<S>(
-        name: S,
-        description: Option<String>,
+    pub fn new_full(
+        name: impl Into<String>,
+        description: Option<impl Into<String>>,
         required: bool,
         r#enum: Option<Vec<f64>>,
-    ) -> Self
-    where
-        S: Into<String>,
-    {
+    ) -> Self {
         NumberField {
             name: name.into(),
-            description,
+            description: description.map(Into::into),
             required,
             r#enum: r#enum.map(|options| {
                 let mut options = options.clone();
                 options.dedup();
                 options
             }),
+        }
+    }
+
+    pub fn new(name: impl Into<String>) -> Self {
+        Self::new_full(name, None::<&str>, true, None)
+    }
+
+    pub fn description(self, description: impl Into<String>) -> Self {
+        Self {
+            description: Some(description.into()),
+            ..self
+        }
+    }
+
+    pub fn required(self) -> Self {
+        Self {
+            required: true,
+            ..self
+        }
+    }
+
+    pub fn optional(self) -> Self {
+        Self {
+            required: false,
+            ..self
+        }
+    }
+
+    pub fn r#enum(self, r#enum: impl IntoIterator<Item = f64>) -> Self {
+        Self {
+            r#enum: Some(r#enum.into_iter().collect()),
+            ..self
         }
     }
 }
@@ -76,37 +105,35 @@ mod tests {
 
     #[test]
     fn test_number_field_plain_description() {
-        let field = NumberField::new("test", Some("test description".into()), true, None);
+        let field = NumberField::new("test").description("test description");
         assert_eq!(
             field.to_plain_description(),
             "test (number): test description"
         );
 
-        let optional_field = NumberField::new("test", Some("test description".into()), false, None);
+        let optional_field = NumberField::new("test")
+            .description("test description")
+            .optional();
         assert_eq!(
             optional_field.to_plain_description(),
             "test (number, optional): test description"
         );
 
-        let enum_field = NumberField::new(
-            "test",
-            Some("test description".into()),
-            true,
-            Some([0.1, 3f64].into_iter().collect()),
-        );
+        let enum_field = NumberField::new("test")
+            .description("test description")
+            .r#enum([0.1, 3f64]);
         assert_eq!(
             enum_field.to_plain_description(),
             "test (number): test description, should be one of [0.1, 3]"
         );
 
-        let enum_field_without_description =
-            NumberField::new("test", None, true, Some([3.2, 5f64].into_iter().collect()));
+        let enum_field_without_description = NumberField::new("test").r#enum([3.2, 5f64]);
         assert_eq!(
             enum_field_without_description.to_plain_description(),
             "test (number): should be one of [3.2, 5]"
         );
 
-        let field_without_description = NumberField::new("test", None, true, None);
+        let field_without_description = NumberField::new("test");
         assert_eq!(
             field_without_description.to_plain_description(),
             "test (number)"
@@ -115,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_boolean_field_openai() {
-        let field = NumberField::new("test", Some("test description".into()), true, None);
+        let field = NumberField::new("test").description("test description");
         assert_eq!(
             field.to_openai_field(),
             json!({
@@ -124,12 +151,9 @@ mod tests {
             })
         );
 
-        let enum_field = NumberField::new(
-            "test",
-            Some("test description".into()),
-            true,
-            Some([3.1, 3.12].into_iter().collect()),
-        );
+        let enum_field = NumberField::new("test")
+            .description("test description")
+            .r#enum([3.1, 3.12]);
         assert_eq!(
             enum_field.to_openai_field(),
             json!({
@@ -139,7 +163,7 @@ mod tests {
             })
         );
 
-        let field_without_description = NumberField::new("test", None, true, None);
+        let field_without_description = NumberField::new("test");
         assert_eq!(
             field_without_description.to_openai_field(),
             json!({

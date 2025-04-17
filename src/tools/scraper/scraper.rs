@@ -26,16 +26,10 @@ impl ToolFunction for WebScrapper {
     }
 
     fn parameters(&self) -> ToolParameters {
-        ToolParameters::new(
-            vec![StringField::new(
-                "input",
-                Some("The URL to scrape, MUST be a working URL".into()),
-                true,
-                None,
-            )
-            .into()],
-            Some(false),
-        )
+        ToolParameters::new([StringField::new("input")
+            .description("The URL to scrape, MUST be a working URL")
+            .into()])
+        .additional_properties(false)
     }
 
     fn strict(&self) -> bool {

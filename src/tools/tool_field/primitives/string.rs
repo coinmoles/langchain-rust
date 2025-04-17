@@ -11,24 +11,53 @@ pub struct StringField {
 }
 
 impl StringField {
-    pub fn new<S>(
-        name: S,
-        description: Option<String>,
+    pub fn new_full(
+        name: impl Into<String>,
+        description: Option<impl Into<String>>,
         required: bool,
-        r#enum: Option<Vec<String>>,
-    ) -> Self
-    where
-        S: Into<String>,
-    {
+        r#enum: Option<impl IntoIterator<Item = impl Into<String>>>,
+    ) -> Self {
         StringField {
             name: name.into(),
-            description,
+            description: description.map(Into::into),
             required,
             r#enum: r#enum.map(|options| {
-                let mut options = options.clone();
+                let mut options = options.into_iter().map(Into::into).collect::<Vec<_>>();
                 options.dedup();
                 options
             }),
+        }
+    }
+
+    pub fn new(name: impl Into<String>) -> Self {
+        Self::new_full(name, None::<&str>, true, None::<Vec<&str>>)
+    }
+
+    pub fn description(self, description: impl Into<String>) -> Self {
+        Self {
+            description: Some(description.into()),
+            ..self
+        }
+    }
+
+    pub fn required(self) -> Self {
+        Self {
+            required: true,
+            ..self
+        }
+    }
+
+    pub fn optional(self) -> Self {
+        Self {
+            required: false,
+            ..self
+        }
+    }
+
+    pub fn r#enum(self, r#enum: impl IntoIterator<Item = impl Into<String>>) -> Self {
+        Self {
+            r#enum: Some(r#enum.into_iter().map(Into::into).collect()),
+            ..self
         }
     }
 }
@@ -76,41 +105,35 @@ mod tests {
 
     #[test]
     fn test_boolean_field_plain_description() {
-        let field = StringField::new("test", Some("test description".into()), true, None);
+        let field = StringField::new("test").description("test description");
         assert_eq!(
             field.to_plain_description(),
             "test (string): test description"
         );
 
-        let optional_field = StringField::new("test", Some("test description".into()), false, None);
+        let optional_field = StringField::new("test")
+            .description("test description")
+            .optional();
         assert_eq!(
             optional_field.to_plain_description(),
             "test (string, optional): test description"
         );
 
-        let enum_field = StringField::new(
-            "test",
-            Some("test description".into()),
-            true,
-            Some(["lala".into(), "blah".into()].into_iter().collect()),
-        );
+        let enum_field = StringField::new("test")
+            .description("test description")
+            .r#enum(["lala", "blah"]);
         assert_eq!(
             enum_field.to_plain_description(),
             "test (string): test description, should be one of [lala, blah]"
         );
 
-        let enum_field_without_description = StringField::new(
-            "test",
-            None,
-            true,
-            Some(["true".into(), "blah".into()].into_iter().collect()),
-        );
+        let enum_field_without_description = StringField::new("test").r#enum(["true", "blah"]);
         assert_eq!(
             enum_field_without_description.to_plain_description(),
             "test (string): should be one of [true, blah]"
         );
 
-        let field_without_description = StringField::new("test", None, true, None);
+        let field_without_description = StringField::new("test");
         assert_eq!(
             field_without_description.to_plain_description(),
             "test (string)"
@@ -119,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_boolean_field_openai() {
-        let field = StringField::new("test", Some("test description".into()), true, None);
+        let field = StringField::new("test").description("test description");
         assert_eq!(
             field.to_openai_field(),
             json!({
@@ -128,12 +151,9 @@ mod tests {
             })
         );
 
-        let enum_field = StringField::new(
-            "test",
-            Some("test description".into()),
-            true,
-            Some(["lala".into(), "blah".into()].into_iter().collect()),
-        );
+        let enum_field = StringField::new("test")
+            .description("test description")
+            .r#enum(["lala", "blah"]);
         assert_eq!(
             enum_field.to_openai_field(),
             json!({
@@ -143,7 +163,7 @@ mod tests {
             })
         );
 
-        let field_without_description = StringField::new("test", None, true, None);
+        let field_without_description = StringField::new("test");
         assert_eq!(
             field_without_description.to_openai_field(),
             json!({

@@ -27,16 +27,14 @@ impl Clone for ObjectField {
 }
 
 impl ObjectField {
-    pub fn new<S>(
-        name: S,
-        description: Option<String>,
+    pub fn new_full(
+        name: impl Into<String>,
+        description: Option<impl Into<String>>,
         required: bool,
-        mut properties: Vec<Box<dyn ToolField>>,
+        properties: impl IntoIterator<Item = impl Into<Box<dyn ToolField>>>,
         additional_properties: Option<bool>,
-    ) -> Self
-    where
-        S: Into<String>,
-    {
+    ) -> Self {
+        let mut properties = properties.into_iter().map(Into::into).collect::<Vec<_>>();
         properties.sort_by(|a, b| match (a.required(), b.required()) {
             (true, true) => Ordering::Equal,
             (true, false) => Ordering::Less,
@@ -46,10 +44,45 @@ impl ObjectField {
 
         Self {
             name: name.into(),
-            description,
+            description: description.map(Into::into),
             required,
             properties,
             additional_properties,
+        }
+    }
+
+    pub fn new(
+        name: impl Into<String>,
+        properties: impl IntoIterator<Item = Box<dyn ToolField>>,
+    ) -> Self {
+        Self::new_full(name, None::<&str>, true, properties, None)
+    }
+
+    pub fn description(self, description: impl Into<String>) -> Self {
+        Self {
+            description: Some(description.into()),
+            ..self
+        }
+    }
+
+    pub fn required(self) -> Self {
+        Self {
+            required: true,
+            ..self
+        }
+    }
+
+    pub fn optional(self) -> Self {
+        Self {
+            required: false,
+            ..self
+        }
+    }
+
+    pub fn additional_properties(self, additional_properties: bool) -> Self {
+        Self {
+            additional_properties: Some(additional_properties),
+            ..self
         }
     }
 
@@ -152,29 +185,22 @@ mod tests {
 
     #[test]
     fn test_object_field_properties_description() {
-        let field = ObjectField::new("test", None, true, vec![], None);
+        let field = ObjectField::new("test", []);
         assert_eq!(field.properties_description(), "{}");
 
         let field_complicated = ObjectField::new(
             "test",
-            None,
-            false,
-            vec![
-                Box::new(StringField::new(
-                    "query",
-                    Some("A query to search for".into()),
-                    true,
-                    None,
-                )),
-                Box::new(IntegerField::new(
-                    "limit",
-                    Some("Max number of articles to search".into()),
-                    false,
-                    None,
-                )),
+            [
+                StringField::new("query")
+                    .description("A query to search for")
+                    .into(),
+                IntegerField::new("limit")
+                    .description("Max number of articles to search")
+                    .optional()
+                    .into(),
             ],
-            None,
-        );
+        )
+        .optional();
         assert_eq!(
             field_complicated.properties_description(),
             indoc! {"
@@ -187,29 +213,22 @@ mod tests {
 
     #[test]
     fn test_object_field_plain_description() {
-        let field = ObjectField::new("test", None, true, vec![], None);
+        let field = ObjectField::new("test", []);
         assert_eq!(field.to_plain_description(), "test (object): {}");
 
         let field_complicated = ObjectField::new(
             "test",
-            None,
-            false,
-            vec![
-                Box::new(StringField::new(
-                    "query",
-                    Some("A query to search for".into()),
-                    true,
-                    None,
-                )),
-                Box::new(IntegerField::new(
-                    "limit",
-                    Some("Max number of articles to search".into()),
-                    false,
-                    None,
-                )),
+            [
+                StringField::new("query")
+                    .description("A query to search for")
+                    .into(),
+                IntegerField::new("limit")
+                    .description("Max number of articles to search")
+                    .optional()
+                    .into(),
             ],
-            None,
-        );
+        )
+        .optional();
         assert_eq!(
             field_complicated.to_plain_description(),
             indoc! {"
@@ -222,7 +241,7 @@ mod tests {
 
     #[test]
     fn test_object_field_openai() {
-        let field = ObjectField::new("test", None, true, vec![], None);
+        let field = ObjectField::new("test", []);
         assert_eq!(
             field.to_openai_field(),
             json!({
@@ -235,24 +254,17 @@ mod tests {
 
         let field_complicated = ObjectField::new(
             "test",
-            None,
-            false,
-            vec![
-                Box::new(StringField::new(
-                    "query",
-                    Some("A query to search for".into()),
-                    true,
-                    None,
-                )),
-                Box::new(IntegerField::new(
-                    "limit",
-                    Some("Max number of articles to search".into()),
-                    false,
-                    None,
-                )),
+            [
+                StringField::new("query")
+                    .description("A query to search for")
+                    .into(),
+                IntegerField::new("limit")
+                    .description("Max number of articles to search")
+                    .optional()
+                    .into(),
             ],
-            None,
-        );
+        )
+        .optional();
         assert_eq!(
             field_complicated.to_openai_field(),
             json!({

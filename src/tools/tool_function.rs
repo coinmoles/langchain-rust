@@ -22,12 +22,10 @@ where
     fn description(&self) -> String;
 
     fn parameters(&self) -> ToolParameters {
-        ToolParameters::new(
-            vec![
-                StringField::new("input", Some("The input for the tool".into()), true, None).into(),
-            ],
-            Some(false),
-        )
+        ToolParameters::new([StringField::new("input")
+            .description("The input for the tool")
+            .into()])
+        .additional_properties(false)
     }
 
     fn strict(&self) -> bool {

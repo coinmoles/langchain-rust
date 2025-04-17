@@ -98,13 +98,10 @@ impl ToolFunction for DuckDuckGoSearch {
     }
 
     fn parameters(&self) -> ToolParameters {
-        ToolParameters::new(
-            vec![
-                StringField::new("query", Some("Search query to look up".into()), true, None)
-                    .into(),
-            ],
-            Some(false),
-        )
+        ToolParameters::new([StringField::new("query")
+            .description("Search query to look up")
+            .into()])
+        .additional_properties(false)
     }
 
     fn strict(&self) -> bool {

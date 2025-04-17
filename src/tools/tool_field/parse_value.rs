@@ -18,7 +18,7 @@ pub(super) fn parse_tool_parameters_from_value(
         Some(other) => return Err(DeError::invalid_type(to_unexpected(&other), &"a boolean")),
         None => None,
     };
-    let field = ToolParameters::new(properties, additional_properties);
+    let field = ToolParameters::new_full(properties, additional_properties);
     Ok(field)
 }
 
@@ -74,28 +74,28 @@ fn parse_property_from_value(
     match r#type.as_str() {
         "string" => {
             let r#enum = remove_string_enum(&mut obj)?;
-            let field = StringField::new(name, description, required, r#enum);
+            let field = StringField::new_full(name, description, required, r#enum);
             Ok(Box::new(field))
         }
         "integer" => {
             let r#enum = remove_integer_enum(&mut obj)?;
-            let field = IntegerField::new(name, description, required, r#enum);
+            let field = IntegerField::new_full(name, description, required, r#enum);
             Ok(Box::new(field))
         }
         "number" => {
             let r#enum = get_number_enum(&mut obj)?;
-            let field = NumberField::new(name, description, required, r#enum);
+            let field = NumberField::new_full(name, description, required, r#enum);
             Ok(Box::new(field))
         }
         "boolean" => {
             let r#enum = remove_boolean_enum(&mut obj)?;
-            let field = BooleanField::new(name, description, required, r#enum);
+            let field = BooleanField::new_full(name, description, required, r#enum);
             Ok(Box::new(field))
         }
         "array" => {
             let item = obj.remove("items").ok_or(DeError::missing_field("items"))?;
             let item = parse_property_from_value(item, name.clone(), required)?;
-            let field = ArrayField::new(name, description, required, item);
+            let field = ArrayField::new_full(name, description, required, item);
             Ok(Box::new(field))
         }
         "object" => {
@@ -108,7 +108,7 @@ fn parse_property_from_value(
                 }
                 None => None,
             };
-            let field = ObjectField::new(
+            let field = ObjectField::new_full(
                 name,
                 description,
                 required,

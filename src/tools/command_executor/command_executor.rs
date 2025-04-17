@@ -65,33 +65,27 @@ impl ToolFunction for CommandExecutor {
     }
 
     fn parameters(&self) -> ToolParameters {
-        ToolParameters::new(
-            vec![ArrayField::new(
-                "commands",
-                Some("An array of command objects to be executed".into()),
-                true,
-                ObjectField::new(
-                    "items",
-                    Some("Object representing a command and its optional arguments".into()),
-                    true,
-                    vec![
-                        StringField::new("cmd", Some("The command to execute".into()), true, None)
-                            .into(),
-                        ArrayField::new_string_array(
-                            "args",
-                            Some("List of arguments for the command".into()),
-                            false,
-                            None,
-                        )
+        ToolParameters::new([ArrayField::new_items_array(
+            "commands",
+            ObjectField::new(
+                "items",
+                [
+                    StringField::new("cmd")
+                        .description("The command to execute")
                         .into(),
-                    ],
-                    Some(false),
-                )
-                .into(),
+                    ArrayField::new_string_array("args")
+                        .description("List of arguments for the command")
+                        .optional()
+                        .into(),
+                ],
             )
-            .into()],
-            Some(false),
+            .description("Object representing a command and its optional arguments")
+            .additional_properties(false)
+            .into(),
         )
+        .description("An array of command objects to be executed")
+        .into()])
+        .additional_properties(false)
     }
 
     async fn parse_input(

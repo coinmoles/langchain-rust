@@ -9,14 +9,25 @@ use super::{parse_value::parse_tool_parameters_from_value, ObjectField, ToolFiel
 pub struct ToolParameters(ObjectField);
 
 impl ToolParameters {
-    pub fn new(properties: Vec<Box<dyn ToolField>>, additional_properties: Option<bool>) -> Self {
-        Self(ObjectField::new(
+    pub fn new_full(
+        properties: impl IntoIterator<Item = Box<dyn ToolField>>,
+        additional_properties: Option<bool>,
+    ) -> Self {
+        Self(ObjectField::new_full(
             "input",
-            None,
+            None::<&str>,
             true,
             properties,
             additional_properties,
         ))
+    }
+
+    pub fn new(properties: impl IntoIterator<Item = Box<dyn ToolField>>) -> Self {
+        Self::new_full(properties, None)
+    }
+
+    pub fn additional_properties(self, additional_properties: bool) -> Self {
+        Self(self.0.additional_properties(additional_properties))
     }
 
     pub fn to_plain_description(&self) -> String {

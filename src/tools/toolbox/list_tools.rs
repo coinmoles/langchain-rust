@@ -60,7 +60,7 @@ where
     }
 
     fn parameters(&self) -> ToolParameters {
-        ToolParameters::new(vec![], Some(false))
+        ToolParameters::new([]).additional_properties(false)
     }
 
     async fn call(
