@@ -56,7 +56,7 @@ fn take_action(value: &mut Value) -> Option<(String, String, Value)> {
 fn take_final_answer(value: &mut Value) -> Option<String> {
     let final_answer = match value.get_mut("final_answer")?.take() {
         Value::String(value) => value,
-        other => serde_json::to_string_pretty(value).unwrap_or_else(|_| other.to_string()),
+        other => serde_json::to_string_pretty(&other).unwrap_or_else(|_| other.to_string()),
     };
 
     Some(final_answer)
