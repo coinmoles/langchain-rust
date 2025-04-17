@@ -29,12 +29,11 @@ impl Clone for ObjectField {
 impl ObjectField {
     pub fn new_full(
         name: impl Into<String>,
-        description: Option<impl Into<String>>,
+        description: Option<String>,
         required: bool,
-        properties: impl IntoIterator<Item = impl Into<Box<dyn ToolField>>>,
+        mut properties: Vec<Box<dyn ToolField>>,
         additional_properties: Option<bool>,
     ) -> Self {
-        let mut properties = properties.into_iter().map(Into::into).collect::<Vec<_>>();
         properties.sort_by(|a, b| match (a.required(), b.required()) {
             (true, true) => Ordering::Equal,
             (true, false) => Ordering::Less,
@@ -55,7 +54,7 @@ impl ObjectField {
         name: impl Into<String>,
         properties: impl IntoIterator<Item = Box<dyn ToolField>>,
     ) -> Self {
-        Self::new_full(name, None::<&str>, true, properties, None)
+        Self::new_full(name, None, true, properties.into_iter().collect(), None)
     }
 
     pub fn description(self, description: impl Into<String>) -> Self {

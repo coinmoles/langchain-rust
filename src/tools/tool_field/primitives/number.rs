@@ -13,7 +13,7 @@ pub struct NumberField {
 impl NumberField {
     pub fn new_full(
         name: impl Into<String>,
-        description: Option<impl Into<String>>,
+        description: Option<String>,
         required: bool,
         r#enum: Option<Vec<f64>>,
     ) -> Self {
@@ -30,7 +30,7 @@ impl NumberField {
     }
 
     pub fn new(name: impl Into<String>) -> Self {
-        Self::new_full(name, None::<&str>, true, None)
+        Self::new_full(name, None, true, None)
     }
 
     pub fn description(self, description: impl Into<String>) -> Self {

@@ -13,20 +13,20 @@ pub struct BooleanField {
 impl BooleanField {
     pub fn new_full(
         name: impl Into<String>,
-        description: Option<impl Into<String>>,
+        description: Option<String>,
         required: bool,
         r#enum: Option<Vec<bool>>,
     ) -> Self {
         Self {
             name: name.into(),
-            description: description.map(Into::into),
+            description,
             required,
             r#enum,
         }
     }
 
     pub fn new(name: impl Into<String>) -> Self {
-        Self::new_full(name, None::<&str>, true, None)
+        Self::new_full(name, None, true, None)
     }
 
     pub fn description(self, description: impl Into<String>) -> Self {

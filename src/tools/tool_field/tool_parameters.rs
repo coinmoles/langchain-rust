@@ -15,9 +15,9 @@ impl ToolParameters {
     ) -> Self {
         Self(ObjectField::new_full(
             "input",
-            None::<&str>,
+            None,
             true,
-            properties,
+            properties.into_iter().collect(),
             additional_properties,
         ))
     }

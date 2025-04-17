@@ -25,7 +25,7 @@ impl Clone for ArrayField {
 impl ArrayField {
     pub fn new_full(
         name: impl Into<String>,
-        description: Option<impl Into<String>>,
+        description: Option<String>,
         required: bool,
         field: Box<dyn ToolField>,
     ) -> Self {
@@ -38,7 +38,7 @@ impl ArrayField {
     }
 
     pub fn new_string_array(name: impl Into<String>) -> Self {
-        ArrayField::new_full(name, None::<&str>, true, StringField::new("items").into())
+        ArrayField::new_full(name, None, true, StringField::new("items").into())
     }
 
     pub fn new_string_enum_array(
@@ -47,14 +47,14 @@ impl ArrayField {
     ) -> Self {
         ArrayField::new_full(
             name,
-            None::<&str>,
+            None,
             true,
             StringField::new("items").r#enum(r#enum).into(),
         )
     }
 
     pub fn new_integer_array(name: impl Into<String>) -> Self {
-        ArrayField::new_full(name, None::<&str>, true, IntegerField::new("items").into())
+        ArrayField::new_full(name, None, true, IntegerField::new("items").into())
     }
 
     pub fn new_integer_enum_array(
@@ -63,14 +63,14 @@ impl ArrayField {
     ) -> Self {
         ArrayField::new_full(
             name,
-            None::<&str>,
+            None,
             true,
             IntegerField::new("items").r#enum(r#enum).into(),
         )
     }
 
     pub fn new_number_array(name: impl Into<String>) -> Self {
-        ArrayField::new_full(name, None::<&str>, true, NumberField::new("items").into())
+        ArrayField::new_full(name, None, true, NumberField::new("items").into())
     }
 
     pub fn new_number_enum_array(
@@ -79,14 +79,14 @@ impl ArrayField {
     ) -> Self {
         ArrayField::new_full(
             name,
-            None::<&str>,
+            None,
             true,
             NumberField::new("items").r#enum(r#enum).into(),
         )
     }
 
     pub fn new_boolean_array(name: impl Into<String>) -> Self {
-        ArrayField::new_full(name, None::<&str>, true, BooleanField::new("items").into())
+        ArrayField::new_full(name, None, true, BooleanField::new("items").into())
     }
 
     pub fn new_boolean_enum_array(
@@ -95,14 +95,14 @@ impl ArrayField {
     ) -> Self {
         ArrayField::new_full(
             name,
-            None::<&str>,
+            None,
             true,
             BooleanField::new("items").r#enum(r#enum).into(),
         )
     }
 
     pub fn new_items_array(name: impl Into<String>, field: Box<dyn ToolField>) -> Self {
-        ArrayField::new_full(name, None::<&str>, true, field)
+        ArrayField::new_full(name, None, true, field)
     }
 
     pub fn description(self, description: impl Into<String>) -> Self {

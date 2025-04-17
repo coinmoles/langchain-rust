@@ -13,13 +13,13 @@ pub struct StringField {
 impl StringField {
     pub fn new_full(
         name: impl Into<String>,
-        description: Option<impl Into<String>>,
+        description: Option<String>,
         required: bool,
         r#enum: Option<impl IntoIterator<Item = impl Into<String>>>,
     ) -> Self {
         StringField {
             name: name.into(),
-            description: description.map(Into::into),
+            description,
             required,
             r#enum: r#enum.map(|options| {
                 let mut options = options.into_iter().map(Into::into).collect::<Vec<_>>();
@@ -30,7 +30,7 @@ impl StringField {
     }
 
     pub fn new(name: impl Into<String>) -> Self {
-        Self::new_full(name, None::<&str>, true, None::<Vec<&str>>)
+        Self::new_full(name, None, true, None::<Vec<&str>>)
     }
 
     pub fn description(self, description: impl Into<String>) -> Self {
