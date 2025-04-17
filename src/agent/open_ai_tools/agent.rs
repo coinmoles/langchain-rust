@@ -33,7 +33,7 @@ impl OpenAiToolAgent {
         initial_prompt: &str,
     ) -> Result<PromptTemplate, AgentError> {
         let prompt = prompt_template![
-            Message::new(MessageType::SystemMessage, system_prompt),
+            MessageTemplate::from_jinja2(MessageType::SystemMessage, system_prompt),
             MessageOrTemplate::Placeholder("chat_history".into()),
             MessageTemplate::from_jinja2(MessageType::HumanMessage, initial_prompt),
             MessageOrTemplate::Placeholder("agent_scratchpad".into()),

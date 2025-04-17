@@ -8,7 +8,6 @@ use crate::{
     prompt_template,
     schemas::{AgentResult, InputVariables, Message, MessageType, ToolCall},
     template::{MessageOrTemplate, MessageTemplate, PromptTemplate},
-    text_replacements,
     tools::{Tool, Toolbox},
 };
 
@@ -32,20 +31,13 @@ impl ConversationalAgent {
             .map(|tool| tool.to_plain_description())
             .collect::<Vec<_>>()
             .join("\n");
-        let input_variables_fstring: InputVariables = text_replacements! {
-            "tool_names" => tool_names,
-            "tools" => tool_string,
-        }
-        .into();
-
-        let system_prompt = MessageTemplate::from_jinja2(
-            MessageType::SystemMessage,
-            &format!("{}{}", system_prompt, SUFFIX),
-        )
-        .format(&input_variables_fstring)?;
+        let suffix = SUFFIX
+            .replace("{{tool_names}}", &tool_names)
+            .replace("{{tools}}", &tool_string);
+        let system_message = format!("{}{}", system_prompt, suffix);
 
         let prompt = prompt_template![
-            system_prompt,
+            MessageTemplate::from_jinja2(MessageType::SystemMessage, system_message),
             MessageOrTemplate::Placeholder("chat_history".into()),
             MessageTemplate::from_jinja2(MessageType::HumanMessage, initial_prompt),
             MessageOrTemplate::Placeholder("agent_scratchpad".into()),
