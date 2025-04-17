@@ -14,40 +14,35 @@ pub enum TemplateFormat {
 #[derive(Clone, new)]
 pub struct MessageTemplate {
     message_type: MessageType,
+    #[new(into)]
     template: String,
     variables: HashSet<String>,
     format: TemplateFormat,
 }
 
 impl MessageTemplate {
-    pub fn from_fstring(message_type: MessageType, content: &str) -> Self {
+    pub fn from_fstring(message_type: MessageType, content: impl Into<String>) -> Self {
+        let content = content.into();
+
         let re = regex::Regex::new(r"\{(\w+)\}").unwrap();
         let variables = re
-            .captures_iter(content)
+            .captures_iter(&content)
             .map(|cap| cap[1].to_string())
             .collect();
 
-        Self::new(
-            message_type,
-            content.into(),
-            variables,
-            TemplateFormat::FString,
-        )
+        Self::new(message_type, content, variables, TemplateFormat::FString)
     }
 
-    pub fn from_jinja2(message_type: MessageType, content: &str) -> Self {
+    pub fn from_jinja2(message_type: MessageType, content: impl Into<String>) -> Self {
+        let content = content.into();
+
         let re = regex::Regex::new(r"\{\{(\w+)\}\}").unwrap();
         let variables = re
-            .captures_iter(content)
+            .captures_iter(&content)
             .map(|cap| cap[1].to_string())
             .collect();
 
-        Self::new(
-            message_type,
-            content.into(),
-            variables,
-            TemplateFormat::Jinja2,
-        )
+        Self::new(message_type, content, variables, TemplateFormat::Jinja2)
     }
 
     pub fn format(&self, input_variables: &InputVariables) -> Result<Message, TemplateError> {
