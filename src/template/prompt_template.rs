@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use derive_new::new;
 
@@ -55,27 +55,6 @@ impl PromptTemplate {
             .collect::<Vec<_>>();
 
         Ok(Prompt::new(messages))
-    }
-
-    /// Replaces placeholder messages with the actual messages.
-    ///
-    /// Must be called before .format()
-    pub fn replace_placeholder(&self, input: &HashMap<String, Vec<Message>>) -> Self {
-        let messages = self
-            .messages
-            .iter()
-            .flat_map(|m| match m {
-                MessageOrTemplate::Placeholder(p) if input.get(p).is_some() => input
-                    .get(p)
-                    .unwrap()
-                    .iter()
-                    .map(|m| MessageOrTemplate::Message(m.clone()))
-                    .collect(),
-                _ => vec![m.clone()],
-            })
-            .collect();
-
-        Self::new(messages)
     }
 
     /// Returns a list of required input variable names for the template.
