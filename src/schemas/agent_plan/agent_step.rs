@@ -1,5 +1,6 @@
 use crate::schemas::ToolCall;
 
+#[derive(Debug, Clone)]
 pub struct AgentStep {
     pub tool_call: ToolCall,
     pub result: String,
