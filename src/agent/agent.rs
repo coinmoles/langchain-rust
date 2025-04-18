@@ -3,7 +3,8 @@ use std::error::Error;
 use async_trait::async_trait;
 
 use crate::{
-    schemas::{AgentResult, InputVariables, ToolCall},
+    diary::DiaryStep,
+    schemas::{AgentResult, InputVariables},
     tools::Tool,
 };
 
@@ -13,7 +14,7 @@ use super::AgentError;
 pub trait Agent: Send + Sync {
     async fn plan(
         &self,
-        intermediate_steps: &[(ToolCall, String)],
+        steps: &[DiaryStep],
         inputs: &mut InputVariables,
     ) -> Result<AgentResult, AgentError>;
 

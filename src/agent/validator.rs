@@ -1,9 +1,5 @@
-use crate::schemas::ToolCall;
+use crate::diary::DiaryStep;
 
 pub trait FinalAnswerValidator: Send + Sync {
-    fn validate_final_answer(
-        &self,
-        final_answer: &str,
-        intermediate_steps: &[(ToolCall, String)],
-    ) -> bool;
+    fn validate_final_answer(&self, final_answer: &str, intermediate_steps: &[DiaryStep]) -> bool;
 }

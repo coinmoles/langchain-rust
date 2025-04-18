@@ -5,8 +5,9 @@ use async_trait::async_trait;
 use crate::{
     agent::{agent::Agent, AgentError},
     chain::chain_trait::Chain,
+    diary::DiaryStep,
     prompt_template,
-    schemas::{AgentResult, InputVariables, Message, MessageType, ToolCall},
+    schemas::{AgentResult, InputVariables, Message, MessageType},
     template::{MessageOrTemplate, MessageTemplate, PromptTemplate},
     tools::{Tool, Toolbox},
 };
@@ -47,13 +48,13 @@ impl ConversationalAgent {
         Ok(prompt)
     }
 
-    fn construct_scratchpad(&self, intermediate_steps: &[(ToolCall, String)]) -> Vec<Message> {
+    fn construct_scratchpad(&self, intermediate_steps: &[DiaryStep]) -> Vec<Message> {
         intermediate_steps
             .iter()
-            .flat_map(|(tool_call, result)| {
+            .flat_map(|step| {
                 vec![
-                    Message::new_ai_message(tool_call),
-                    Message::new_human_message(result),
+                    Message::new_ai_message(&step.tool_call),
+                    Message::new_human_message(&step.result),
                 ]
             })
             .collect::<Vec<_>>()
@@ -64,7 +65,7 @@ impl ConversationalAgent {
 impl Agent for ConversationalAgent {
     async fn plan(
         &self,
-        intermediate_steps: &[(ToolCall, String)],
+        intermediate_steps: &[DiaryStep],
         inputs: &mut InputVariables,
     ) -> Result<AgentResult, AgentError> {
         let scratchpad = self.construct_scratchpad(intermediate_steps);

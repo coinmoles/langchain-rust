@@ -9,6 +9,7 @@ use tokio::sync::RwLock;
 use super::{agent::Agent, AgentError, FinalAnswerValidator};
 use crate::{
     chain::{chain_trait::Chain, ChainError},
+    diary::{Diary, SimpleDiary},
     memory::Memory,
     schemas::{
         agent_plan::AgentEvent, AgentResult, GenerateResult, GenerateResultContent, InputVariables,
@@ -18,13 +19,15 @@ use crate::{
 
 const FORCE_FINAL_ANSWER: &str = "Now it's time you MUST give your absolute best final answer. You'll ignore all previous instructions, stop using any tools, and just return your absolute BEST Final answer.";
 
+#[derive(Clone)]
 pub struct AgentExecutor {
-    agent: Box<dyn Agent>,
+    agent: Arc<dyn Agent>,
     max_iterations: Option<usize>,
     max_consecutive_fails: Option<usize>,
     break_if_tool_error: bool,
     memory: Option<Arc<RwLock<dyn Memory>>>,
-    final_answer_validator: Option<Box<dyn FinalAnswerValidator>>,
+    diary: Arc<RwLock<dyn Diary>>,
+    final_answer_validator: Option<Arc<dyn FinalAnswerValidator>>,
 }
 
 impl AgentExecutor {
@@ -33,11 +36,12 @@ impl AgentExecutor {
         A: Agent + Send + Sync + 'static,
     {
         Self {
-            agent: Box::new(agent),
+            agent: Arc::new(agent),
             max_iterations: Some(10),
             max_consecutive_fails: Some(3),
             break_if_tool_error: false,
             memory: None,
+            diary: Arc::new(RwLock::new(SimpleDiary::default())),
             final_answer_validator: None,
         }
     }
@@ -52,6 +56,11 @@ impl AgentExecutor {
         self
     }
 
+    pub fn with_diary(mut self, diary: Arc<RwLock<dyn Diary>>) -> Self {
+        self.diary = diary;
+        self
+    }
+
     pub fn with_break_if_tool_error(mut self, break_if_tool_error: bool) -> Self {
         self.break_if_tool_error = break_if_tool_error;
         self
@@ -61,7 +70,7 @@ impl AgentExecutor {
     where
         V: FinalAnswerValidator + Send + Sync + 'static,
     {
-        self.final_answer_validator = Some(Box::new(final_answer_validator));
+        self.final_answer_validator = Some(Arc::new(final_answer_validator));
         self
     }
 }
@@ -72,7 +81,6 @@ impl Chain for AgentExecutor {
         &self,
         input_variables: &mut InputVariables,
     ) -> Result<GenerateResult, ChainError> {
-        let mut steps: Vec<(ToolCall, String)> = Vec::new();
         let mut use_counts: HashMap<String, usize> = HashMap::new();
         let mut consecutive_fails: usize = 0;
         let mut total_usage: Option<TokenUsage> = None;
@@ -104,6 +112,11 @@ impl Chain for AgentExecutor {
                 );
                 return Err(ChainError::AgentError("Too many consecutive fails".into()));
             }
+
+            let steps = {
+                let diary = self.diary.read().await;
+                diary.get_steps()
+            };
 
             let AgentResult { content, usage } =
                 match self.agent.plan(&steps, input_variables).await {
@@ -191,7 +204,7 @@ impl Chain for AgentExecutor {
 
                         log::debug!("Tool {} result:\n{}", &tool_call.name, &result);
 
-                        steps.push((tool_call, result));
+                        self.diary.write().await.push_step(tool_call, result);
                         consecutive_fails = 0;
                     }
                 }
@@ -217,13 +230,16 @@ impl Chain for AgentExecutor {
                                 .unwrap_or_default(),
                         );
 
-                        for (tool_call, result) in steps {
+                        for step in steps {
                             memory.add_tool_call_message(vec![ToolCall::new(
-                                tool_call.id.clone(),
-                                tool_call.name.clone(),
-                                tool_call.arguments.clone(),
+                                step.tool_call.id.clone(),
+                                step.tool_call.name.clone(),
+                                step.tool_call.arguments.clone(),
                             )]);
-                            memory.add_tool_message(Some(tool_call.id.clone()), result.clone());
+                            memory.add_tool_message(
+                                Some(step.tool_call.id.clone()),
+                                step.result.clone(),
+                            );
                         }
 
                         memory.add_ai_message(final_answer.clone());

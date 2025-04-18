@@ -2,7 +2,8 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, error::Error};
 
-use crate::schemas::{AgentResult, GenerateResultContent, ToolCall};
+use crate::diary::DiaryStep;
+use crate::schemas::{AgentResult, GenerateResultContent};
 use crate::tools::Toolbox;
 use crate::{
     agent::{Agent, AgentError},
@@ -43,13 +44,13 @@ impl OpenAiToolAgent {
         Ok(prompt)
     }
 
-    fn construct_scratchpad(&self, intermediate_steps: &[(ToolCall, String)]) -> Vec<Message> {
-        intermediate_steps
+    fn construct_scratchpad(&self, steps: &[DiaryStep]) -> Vec<Message> {
+        steps
             .iter()
-            .flat_map(|(tool_call, result)| {
+            .flat_map(|step| {
                 vec![
-                    Message::new_tool_call_message([tool_call.clone()]),
-                    Message::new_tool_message(Some(&tool_call.id), result.clone()),
+                    Message::new_tool_call_message([step.tool_call.clone()]),
+                    Message::new_tool_message(Some(&step.tool_call.id), step.result.clone()),
                 ]
             })
             .collect::<Vec<_>>()
@@ -60,10 +61,10 @@ impl OpenAiToolAgent {
 impl Agent for OpenAiToolAgent {
     async fn plan(
         &self,
-        intermediate_steps: &[(ToolCall, String)],
+        steps: &[DiaryStep],
         inputs: &mut InputVariables,
     ) -> Result<AgentResult, AgentError> {
-        let scratchpad = self.construct_scratchpad(intermediate_steps);
+        let scratchpad = self.construct_scratchpad(steps);
         inputs.insert_placeholder_replacement("agent_scratchpad", scratchpad);
         let output = self.chain.call(inputs).await?;
 
