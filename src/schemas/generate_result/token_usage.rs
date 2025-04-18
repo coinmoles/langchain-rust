@@ -27,6 +27,18 @@ impl TokenUsage {
             total_tokens: self.total_tokens + other.total_tokens,
         }
     }
+
+    pub fn merge_options(
+        usage1: Option<TokenUsage>,
+        usage2: Option<TokenUsage>,
+    ) -> Option<TokenUsage> {
+        match (usage1, usage2) {
+            (Some(usage1), Some(usage2)) => Some(usage1.merge(&usage2)),
+            (Some(usage), None) => Some(usage),
+            (None, Some(usage)) => Some(usage),
+            (None, None) => None,
+        }
+    }
 }
 
 // Convert from async-openai type

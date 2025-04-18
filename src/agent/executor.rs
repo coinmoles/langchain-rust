@@ -115,12 +115,7 @@ impl Chain for AgentExecutor {
                     }
                 };
 
-            total_usage = match (total_usage, usage) {
-                (None, None) => None,
-                (Some(total_usage), None) => Some(total_usage),
-                (None, Some(usage)) => Some(usage),
-                (Some(total_usage), Some(usage)) => Some(total_usage.merge(&usage)),
-            };
+            total_usage = TokenUsage::merge_options(total_usage, usage);
 
             match content {
                 AgentEvent::Action(tool_calls) => {
