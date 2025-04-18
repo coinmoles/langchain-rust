@@ -8,7 +8,7 @@ use crate::{
     tools::Tool,
 };
 
-use super::AgentError;
+use super::{AgentError, AgentExecutor};
 
 #[async_trait]
 pub trait Agent: Send + Sync {
@@ -21,4 +21,11 @@ pub trait Agent: Send + Sync {
     async fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool>;
 
     fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>>;
+
+    fn executor(self) -> AgentExecutor
+    where
+        Self: Sized + 'static,
+    {
+        AgentExecutor::from_agent(self)
+    }
 }

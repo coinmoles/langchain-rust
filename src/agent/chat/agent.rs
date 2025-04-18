@@ -106,7 +106,7 @@ mod tests {
     use serde_json::Value;
 
     use crate::{
-        agent::{chat::builder::ConversationalAgentBuilder, executor::AgentExecutor},
+        agent::{chat::builder::ConversationalAgentBuilder, Agent},
         chain::chain_trait::Chain,
         llm::openai::{OpenAI, OpenAIModel},
         memory::SimpleMemory,
@@ -154,7 +154,7 @@ mod tests {
             "input" => "hola,Me llamo luis, y tengo 10 anos, y estudio Computer scinence",
         }
         .into();
-        let executor = AgentExecutor::from_agent(agent).with_memory(memory.into());
+        let executor = agent.executor().with_memory(memory.into());
         match executor.invoke(&mut input_variables).await {
             Ok(result) => {
                 println!("Result: {:?}", result);
