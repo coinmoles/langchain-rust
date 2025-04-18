@@ -10,10 +10,7 @@ use super::{
 };
 
 #[async_trait]
-pub trait ToolFunction: Send + Sync
-where
-    Self: Sized + 'static,
-{
+pub trait ToolFunction: Send + Sync {
     type Input: Send + Sync;
     type Result: Display + Send + Sync;
 
@@ -52,7 +49,10 @@ where
         None
     }
 
-    fn into_boxed_tool(self) -> Box<dyn Tool> {
+    fn into_boxed_tool(self) -> Box<dyn Tool>
+    where
+        Self: Sized + 'static,
+    {
         Box::new(ToolWrapper::new(self))
     }
 }

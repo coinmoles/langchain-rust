@@ -20,10 +20,6 @@ where
     pub fn new(toolbox: &Arc<T>) -> Self {
         Self(Arc::clone(toolbox))
     }
-
-    pub fn into_boxed_tool(self) -> Box<dyn Tool> {
-        Box::new(self)
-    }
 }
 
 impl<T> Debug for ListTools<T>
