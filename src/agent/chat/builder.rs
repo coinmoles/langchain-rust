@@ -40,12 +40,12 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
         self
     }
 
-    pub fn system_prompt<S: Into<String>>(mut self, system_prompt: &'a str) -> Self {
+    pub fn system_prompt(mut self, system_prompt: &'a str) -> Self {
         self.system_prompt = Some(system_prompt);
         self
     }
 
-    pub fn initial_prompt<S: Into<String>>(mut self, initial_prompt: &'b str) -> Self {
+    pub fn initial_prompt(mut self, initial_prompt: &'b str) -> Self {
         self.initial_prompt = Some(initial_prompt);
         self
     }
