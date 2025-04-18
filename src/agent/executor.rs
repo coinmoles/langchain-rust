@@ -1,21 +1,23 @@
-use std::collections::HashMap;
 use std::error::Error;
+use std::pin::Pin;
 use std::sync::Arc;
+use std::{collections::HashMap, future::Future};
 
 use async_trait::async_trait;
 use indoc::indoc;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 
 use super::{agent::Agent, AgentError, FinalAnswerValidator};
 use crate::{
     chain::{chain_trait::Chain, ChainError},
-    diary::{Diary, SimpleDiary},
     memory::Memory,
     schemas::{
-        agent_plan::AgentEvent, AgentResult, GenerateResult, GenerateResultContent, InputVariables,
-        Message, TokenUsage, ToolCall,
+        agent_plan::AgentEvent, AgentResult, AgentStep, GenerateResult, GenerateResultContent,
+        InputVariables, Message, StepFunc, TokenUsage, ToolCall,
     },
 };
+
+type ExecutorStep = (ToolCall, String);
 
 const FORCE_FINAL_ANSWER: &str = "Now it's time you MUST give your absolute best final answer. You'll ignore all previous instructions, stop using any tools, and just return your absolute BEST Final answer.";
 
@@ -26,8 +28,8 @@ pub struct AgentExecutor {
     max_consecutive_fails: Option<usize>,
     break_if_tool_error: bool,
     memory: Option<Arc<RwLock<dyn Memory>>>,
-    diary: Arc<RwLock<dyn Diary>>,
     final_answer_validator: Option<Arc<dyn FinalAnswerValidator>>,
+    step_func: Option<Arc<Mutex<StepFunc>>>,
 }
 
 impl AgentExecutor {
@@ -41,8 +43,8 @@ impl AgentExecutor {
             max_consecutive_fails: Some(3),
             break_if_tool_error: false,
             memory: None,
-            diary: Arc::new(RwLock::new(SimpleDiary::default())),
             final_answer_validator: None,
+            step_func: None,
         }
     }
 
@@ -53,11 +55,6 @@ impl AgentExecutor {
 
     pub fn with_memory(mut self, memory: Arc<RwLock<dyn Memory>>) -> Self {
         self.memory = Some(memory);
-        self
-    }
-
-    pub fn with_diary(mut self, diary: Arc<RwLock<dyn Diary>>) -> Self {
-        self.diary = diary;
         self
     }
 
@@ -73,6 +70,21 @@ impl AgentExecutor {
         self.final_answer_validator = Some(Arc::new(final_answer_validator));
         self
     }
+
+    pub fn with_step_func<F, Fut>(mut self, mut func: F) -> Self
+    where
+        F: FnMut(&AgentStep) -> Fut + Send + 'static,
+        Fut: Future<Output = Result<(), Box<dyn Error + Send + Sync>>> + Send + 'static,
+    {
+        let func = Arc::new(Mutex::new(
+            move |s: &AgentStep| -> Pin<
+                Box<dyn Future<Output = Result<(), Box<dyn Error + Send + Sync>>> + Send>,
+            > { Box::pin(func(s)) },
+        ));
+
+        self.step_func = Some(func);
+        self
+    }
 }
 
 #[async_trait]
@@ -81,6 +93,7 @@ impl Chain for AgentExecutor {
         &self,
         input_variables: &mut InputVariables,
     ) -> Result<GenerateResult, ChainError> {
+        let mut steps: Vec<AgentStep> = Vec::new();
         let mut use_counts: HashMap<String, usize> = HashMap::new();
         let mut consecutive_fails: usize = 0;
         let mut total_usage: Option<TokenUsage> = None;
@@ -112,11 +125,6 @@ impl Chain for AgentExecutor {
                 );
                 return Err(ChainError::AgentError("Too many consecutive fails".into()));
             }
-
-            let steps = {
-                let diary = self.diary.read().await;
-                diary.get_steps()
-            };
 
             let AgentResult { content, usage } =
                 match self.agent.plan(&steps, input_variables).await {
@@ -204,7 +212,16 @@ impl Chain for AgentExecutor {
 
                         log::debug!("Tool {} result:\n{}", &tool_call.name, &result);
 
-                        self.diary.write().await.push_step(tool_call, result);
+                        let agent_step = AgentStep::new(tool_call, result);
+
+                        if let Some(step_func) = &self.step_func {
+                            let mut step_func = step_func.lock().await;
+                            if let Err(e) = step_func(&agent_step).await {
+                                log::warn!("Error in step function: {}", e);
+                            };
+                        }
+
+                        steps.push(agent_step);
                         consecutive_fails = 0;
                     }
                 }
@@ -231,11 +248,7 @@ impl Chain for AgentExecutor {
                         );
 
                         for step in steps {
-                            memory.add_tool_call_message(vec![ToolCall::new(
-                                step.tool_call.id.clone(),
-                                step.tool_call.name.clone(),
-                                step.tool_call.arguments.clone(),
-                            )]);
+                            memory.add_tool_call_message(vec![step.tool_call.clone()]);
                             memory.add_tool_message(
                                 Some(step.tool_call.id.clone()),
                                 step.result.clone(),

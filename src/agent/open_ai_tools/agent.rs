@@ -2,8 +2,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, error::Error};
 
-use crate::diary::DiaryStep;
-use crate::schemas::{AgentResult, GenerateResultContent};
+use crate::schemas::{AgentResult, AgentStep, GenerateResultContent};
 use crate::tools::Toolbox;
 use crate::{
     agent::{Agent, AgentError},
@@ -44,7 +43,7 @@ impl OpenAiToolAgent {
         Ok(prompt)
     }
 
-    fn construct_scratchpad(&self, steps: &[DiaryStep]) -> Vec<Message> {
+    fn construct_scratchpad(&self, steps: &[AgentStep]) -> Vec<Message> {
         steps
             .iter()
             .flat_map(|step| {
@@ -61,7 +60,7 @@ impl OpenAiToolAgent {
 impl Agent for OpenAiToolAgent {
     async fn plan(
         &self,
-        steps: &[DiaryStep],
+        steps: &[AgentStep],
         inputs: &mut InputVariables,
     ) -> Result<AgentResult, AgentError> {
         let scratchpad = self.construct_scratchpad(steps);

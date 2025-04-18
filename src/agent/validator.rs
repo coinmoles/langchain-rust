@@ -1,5 +1,5 @@
-use crate::diary::DiaryStep;
+use crate::schemas::AgentStep;
 
 pub trait FinalAnswerValidator: Send + Sync {
-    fn validate_final_answer(&self, final_answer: &str, intermediate_steps: &[DiaryStep]) -> bool;
+    fn validate_final_answer(&self, final_answer: &str, intermediate_steps: &[AgentStep]) -> bool;
 }

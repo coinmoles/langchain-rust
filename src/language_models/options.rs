@@ -1,6 +1,6 @@
 use async_openai::types::{ChatCompletionTool, ChatCompletionToolChoiceOption, ResponseFormat};
 use futures::Future;
-use std::{fmt, pin::Pin, sync::Arc};
+use std::{error::Error, fmt, pin::Pin, sync::Arc};
 use tokio::sync::Mutex;
 
 use crate::schemas::StreamingFunc;
@@ -24,12 +24,12 @@ impl StreamOption {
     pub fn with_streaming_func<F, Fut>(mut self, mut func: F) -> Self
     where
         F: FnMut(&str) -> Fut + Send + 'static,
-        Fut: Future<Output = Result<(), ()>> + Send + 'static,
+        Fut: Future<Output = Result<(), Box<dyn Error + Send + Sync>>> + Send + 'static,
     {
         let func = Arc::new(Mutex::new(
-            move |s: &str| -> Pin<Box<dyn Future<Output = Result<(), ()>> + Send>> {
-                Box::pin(func(s))
-            },
+            move |s: &str| -> Pin<
+                Box<dyn Future<Output = Result<(), Box<dyn Error + Send + Sync>>> + Send>,
+            > { Box::pin(func(s)) },
         ));
 
         self.streaming_func = Some(func);
