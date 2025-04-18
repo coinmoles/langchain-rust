@@ -10,19 +10,20 @@ use crate::{
         Message, OnStepFunc, TokenUsage,
     },
     tools::Tool,
+    utils::helper::normalize_tool_name,
 };
 
 use super::AgentExecutor;
 
 const FORCE_FINAL_ANSWER: &str = "Now it's time you MUST give your absolute best final answer. You'll ignore all previous instructions, stop using any tools, and just return your absolute BEST Final answer.";
 
-pub struct ExecutionContext<'a> {
+pub struct ExecutionContext<'a, 'b> {
     executor: &'a AgentExecutor,
     on_step_func: Option<Box<OnStepFunc>>,
-    shadow_tools: HashMap<String, Box<dyn Tool>>,
+    shadow_tools: HashMap<String, Box<dyn Tool + 'b>>,
 }
 
-impl<'a> ExecutionContext<'a> {
+impl<'a, 'b> ExecutionContext<'a, 'b> {
     pub fn new(executor: &'a AgentExecutor) -> Self {
         Self {
             executor,
@@ -36,7 +37,16 @@ impl<'a> ExecutionContext<'a> {
         self
     }
 
-    pub fn with_shadow_tool(mut self, name: String, tool: Box<dyn Tool>) -> Self {
+    pub async fn with_shadow_tool(mut self, tool: Box<dyn Tool + 'b>) -> Self {
+        let name = normalize_tool_name(&tool.name());
+
+        if self.executor.agent.get_tool(&name).await.is_none() {
+            log::warn!(
+                "Tool {} doesn't exist in the agent, this tool will likely not work",
+                name
+            );
+        }
+
         self.shadow_tools.insert(name, tool);
         self
     }

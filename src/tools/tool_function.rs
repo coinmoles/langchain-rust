@@ -49,9 +49,9 @@ pub trait ToolFunction: Send + Sync {
         None
     }
 
-    fn into_boxed_tool(self) -> Box<dyn Tool>
+    fn into_boxed_tool<'a>(self) -> Box<dyn Tool + 'a>
     where
-        Self: Sized + 'static,
+        Self: Sized + 'a,
     {
         Box::new(ToolWrapper::new(self))
     }
