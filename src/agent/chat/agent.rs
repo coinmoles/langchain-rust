@@ -52,8 +52,8 @@ impl ConversationalAgent {
             .iter()
             .flat_map(|(tool_call, result)| {
                 vec![
-                    Message::new(MessageType::AIMessage, tool_call),
-                    Message::new(MessageType::HumanMessage, result),
+                    Message::new_ai_message(tool_call),
+                    Message::new_human_message(result),
                 ]
             })
             .collect::<Vec<_>>()

@@ -10,8 +10,8 @@ use crate::{
     language_models::LLMError,
     memory::Memory,
     schemas::{
-        messages::Message, GenerateResult, GenerateResultContent, InputVariables, MessageType,
-        StreamData, TextReplacements,
+        messages::Message, GenerateResult, GenerateResultContent, InputVariables, StreamData,
+        TextReplacements,
     },
     text_replacements,
 };
@@ -75,7 +75,7 @@ impl Chain for ConversationalChain {
         let input_variable = &input_variables
             .get_text_replacement(&self.input_key)
             .ok_or(ChainError::MissingInputVariable(self.input_key.clone()))?;
-        let human_message = Message::new(MessageType::HumanMessage, input_variable);
+        let human_message = Message::new_human_message(input_variable);
 
         let history = {
             let memory = self.memory.lock().await;
@@ -88,12 +88,9 @@ impl Chain for ConversationalChain {
         memory.add_message(human_message);
 
         match &result.content {
-            GenerateResultContent::Text(text) => {
-                memory.add_message(Message::new(MessageType::AIMessage, text));
-            }
+            GenerateResultContent::Text(text) => memory.add_ai_message(text.clone()),
             GenerateResultContent::ToolCall(tool_calls) => {
-                Message::new(MessageType::AIMessage, String::new())
-                    .with_tool_calls(tool_calls.clone());
+                memory.add_tool_call_message(tool_calls.clone())
             }
             GenerateResultContent::Refusal(refusal) => {
                 return Err(LLMError::OtherError(refusal.into()).into())
@@ -107,10 +104,10 @@ impl Chain for ConversationalChain {
         input_variables: &mut InputVariables,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
     {
-        let input_variable = &input_variables
+        let input_variable = input_variables
             .get_text_replacement(&self.input_key)
             .ok_or(ChainError::MissingInputVariable(self.input_key.clone()))?;
-        let human_message = Message::new(MessageType::HumanMessage, input_variable);
+        let human_message = Message::new_human_message(input_variable);
 
         let history = {
             let memory = self.memory.lock().await;
@@ -144,7 +141,7 @@ impl Chain for ConversationalChain {
 
             let mut memory = memory.lock().await;
             memory.add_message(human_message);
-            memory.add_message(Message::new(MessageType::AIMessage, &complete_ai_message.lock().await));
+            memory.add_ai_message(complete_ai_message.lock().await.to_string());
         };
 
         Ok(Box::pin(output_stream))

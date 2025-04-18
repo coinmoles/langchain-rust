@@ -1,6 +1,6 @@
 use std::fmt;
 
-use super::{messages::Message, MessageType};
+use super::messages::Message;
 
 #[derive(Debug, Clone)]
 pub struct Prompt {
@@ -12,7 +12,7 @@ impl Prompt {
     }
 
     pub fn from_string(text: &str) -> Self {
-        let message = Message::new(MessageType::HumanMessage, text);
+        let message = Message::new_human_message(text);
         Self {
             messages: vec![message],
         }

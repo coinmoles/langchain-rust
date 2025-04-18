@@ -23,10 +23,7 @@ async fn main() {
 
     // We can also guide it's response with a prompt template. Prompt templates are used to convert raw user input to a better input to the LLM.
     let prompt = prompt_template![
-        Message::new(
-            MessageType::SystemMessage,
-            "You are world class technical documentation writer."
-        ),
+        Message::new_system_message("You are world class technical documentation writer."),
         MessageTemplate::from_fstring(MessageType::HumanMessage, "{input}",)
     ];
 
@@ -58,10 +55,7 @@ async fn main() {
     //If you want to prompt to have a list of messages you could use the `fmt_placeholder` macro
 
     let prompt = prompt_template![
-        Message::new(
-            MessageType::SystemMessage,
-            "You are world class technical documentation writer."
-        ),
+        Message::new_system_message("You are world class technical documentation writer."),
         MessageOrTemplate::Placeholder("history".into()),
         MessageTemplate::from_fstring(MessageType::HumanMessage, "{input}",)
     ];
@@ -78,8 +72,8 @@ async fn main() {
             },
             placeholder_replacements! {
                 "history" => vec![
-                    Message::new(MessageType::HumanMessage, "My name is: luis"),
-                    Message::new(MessageType::AIMessage, "Hi luis"),
+                    Message::new_human_message("My name is: luis"),
+                    Message::new_ai_message("Hi luis"),
                 ],
             },
         ))

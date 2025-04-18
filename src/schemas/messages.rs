@@ -11,8 +11,8 @@ use async_openai::types::ChatCompletionRequestUserMessageContent;
 use serde::Deserialize;
 use serde::Serialize;
 
-use super::ToolCall;
 use super::MessageType;
+use super::ToolCall;
 
 /// Struct `ImageContent` represents an image provided to an LLM.
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
@@ -58,6 +58,40 @@ impl Message {
         }
     }
 
+    pub fn new_system_message<T: std::fmt::Display>(content: T) -> Self {
+        Message {
+            content: content.to_string(),
+            message_type: MessageType::SystemMessage,
+            id: None,
+            tool_calls: None,
+            images: None,
+        }
+    }
+
+    pub fn new_human_message<T: std::fmt::Display>(content: T) -> Self {
+        Message {
+            content: content.to_string(),
+            message_type: MessageType::HumanMessage,
+            id: None,
+            tool_calls: None,
+            images: None,
+        }
+    }
+
+    pub fn new_ai_message<T: std::fmt::Display>(content: T) -> Self {
+        Message {
+            content: content.to_string(),
+            message_type: MessageType::AIMessage,
+            id: None,
+            tool_calls: None,
+            images: None,
+        }
+    }
+
+    pub fn new_tool_call_message(tool_calls: impl IntoIterator<Item = ToolCall>) -> Self {
+        Message::new_ai_message("").with_tool_calls(tool_calls)
+    }
+
     // Function to create a new Tool message with a generic type that implements Display
     pub fn new_tool_message<T: std::fmt::Display, S: Into<String>>(
         id: Option<S>,
@@ -81,8 +115,8 @@ impl Message {
     /// # Arguments
     ///
     /// * `tool_calls` - A `serde_json::Value` representing the tool call configurations.
-    pub fn with_tool_calls(mut self, tool_calls: Vec<ToolCall>) -> Self {
-        self.tool_calls = Some(tool_calls);
+    pub fn with_tool_calls(mut self, tool_calls: impl IntoIterator<Item = ToolCall>) -> Self {
+        self.tool_calls = Some(tool_calls.into_iter().collect());
         self
     }
 

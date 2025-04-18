@@ -158,7 +158,7 @@ impl Chain for ConversationalRetrieverChain {
             .get_text_replacement(&self.input_key)
             .ok_or(ChainError::MissingInputVariable(self.input_key.clone()))?;
 
-        let human_message = Message::new(MessageType::HumanMessage, input_variable);
+        let human_message = Message::new_human_message(input_variable);
         let history = {
             let memory = self.memory.lock().await;
             memory.messages()
@@ -205,7 +205,7 @@ impl Chain for ConversationalRetrieverChain {
 
             let mut memory = memory.lock().await;
             memory.add_message(human_message);
-            memory.add_message(Message::new(MessageType::AIMessage, &complete_ai_message.lock().await));
+            memory.add_ai_message(complete_ai_message.lock().await.to_string());
         };
 
         Ok(Box::pin(output_stream))

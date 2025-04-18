@@ -3,7 +3,7 @@ use std::pin::Pin;
 use async_trait::async_trait;
 use futures::Stream;
 
-use crate::schemas::{GenerateResult, Message, MessageType, StreamData};
+use crate::schemas::{GenerateResult, Message, StreamData};
 
 use super::{options::CallOptions, LLMError};
 
@@ -12,7 +12,7 @@ pub trait LLM: Sync + Send + LLMClone {
     async fn generate(&self, messages: Vec<Message>) -> Result<GenerateResult, LLMError>;
 
     async fn invoke(&self, prompt: &str) -> Result<String, LLMError> {
-        self.generate(vec![Message::new(MessageType::HumanMessage, prompt)])
+        self.generate(vec![Message::new_human_message(prompt)])
             .await
             .map(|result| result.content.text().into())
     }

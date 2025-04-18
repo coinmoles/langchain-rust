@@ -2,8 +2,7 @@ use crate::{
     language_models::{llm::LLM, options::CallOptions, LLMError},
     llm::AnthropicError,
     schemas::{
-        {GenerateResult, GenerateResultContent, TokenUsage},
-        Message, MessageType, StreamData,
+        Message, MessageType, StreamData, {GenerateResult, GenerateResultContent, TokenUsage},
     },
 };
 use async_trait::async_trait;
@@ -275,10 +274,7 @@ mod tests {
         let cloudia = Claude::new();
 
         let res = cloudia
-            .generate(vec![Message::new(
-                MessageType::HumanMessage,
-                "Hi, how are you doing",
-            )])
+            .generate(vec![Message::new_human_message("Hi, how are you doing")])
             .await
             .unwrap();
 
@@ -290,10 +286,7 @@ mod tests {
     async fn test_cloudia_stream() {
         let cloudia = Claude::new();
         let mut stream = cloudia
-            .stream(vec![Message::new(
-                MessageType::HumanMessage,
-                "Hi, how are you doing",
-            )])
+            .stream(vec![Message::new_human_message("Hi, how are you doing")])
             .await
             .unwrap();
         while let Some(data) = stream.next().await {

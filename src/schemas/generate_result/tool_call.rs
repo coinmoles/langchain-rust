@@ -3,6 +3,7 @@ use std::fmt::{self, Display};
 use async_openai::types::{ChatCompletionMessageToolCall, ChatCompletionToolType, FunctionCall};
 use indoc::indoc;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::utils::helper::add_indent;
 
@@ -10,7 +11,17 @@ use crate::utils::helper::add_indent;
 pub struct ToolCall {
     pub id: String,
     pub name: String,
-    pub arguments: serde_json::Value,
+    pub arguments: Value,
+}
+
+impl ToolCall {
+    pub fn new(id: impl Into<String>, name: impl Into<String>, arguments: Value) -> Self {
+        Self {
+            id: id.into(),
+            name: name.into(),
+            arguments,
+        }
+    }
 }
 
 impl TryFrom<ChatCompletionMessageToolCall> for ToolCall {

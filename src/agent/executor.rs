@@ -12,7 +12,7 @@ use crate::{
     memory::Memory,
     schemas::{
         agent_plan::AgentEvent, AgentResult, GenerateResult, GenerateResultContent, InputVariables,
-        Message, MessageType, TokenUsage, ToolCall,
+        Message, TokenUsage, ToolCall,
     },
 };
 
@@ -124,22 +124,21 @@ impl Chain for AgentExecutor {
 
             match content {
                 AgentEvent::Action(tool_calls) => {
-                    if self
-                        .max_iterations
-                        .is_some_and(|max_iterations| steps.len() >= max_iterations)
-                    {
-                        log::warn!(
-                            "Max iteration ({}) reached, forcing final answer",
-                            self.max_iterations.unwrap()
-                        );
-                        input_variables.insert_placeholder_replacement(
-                            "ultimatum",
-                            vec![
-                                Message::new(MessageType::AIMessage, ""),
-                                Message::new(MessageType::HumanMessage, FORCE_FINAL_ANSWER),
-                            ],
-                        );
-                        continue 'step;
+                    if let Some(max_iterations) = self.max_iterations {
+                        if steps.len() >= max_iterations {
+                            log::warn!(
+                                "Max iteration ({}) reached, forcing final answer",
+                                max_iterations
+                            );
+                            input_variables.insert_placeholder_replacement(
+                                "ultimatum",
+                                vec![
+                                    Message::new_ai_message(""),
+                                    Message::new_human_message(FORCE_FINAL_ANSWER),
+                                ],
+                            );
+                            continue 'step;
+                        }
                     }
 
                     for tool_call in tool_calls {
@@ -216,33 +215,23 @@ impl Chain for AgentExecutor {
                     if let Some(memory) = &self.memory {
                         let mut memory = memory.lock().await;
 
-                        memory.add_message(Message::new(
-                            MessageType::HumanMessage,
+                        memory.add_human_message(
                             input_variables
                                 .get_text_replacement("input")
-                                .unwrap_or(&String::new()),
-                        ));
+                                .cloned()
+                                .unwrap_or_default(),
+                        );
 
-                        for (tool_call, observation) in steps {
-                            memory.add_message(
-                                Message::new(MessageType::AIMessage, "").with_tool_calls(vec![
-                                    ToolCall {
-                                        id: tool_call.id.clone(),
-                                        name: tool_call.name,
-                                        arguments: tool_call.arguments,
-                                    },
-                                ]),
-                            );
-                            memory.add_message(Message::new_tool_message::<_, &str>(
-                                Some(&tool_call.id),
-                                observation,
-                            ));
+                        for (tool_call, result) in steps {
+                            memory.add_tool_call_message(vec![ToolCall::new(
+                                tool_call.id.clone(),
+                                tool_call.name.clone(),
+                                tool_call.arguments.clone(),
+                            )]);
+                            memory.add_tool_message(Some(tool_call.id.clone()), result.clone());
                         }
 
-                        memory.add_message(Message::new(
-                            MessageType::AIMessage,
-                            final_answer.clone(),
-                        ));
+                        memory.add_ai_message(final_answer.clone());
                     }
 
                     log::debug!("Agent finished with result:\n{}", &final_answer);

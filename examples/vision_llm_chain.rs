@@ -15,7 +15,7 @@ async fn main() {
 
     let prompt = prompt_template![
         MessageTemplate::from_fstring(MessageType::HumanMessage, "{input}"),
-        Message::new(MessageType::HumanMessage, "")
+        Message::new_human_message("")
             .with_images(vec![format!("data:image/jpeg;base64,{image_base64}")])
     ];
 

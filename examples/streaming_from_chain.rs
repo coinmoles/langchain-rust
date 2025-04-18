@@ -13,10 +13,7 @@ async fn main() {
     let open_ai = OpenAI::default();
 
     let prompt = prompt_template![
-        Message::new(
-            MessageType::SystemMessage,
-            "You are world class technical documentation writer."
-        ),
+        Message::new_system_message("You are world class technical documentation writer."),
         MessageTemplate::from_fstring(MessageType::HumanMessage, "{input}")
     ];
 

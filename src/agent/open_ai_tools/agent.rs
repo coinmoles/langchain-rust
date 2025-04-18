@@ -48,9 +48,8 @@ impl OpenAiToolAgent {
             .iter()
             .flat_map(|(tool_call, result)| {
                 vec![
-                    Message::new(MessageType::AIMessage, "")
-                        .with_tool_calls(vec![tool_call.clone()]),
-                    Message::new_tool_message(Some(tool_call.id.clone()), result),
+                    Message::new_tool_call_message([tool_call.clone()]),
+                    Message::new_tool_message(Some(&tool_call.id), result.clone()),
                 ]
             })
             .collect::<Vec<_>>()

@@ -63,7 +63,7 @@ impl MessageTemplate {
             content = content.replace(&key, value);
         }
 
-        Ok(Message::new(self.message_type.clone(), &content))
+        Ok(Message::new(self.message_type.clone(), content))
     }
 
     /// Returns a list of required input variable names for the template.
