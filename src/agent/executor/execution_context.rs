@@ -1,104 +1,66 @@
-use std::error::Error;
-use std::pin::Pin;
-use std::sync::Arc;
-use std::{collections::HashMap, future::Future};
+use std::collections::HashMap;
 
-use async_trait::async_trait;
-use indoc::indoc;
-use tokio::sync::{Mutex, RwLock};
+use indoc::formatdoc;
 
-use super::{agent::Agent, AgentError, FinalAnswerValidator};
 use crate::{
-    chain::{chain_trait::Chain, ChainError},
-    memory::Memory,
+    agent::AgentError,
+    chain::ChainError,
     schemas::{
-        agent_plan::AgentEvent, AgentResult, AgentStep, GenerateResult, GenerateResultContent,
-        InputVariables, Message, StepFunc, TokenUsage, ToolCall,
+        AgentEvent, AgentResult, AgentStep, GenerateResult, GenerateResultContent, InputVariables,
+        Message, OnStepFunc, TokenUsage,
     },
+    tools::Tool,
 };
 
-type ExecutorStep = (ToolCall, String);
+use super::AgentExecutor;
 
 const FORCE_FINAL_ANSWER: &str = "Now it's time you MUST give your absolute best final answer. You'll ignore all previous instructions, stop using any tools, and just return your absolute BEST Final answer.";
 
-#[derive(Clone)]
-pub struct AgentExecutor {
-    agent: Arc<dyn Agent>,
-    max_iterations: Option<usize>,
-    max_consecutive_fails: Option<usize>,
-    break_if_tool_error: bool,
-    memory: Option<Arc<RwLock<dyn Memory>>>,
-    final_answer_validator: Option<Arc<dyn FinalAnswerValidator>>,
-    step_func: Option<Arc<Mutex<StepFunc>>>,
+pub struct ExecutionContext<'a> {
+    executor: &'a AgentExecutor,
+    on_step_func: Option<Box<OnStepFunc>>,
+    shadow_tools: HashMap<String, Box<dyn Tool>>,
 }
 
-impl AgentExecutor {
-    pub fn from_agent<A>(agent: A) -> Self
-    where
-        A: Agent + Send + Sync + 'static,
-    {
+impl<'a> ExecutionContext<'a> {
+    pub fn new(executor: &'a AgentExecutor) -> Self {
         Self {
-            agent: Arc::new(agent),
-            max_iterations: Some(10),
-            max_consecutive_fails: Some(3),
-            break_if_tool_error: false,
-            memory: None,
-            final_answer_validator: None,
-            step_func: None,
+            executor,
+            on_step_func: None,
+            shadow_tools: HashMap::new(),
         }
     }
 
-    pub fn with_max_iterations(mut self, max_iterations: usize) -> Self {
-        self.max_iterations = Some(max_iterations);
+    pub fn with_on_step_func(mut self, on_step_func: Box<OnStepFunc>) -> Self {
+        self.on_step_func = Some(on_step_func);
         self
     }
 
-    pub fn with_memory(mut self, memory: Arc<RwLock<dyn Memory>>) -> Self {
-        self.memory = Some(memory);
+    pub fn with_shadow_tool(mut self, name: String, tool: Box<dyn Tool>) -> Self {
+        self.shadow_tools.insert(name, tool);
         self
     }
 
-    pub fn with_break_if_tool_error(mut self, break_if_tool_error: bool) -> Self {
-        self.break_if_tool_error = break_if_tool_error;
-        self
+    async fn get_tool(&self, name: &str) -> Option<&dyn Tool> {
+        if let Some(tool) = self.shadow_tools.get(name) {
+            return Some(tool.as_ref());
+        }
+
+        self.executor.agent.get_tool(name).await
     }
 
-    pub fn with_final_answer_validator<V>(mut self, final_answer_validator: V) -> Self
-    where
-        V: FinalAnswerValidator + Send + Sync + 'static,
-    {
-        self.final_answer_validator = Some(Arc::new(final_answer_validator));
-        self
-    }
-
-    pub fn with_step_func<F, Fut>(mut self, mut func: F) -> Self
-    where
-        F: FnMut(&AgentStep) -> Fut + Send + 'static,
-        Fut: Future<Output = Result<(), Box<dyn Error + Send + Sync>>> + Send + 'static,
-    {
-        let func = Arc::new(Mutex::new(
-            move |s: &AgentStep| -> Pin<
-                Box<dyn Future<Output = Result<(), Box<dyn Error + Send + Sync>>> + Send>,
-            > { Box::pin(func(s)) },
-        ));
-
-        self.step_func = Some(func);
-        self
-    }
-}
-
-#[async_trait]
-impl Chain for AgentExecutor {
-    async fn call(
-        &self,
+    pub async fn start(
+        mut self,
         input_variables: &mut InputVariables,
     ) -> Result<GenerateResult, ChainError> {
+        let options = &self.executor.options;
+
         let mut steps: Vec<AgentStep> = Vec::new();
         let mut use_counts: HashMap<String, usize> = HashMap::new();
         let mut consecutive_fails: usize = 0;
         let mut total_usage: Option<TokenUsage> = None;
 
-        if let Some(memory) = &self.memory {
+        if let Some(memory) = &self.executor.memory {
             let memory = memory.read().await;
             input_variables.insert_placeholder_replacement("chat_history", memory.messages());
         // TODO: Possibly implement messages parsing
@@ -109,13 +71,16 @@ impl Chain for AgentExecutor {
         {
             let mut input_variables_demo = input_variables.clone();
             input_variables_demo.insert_placeholder_replacement("agent_scratchpad", vec![]);
-            self.log_messages(&input_variables_demo).map_err(|e| {
-                ChainError::AgentError(format!("Error formatting initial messages: {e}"))
-            })?;
+            self.executor
+                .agent
+                .log_messages(&input_variables_demo)
+                .map_err(|e| {
+                    ChainError::AgentError(format!("Error formatting initial messages: {e}"))
+                })?;
         }
 
         'step: loop {
-            if self
+            if options
                 .max_consecutive_fails
                 .is_some_and(|max_consecutive_fails| consecutive_fails >= max_consecutive_fails)
             {
@@ -127,7 +92,7 @@ impl Chain for AgentExecutor {
             }
 
             let AgentResult { content, usage } =
-                match self.agent.plan(&steps, input_variables).await {
+                match self.executor.agent.plan(&steps, input_variables).await {
                     Ok(agent_event) => agent_event,
                     Err(e) => {
                         consecutive_fails += 1;
@@ -140,7 +105,7 @@ impl Chain for AgentExecutor {
 
             match content {
                 AgentEvent::Action(tool_calls) => {
-                    if let Some(max_iterations) = self.max_iterations {
+                    if let Some(max_iterations) = options.max_iterations {
                         if steps.len() >= max_iterations {
                             log::warn!(
                                 "Max iteration ({}) reached, forcing final answer",
@@ -161,7 +126,7 @@ impl Chain for AgentExecutor {
                         log::debug!("{}", tool_call);
 
                         let tool_name = tool_call.name.to_lowercase().replace(" ", "_");
-                        let Some(tool) = self.agent.get_tool(&tool_name).await else {
+                        let Some(tool) = self.get_tool(&tool_name).await else {
                             consecutive_fails += 1;
                             log::warn!(
                                 "Agent tried to use nonexistent tool {}, retrying ({} consecutive fails)",
@@ -194,18 +159,16 @@ impl Chain for AgentExecutor {
                                     &tool_call.name,
                                     e
                                 );
-                                if self.break_if_tool_error {
+                                if options.break_if_tool_error {
                                     return Err(ChainError::AgentError(
                                         AgentError::ToolError(e.to_string()).to_string(),
                                     ));
                                 } else {
-                                    format!(
-                                        indoc! {"
-                                            Tool call failed: {}
-                                            If the error doesn't make sense to you, it means that the tool is broken. DO NOT use this tool again.
-                                        "},
+                                    formatdoc! {"
+                                        Tool call failed: {}
+                                        If the error doesn't make sense to you, it means that the tool is broken. DO NOT use this tool again.", 
                                         e
-                                    )
+                                    }
                                 }
                             }
                         };
@@ -214,8 +177,7 @@ impl Chain for AgentExecutor {
 
                         let agent_step = AgentStep::new(tool_call, result);
 
-                        if let Some(step_func) = &self.step_func {
-                            let mut step_func = step_func.lock().await;
+                        if let Some(step_func) = &mut self.on_step_func {
                             if let Err(e) = step_func(&agent_step).await {
                                 log::warn!("Error in step function: {}", e);
                             };
@@ -226,7 +188,7 @@ impl Chain for AgentExecutor {
                     }
                 }
                 AgentEvent::Finish(final_answer) => {
-                    if let Some(validator) = &self.final_answer_validator {
+                    if let Some(validator) = &options.final_answer_validator {
                         if !validator.validate_final_answer(&final_answer, &steps) {
                             log::warn!(
                                 "Final answer validation failed ({} consecutive fails)\nAnswer:{}",
@@ -237,7 +199,7 @@ impl Chain for AgentExecutor {
                         }
                     }
 
-                    if let Some(memory) = &self.memory {
+                    if let Some(memory) = &self.executor.memory {
                         let mut memory = memory.write().await;
 
                         memory.add_human_message(
@@ -267,9 +229,5 @@ impl Chain for AgentExecutor {
                 }
             }
         }
-    }
-
-    fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>> {
-        self.agent.log_messages(inputs)
     }
 }
