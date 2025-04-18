@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 use crate::{
     chain::{llm_chain::LLMChainBuilder, ChainError, DEFAULT_OUTPUT_KEY},
@@ -15,7 +15,7 @@ use super::{prompt::DEFAULT_TEMPLATE, ConversationalChain, DEFAULT_INPUT_VARIABL
 
 pub struct ConversationalChainBuilder {
     llm: Option<Box<dyn LLM>>,
-    memory: Option<Arc<Mutex<dyn Memory>>>,
+    memory: Option<Arc<RwLock<dyn Memory>>>,
     output_key: Option<String>,
     output_parser: Option<Box<dyn OutputParser>>,
     input_key: Option<String>,
@@ -49,7 +49,7 @@ impl ConversationalChainBuilder {
         self
     }
 
-    pub fn memory(mut self, memory: Arc<Mutex<dyn Memory>>) -> Self {
+    pub fn memory(mut self, memory: Arc<RwLock<dyn Memory>>) -> Self {
         self.memory = Some(memory);
         self
     }
@@ -90,7 +90,7 @@ impl ConversationalChainBuilder {
 
         let memory = self
             .memory
-            .unwrap_or_else(|| Arc::new(Mutex::new(SimpleMemory::new())));
+            .unwrap_or_else(|| Arc::new(RwLock::new(SimpleMemory::new())));
 
         Ok(ConversationalChain {
             llm: llm_chain,

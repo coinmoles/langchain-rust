@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 use crate::schemas::messages::Message;
 
@@ -26,9 +26,9 @@ impl From<DummyMemory> for Arc<dyn Memory> {
     }
 }
 
-impl From<DummyMemory> for Arc<Mutex<dyn Memory>> {
+impl From<DummyMemory> for Arc<RwLock<dyn Memory>> {
     fn from(val: DummyMemory) -> Self {
-        Arc::new(Mutex::new(val))
+        Arc::new(RwLock::new(val))
     }
 }
 

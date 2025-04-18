@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 use crate::schemas::messages::Message;
 
@@ -32,9 +32,9 @@ impl From<WindowBufferMemory> for Arc<dyn Memory> {
     }
 }
 
-impl From<WindowBufferMemory> for Arc<Mutex<dyn Memory>> {
+impl From<WindowBufferMemory> for Arc<RwLock<dyn Memory>> {
     fn from(val: WindowBufferMemory) -> Self {
-        Arc::new(Mutex::new(val))
+        Arc::new(RwLock::new(val))
     }
 }
 

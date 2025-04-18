@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 use crate::{
     chain::{
@@ -47,7 +47,7 @@ const CONVERSATIONAL_RETRIEVAL_QA_DEFAULT_INPUT_KEY: &str = "question";
 pub struct ConversationalRetrieverChainBuilder {
     llm: Option<Box<dyn LLM>>,
     retriever: Option<Box<dyn Retriever>>,
-    memory: Option<Arc<Mutex<dyn BaseMemory>>>,
+    memory: Option<Arc<RwLock<dyn BaseMemory>>>,
     combine_documents_chain: Option<Box<dyn Chain>>,
     condense_question_chain: Option<Box<dyn Chain>>,
     prompt: Option<PromptTemplate>,
@@ -88,7 +88,7 @@ impl ConversationalRetrieverChainBuilder {
         self
     }
 
-    pub fn memory(mut self, memory: Arc<Mutex<dyn BaseMemory>>) -> Self {
+    pub fn memory(mut self, memory: Arc<RwLock<dyn BaseMemory>>) -> Self {
         self.memory = Some(memory);
         self
     }
@@ -146,7 +146,7 @@ impl ConversationalRetrieverChainBuilder {
 
         let memory = self
             .memory
-            .unwrap_or_else(|| Arc::new(Mutex::new(SimpleMemory::new())));
+            .unwrap_or_else(|| Arc::new(RwLock::new(SimpleMemory::new())));
 
         let combine_documents_chain = self.combine_documents_chain.ok_or_else(|| {
             ChainError::MissingObject(

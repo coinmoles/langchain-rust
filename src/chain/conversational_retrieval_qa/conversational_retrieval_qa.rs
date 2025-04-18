@@ -4,13 +4,13 @@ use std::{collections::HashSet, error::Error, pin::Pin, sync::Arc};
 
 use async_stream::stream;
 use async_trait::async_trait;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 use crate::{
     chain::{Chain, ChainError, CondenseQuestionPromptBuilder, StuffQABuilder, DEFAULT_RESULT_KEY},
     schemas::{
-        {GenerateResult, TokenUsage},
         BaseMemory, InputVariables, Message, MessageType, Retriever, StreamData,
+        {GenerateResult, TokenUsage},
     },
 };
 // _conversationalRetrievalQADefaultInputKey             = "question"
@@ -23,7 +23,7 @@ const CONVERSATIONAL_RETRIEVAL_QA_DEFAULT_GENERATED_QUESTION_KEY: &str = "genera
 
 pub struct ConversationalRetrieverChain {
     pub(crate) retriever: Box<dyn Retriever>,
-    pub memory: Arc<Mutex<dyn BaseMemory>>,
+    pub memory: Arc<RwLock<dyn BaseMemory>>,
     pub(crate) combine_documents_chain: Box<dyn Chain>,
     pub(crate) condense_question_chain: Box<dyn Chain>,
     pub(crate) rephrase_question: bool,

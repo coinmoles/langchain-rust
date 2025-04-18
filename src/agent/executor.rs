@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use indoc::indoc;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 use super::{agent::Agent, AgentError, FinalAnswerValidator};
 use crate::{
@@ -23,7 +23,7 @@ pub struct AgentExecutor {
     max_iterations: Option<usize>,
     max_consecutive_fails: Option<usize>,
     break_if_tool_error: bool,
-    pub memory: Option<Arc<Mutex<dyn Memory>>>,
+    memory: Option<Arc<RwLock<dyn Memory>>>,
     final_answer_validator: Option<Box<dyn FinalAnswerValidator>>,
 }
 
@@ -47,7 +47,7 @@ impl AgentExecutor {
         self
     }
 
-    pub fn with_memory(mut self, memory: Arc<Mutex<dyn Memory>>) -> Self {
+    pub fn with_memory(mut self, memory: Arc<RwLock<dyn Memory>>) -> Self {
         self.memory = Some(memory);
         self
     }
@@ -78,7 +78,7 @@ impl Chain for AgentExecutor {
         let mut total_usage: Option<TokenUsage> = None;
 
         if let Some(memory) = &self.memory {
-            let memory: tokio::sync::MutexGuard<'_, dyn Memory> = memory.lock().await;
+            let memory = memory.read().await;
             input_variables.insert_placeholder_replacement("chat_history", memory.messages());
         // TODO: Possibly implement messages parsing
         } else {
@@ -213,7 +213,7 @@ impl Chain for AgentExecutor {
                     }
 
                     if let Some(memory) = &self.memory {
-                        let mut memory = memory.lock().await;
+                        let mut memory = memory.write().await;
 
                         memory.add_human_message(
                             input_variables

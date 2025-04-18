@@ -4,7 +4,7 @@ use async_stream::stream;
 use async_trait::async_trait;
 use futures::Stream;
 use futures_util::{pin_mut, StreamExt};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 use crate::{
     language_models::LLMError,
@@ -56,7 +56,7 @@ impl Default for ConversationalChainPromptBuilder {
 pub struct ConversationalChain {
     llm: LLMChain,
     input_key: String,
-    pub memory: Arc<Mutex<dyn Memory>>,
+    pub memory: Arc<RwLock<dyn Memory>>,
 }
 
 //Conversational Chain is a simple chain to interact with ai as a string of messages
@@ -78,13 +78,13 @@ impl Chain for ConversationalChain {
         let human_message = Message::new_human_message(input_variable);
 
         let history = {
-            let memory = self.memory.lock().await;
+            let memory = self.memory.read().await;
             memory.to_string()
         };
         input_variables.insert_text_replacement("history", history);
         let result = self.llm.call(input_variables).await?;
 
-        let mut memory = self.memory.lock().await;
+        let mut memory = self.memory.write().await;
         memory.add_message(human_message);
 
         match &result.content {
@@ -110,7 +110,7 @@ impl Chain for ConversationalChain {
         let human_message = Message::new_human_message(input_variable);
 
         let history = {
-            let memory = self.memory.lock().await;
+            let memory = self.memory.read().await;
             memory.to_string()
         };
 
@@ -139,7 +139,7 @@ impl Chain for ConversationalChain {
                 }
             }
 
-            let mut memory = memory.lock().await;
+            let mut memory = memory.write().await;
             memory.add_message(human_message);
             memory.add_ai_message(complete_ai_message.lock().await.to_string());
         };
