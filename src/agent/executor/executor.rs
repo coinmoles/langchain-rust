@@ -14,16 +14,16 @@ use crate::{
 
 type ExecutorStep = (ToolCall, String);
 
-pub struct AgentExecutor {
-    pub(super) agent: Box<dyn Agent>,
+pub struct AgentExecutor<'a> {
+    pub(super) agent: Box<dyn Agent + 'a>,
     pub(super) memory: Option<Arc<RwLock<dyn Memory>>>,
     pub(super) options: ExecutorOptions,
 }
 
-impl AgentExecutor {
+impl<'a> AgentExecutor<'a> {
     pub fn from_agent<A>(agent: A) -> Self
     where
-        A: Agent + Send + Sync + 'static,
+        A: Agent + 'a,
     {
         Self {
             agent: Box::new(agent),
@@ -43,7 +43,7 @@ impl AgentExecutor {
 }
 
 #[async_trait]
-impl Chain for AgentExecutor {
+impl<'a> Chain for AgentExecutor<'a> {
     async fn call(
         &self,
         input_variables: &mut InputVariables,

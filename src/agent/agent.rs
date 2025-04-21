@@ -21,9 +21,9 @@ pub trait Agent: Send + Sync {
 
     fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>>;
 
-    fn executor(self) -> AgentExecutor
+    fn executor<'a>(self) -> AgentExecutor<'a>
     where
-        Self: Sized + 'static,
+        Self: Sized + 'a,
     {
         AgentExecutor::from_agent(self)
     }

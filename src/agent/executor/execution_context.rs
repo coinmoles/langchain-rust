@@ -18,7 +18,7 @@ use super::AgentExecutor;
 const FORCE_FINAL_ANSWER: &str = "Now it's time you MUST give your absolute best final answer. You'll ignore all previous instructions, stop using any tools, and just return your absolute BEST Final answer.";
 
 pub struct ExecutionContext<'a, 'b> {
-    executor: &'a AgentExecutor,
+    executor: &'a AgentExecutor<'a>,
     on_step_func: Option<Box<OnStepFunc>>,
     shadow_tools: HashMap<String, Box<dyn Tool + 'b>>,
 }
