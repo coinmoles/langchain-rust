@@ -30,8 +30,8 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
         }
     }
 
-    pub fn tools(mut self, tools: Vec<Box<dyn Tool>>) -> Self {
-        self.tools = Some(tools);
+    pub fn tools(mut self, tools: impl IntoIterator<Item = impl Into<Box<dyn Tool>>>) -> Self {
+        self.tools = Some(tools.into_iter().map(Into::into).collect());
         self
     }
 

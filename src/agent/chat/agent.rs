@@ -145,7 +145,7 @@ mod tests {
         let memory = SimpleMemory::new();
         let tool_calc = Calc::default();
         let agent = ConversationalAgentBuilder::new()
-            .tools(vec![tool_calc.into_boxed_tool()])
+            .tools([tool_calc])
             .build(llm)
             .await
             .unwrap();

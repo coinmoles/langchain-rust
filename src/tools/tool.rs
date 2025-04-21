@@ -85,3 +85,12 @@ pub trait Tool: Send + Sync {
             .unwrap_or_else(|e| unreachable!("All fields must be set: {}", e))
     }
 }
+
+impl<T> From<T> for Box<dyn Tool>
+where
+    T: Tool + 'static,
+{
+    fn from(val: T) -> Self {
+        Box::new(val)
+    }
+}

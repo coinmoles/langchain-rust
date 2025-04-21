@@ -1,4 +1,4 @@
-use std::{error::Error, sync::Arc};
+use std::error::Error;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -6,7 +6,7 @@ use serde_json::Value;
 
 use crate::tools::{
     tool_field::{ArrayField, ObjectField, StringField, ToolParameters},
-    Tool, ToolFunction, ToolWrapper,
+    ToolFunction,
 };
 
 pub struct CommandExecutor {
@@ -129,31 +129,18 @@ impl ToolFunction for CommandExecutor {
     }
 }
 
-impl From<CommandExecutor> for Arc<dyn Tool> {
-    fn from(val: CommandExecutor) -> Self {
-        Arc::new(ToolWrapper::new(val))
-    }
-}
-
 #[cfg(test)]
 mod test {
-    use crate::tools::Tool;
-
     use super::*;
-    use serde_json::json;
+
     #[tokio::test]
     async fn test_with_string_executor() {
-        let tool: Arc<dyn Tool> = CommandExecutor::new("linux").into();
-        let input = json!({
-            "commands": [
-                {
-                    "cmd": "ls",
-                    "args": []
-                }
-            ]
-        });
-        println!("{}", &input.to_string());
-        let result = tool.call(Value::String(input.to_string())).await.unwrap();
+        let tool = CommandExecutor::new("linux");
+        let input = vec![CommandInput {
+            cmd: "ls".into(),
+            args: vec![],
+        }];
+        let result = tool.run(input).await.unwrap();
         println!("Res: {}", result);
     }
 

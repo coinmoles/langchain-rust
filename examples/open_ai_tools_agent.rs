@@ -1,4 +1,4 @@
-use std::{error::Error, sync::Arc};
+use std::error::Error;
 
 use async_trait::async_trait;
 use langchain_rust::{
@@ -8,7 +8,7 @@ use langchain_rust::{
     memory::SimpleMemory,
     schemas::InputVariables,
     text_replacements,
-    tools::{CommandExecutor, DuckDuckGoSearch, SerpApi, Tool, ToolFunction, ToolWrapper},
+    tools::{CommandExecutor, DuckDuckGoSearch, SerpApi, Tool, ToolFunction},
 };
 
 use serde_json::Value;
@@ -38,12 +38,6 @@ impl ToolFunction for Date {
     }
 }
 
-impl From<Date> for Arc<dyn Tool> {
-    fn from(val: Date) -> Self {
-        Arc::new(ToolWrapper::new(val))
-    }
-}
-
 #[tokio::main]
 async fn main() {
     let llm = OpenAI::default();
@@ -53,11 +47,11 @@ async fn main() {
     let tool_calc = Date::default();
     let command_executor = CommandExecutor::default();
     let agent = OpenAiToolAgentBuilder::new()
-        .tools(vec![
-            serpapi_tool.into_boxed_tool(),
-            tool_calc.into_boxed_tool(),
-            command_executor.into_boxed_tool(),
-            duckduckgo_tool.into_boxed_tool(),
+        .tools([
+            Box::new(serpapi_tool) as Box<dyn Tool>,
+            tool_calc.into(),
+            command_executor.into(),
+            duckduckgo_tool.into(),
         ])
         .build(llm)
         .await

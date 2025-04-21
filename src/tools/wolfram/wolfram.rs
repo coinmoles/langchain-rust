@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use serde_json::Value;
 
-use crate::tools::{Tool, ToolFunction, ToolWrapper};
-use std::{error::Error, sync::Arc};
+use crate::tools::ToolFunction;
+use std::error::Error;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 struct WolframError {
@@ -175,12 +175,6 @@ impl ToolFunction for Wolfram {
     }
 }
 
-impl From<Wolfram> for Arc<dyn Tool> {
-    fn from(wolfram: Wolfram) -> Arc<dyn Tool> {
-        Arc::new(ToolWrapper::new(wolfram))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -188,9 +182,9 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_wolfram() {
-        let wolfram: Arc<dyn Tool> = Wolfram::default().with_excludes(&["Plot"]).into();
+        let wolfram = Wolfram::default().with_excludes(&["Plot"]);
         let input = "Solve x^2 - 2x + 1 = 0";
-        let result = wolfram.call(Value::String(input.to_string())).await;
+        let result = wolfram.run(input.to_string()).await;
 
         assert!(result.is_ok());
         println!("{}", result.unwrap());

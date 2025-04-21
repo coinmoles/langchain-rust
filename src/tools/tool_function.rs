@@ -53,12 +53,38 @@ pub trait ToolFunction: Send + Sync {
     fn usage_limit(&self) -> Option<usize> {
         None
     }
+}
 
-    fn into_boxed_tool<'a>(self) -> Box<dyn Tool + 'a>
-    where
-        Self: Sized + 'a,
-    {
-        Box::new(ToolWrapper::new(self))
+#[async_trait]
+impl<T> Tool for T
+where
+    T: ToolFunction,
+{
+    fn name(&self) -> String {
+        self.name()
+    }
+
+    fn description(&self) -> String {
+        self.description()
+    }
+
+    fn parameters(&self) -> ToolParameters {
+        self.parameters()
+    }
+
+    fn strict(&self) -> bool {
+        self.strict()
+    }
+
+    async fn call(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {
+        let input = self.parse_input(input).await?;
+        let result = self.run(input).await?;
+
+        Ok(result.to_string())
+    }
+
+    fn usage_limit(&self) -> Option<usize> {
+        self.usage_limit()
     }
 }
 
@@ -69,37 +95,4 @@ where
     T: ToolFunction,
 {
     tool: T,
-}
-
-#[async_trait]
-impl<T> Tool for ToolWrapper<T>
-where
-    T: ToolFunction,
-{
-    fn name(&self) -> String {
-        self.tool.name()
-    }
-
-    fn description(&self) -> String {
-        self.tool.description()
-    }
-
-    fn parameters(&self) -> ToolParameters {
-        self.tool.parameters()
-    }
-
-    fn strict(&self) -> bool {
-        self.tool.strict()
-    }
-
-    async fn call(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {
-        let input = self.tool.parse_input(input).await?;
-        let result = self.tool.run(input).await?;
-
-        Ok(result.to_string())
-    }
-
-    fn usage_limit(&self) -> Option<usize> {
-        self.tool.usage_limit()
-    }
 }

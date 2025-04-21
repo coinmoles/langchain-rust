@@ -1,9 +1,9 @@
-use std::{error::Error, sync::Arc};
+use std::error::Error;
 
 use async_trait::async_trait;
 use serde_json::Value;
 
-use crate::tools::{Tool, ToolFunction, ToolWrapper};
+use crate::tools::ToolFunction;
 
 pub struct SerpApi {
     api_key: String,
@@ -185,12 +185,6 @@ impl Default for SerpApi {
             gl: None,
             google_domain: None,
         }
-    }
-}
-
-impl From<SerpApi> for Arc<dyn Tool> {
-    fn from(val: SerpApi) -> Self {
-        Arc::new(ToolWrapper::new(val))
     }
 }
 

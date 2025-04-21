@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, sync::Arc};
+use std::{collections::HashMap, error::Error};
 
 use async_trait::async_trait;
 use derive_new::new;
@@ -11,7 +11,7 @@ use url::Url;
 use crate::tools::{
     search::article::Article,
     tool_field::{StringField, ToolParameters},
-    FormattedVec, Tool, ToolFunction, ToolWrapper,
+    FormattedVec, ToolFunction,
 };
 
 #[derive(Deserialize, Serialize, new)]
@@ -133,23 +133,16 @@ impl Default for DuckDuckGoSearch {
     }
 }
 
-impl From<DuckDuckGoSearch> for Arc<dyn Tool> {
-    fn from(val: DuckDuckGoSearch) -> Self {
-        Arc::new(ToolWrapper::new(val))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::DuckDuckGoSearch;
     use crate::tools::Tool;
     use serde_json::json;
-    use std::sync::Arc;
 
     #[tokio::test]
     #[ignore]
     async fn duckduckgosearch_tool() {
-        let tool: Arc<dyn Tool> = DuckDuckGoSearch::default().with_max_results(5).into();
+        let tool = DuckDuckGoSearch::default().with_max_results(5);
         let input = json!({
             "query": "Who is the current President of Peru?"
         });
@@ -162,7 +155,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn duckduckgosearch_tool_empty() {
-        let tool: Arc<dyn Tool> = DuckDuckGoSearch::default().into();
+        let tool = DuckDuckGoSearch::default();
         let input = json!({
             "query": "vaygbuoipqyngxaupoidfcaasdcfjlkqwhfqhsakdnasfsfclkvahsxczkgjqeopjraoisphd"
         });

@@ -2,11 +2,11 @@ use async_trait::async_trait;
 use regex::Regex;
 use scraper::{ElementRef, Html, Selector};
 use serde_json::Value;
-use std::{error::Error, sync::Arc};
+use std::error::Error;
 
 use crate::tools::{
     tool_field::{StringField, ToolParameters},
-    Tool, ToolFunction, ToolWrapper,
+    ToolFunction,
 };
 
 #[derive(Default)]
@@ -50,12 +50,6 @@ impl ToolFunction for WebScrapper {
     }
 }
 
-impl From<WebScrapper> for Arc<dyn Tool> {
-    fn from(val: WebScrapper) -> Self {
-        Arc::new(ToolWrapper::new(val))
-    }
-}
-
 async fn scrape_url(url: &str) -> Result<String, Box<dyn Error>> {
     let res = reqwest::get(url).await?.text().await?;
 
@@ -90,6 +84,8 @@ fn collect_text_not_in_script(element: &ElementRef, text: &mut Vec<String>) {
 
 #[cfg(test)]
 mod tests {
+    use crate::tools::Tool;
+
     use super::*;
     use tokio;
 
@@ -107,7 +103,7 @@ mod tests {
             .create();
 
         // Instantiate your WebScrapper
-        let scraper: Arc<dyn Tool> = WebScrapper::default().into();
+        let scraper = WebScrapper::default();
 
         // Use the server URL for scraping
         let url = server.url();
