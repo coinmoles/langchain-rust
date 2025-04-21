@@ -9,6 +9,7 @@ use langchain_rust::{
     schemas::InputVariables,
     text_replacements,
     tools::{CommandExecutor, DuckDuckGoSearch, SerpApi, Tool, ToolFunction},
+    tools_vec,
 };
 
 use serde_json::Value;
@@ -42,16 +43,12 @@ impl ToolFunction for Date {
 async fn main() {
     let llm = OpenAI::default();
     let memory = SimpleMemory::new();
-    let serpapi_tool = SerpApi::default();
-    let duckduckgo_tool = DuckDuckGoSearch::default();
-    let tool_calc = Date::default();
-    let command_executor = CommandExecutor::default();
     let agent = OpenAiToolAgentBuilder::new()
-        .tools([
-            Box::new(serpapi_tool) as Box<dyn Tool>,
-            tool_calc.into(),
-            command_executor.into(),
-            duckduckgo_tool.into(),
+        .tools(tools_vec![
+            SerpApi::default(),
+            Date::default(),
+            DuckDuckGoSearch::default(),
+            CommandExecutor::default(),
         ])
         .build(llm)
         .await
