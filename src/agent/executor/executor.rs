@@ -37,6 +37,11 @@ impl<'a> AgentExecutor<'a> {
         self
     }
 
+    pub fn with_options(mut self, options: ExecutorOptions) -> Self {
+        self.options = options;
+        self
+    }
+
     pub fn execution(&self) -> ExecutionContext {
         ExecutionContext::new(self)
     }
