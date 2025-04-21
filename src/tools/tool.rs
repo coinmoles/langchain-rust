@@ -86,9 +86,9 @@ pub trait Tool: Send + Sync {
     }
 }
 
-impl<T> From<T> for Box<dyn Tool>
+impl<'a, T> From<T> for Box<dyn Tool + 'a>
 where
-    T: Tool + 'static,
+    T: Tool + 'a,
 {
     fn from(val: T) -> Self {
         Box::new(val)
