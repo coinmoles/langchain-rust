@@ -1,7 +1,6 @@
 use std::{error::Error, fmt::Display};
 
 use async_trait::async_trait;
-use derive_new::new;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
@@ -86,13 +85,4 @@ where
     fn usage_limit(&self) -> Option<usize> {
         self.usage_limit()
     }
-}
-
-#[derive(new)]
-#[repr(transparent)]
-pub struct ToolWrapper<T>
-where
-    T: ToolFunction,
-{
-    tool: T,
 }
