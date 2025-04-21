@@ -2,6 +2,7 @@ use std::{error::Error, fmt::Display};
 
 use async_trait::async_trait;
 use derive_new::new;
+use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use super::{
@@ -11,7 +12,7 @@ use super::{
 
 #[async_trait]
 pub trait ToolFunction: Send + Sync {
-    type Input: Send + Sync;
+    type Input: Send + Sync + DeserializeOwned;
     type Result: Display + Send + Sync;
 
     fn name(&self) -> String;
@@ -43,7 +44,11 @@ pub trait ToolFunction: Send + Sync {
     ///
     /// Implement this function to extract the parameters needed for your tool. If a simple
     /// string is sufficient, the default implementation can be used.
-    async fn parse_input(&self, input: Value) -> Result<Self::Input, Box<dyn Error + Send + Sync>>;
+    async fn parse_input(&self, input: Value) -> Result<Self::Input, Box<dyn Error + Send + Sync>> {
+        let result = serde_json::from_value(input)?;
+
+        Ok(result)
+    }
 
     fn usage_limit(&self) -> Option<usize> {
         None
