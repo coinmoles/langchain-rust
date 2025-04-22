@@ -14,7 +14,7 @@ use crate::tools::{
     FormattedVec, ToolFunction,
 };
 
-#[derive(Deserialize, Serialize, new)]
+#[derive(Deserialize, Serialize, Default, Debug, new)]
 pub struct DuckDuckGoSearchInput {
     query: String,
 }
