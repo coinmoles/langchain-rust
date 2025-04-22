@@ -23,7 +23,7 @@ impl ConversationalAgent {
     pub fn create_prompt(
         system_prompt: &str,
         initial_prompt: &str,
-        tools: &HashMap<String, Box<dyn Tool>>,
+        tools: &HashMap<&str, &dyn Tool>,
     ) -> Result<PromptTemplate, AgentError> {
         let tool_names = tools.keys().cloned().collect::<Vec<_>>().join(", ");
         let tool_string = tools

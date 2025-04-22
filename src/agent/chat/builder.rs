@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     agent::AgentError,
@@ -54,15 +54,13 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
         self,
         llm: L,
     ) -> Result<ConversationalAgent, AgentError> {
-        let system_prompt = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
-        let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
-
         let toolboxes = self
             .toolboxes
             .unwrap_or_default()
             .into_iter()
             .map(|tool| Arc::from(tool))
             .collect::<Vec<_>>();
+
         let tools = {
             let toolbox_list_tools = toolboxes
                 .iter()
@@ -72,10 +70,17 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
                 .into_iter()
                 .chain(toolbox_list_tools)
                 .map(|tool| (normalize_tool_name(&tool.name()), tool))
-                .collect()
+                .collect::<HashMap<_, _>>()
         };
 
-        let prompt = ConversationalAgent::create_prompt(system_prompt, initial_prompt, &tools)?;
+        let prompt = ConversationalAgent::create_prompt(
+            self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT),
+            self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT),
+            &tools
+                .iter()
+                .map(|(name, tool)| (name.as_ref(), tool.as_ref()))
+                .collect(),
+        )?;
         let chain = Box::new(LLMChainBuilder::new().prompt(prompt).llm(llm).build()?);
 
         Ok(ConversationalAgent {
