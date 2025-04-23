@@ -74,7 +74,7 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
                         "Failed to fetch tool metadata from toolbox: {e}"
                     )))
                 })?
-                .into_iter()
+                .iter()
                 .flat_map(|tools| tools.values().map(|tool| tool.into_openai_tool()))
                 .collect::<Vec<_>>();
 

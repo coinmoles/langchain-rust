@@ -33,76 +33,68 @@ impl McpToolbox {
         }
     }
 
-    pub async fn get_tools(
+    async fn fetch_tools(
         &self,
-    ) -> Result<&HashMap<String, Box<dyn Tool>>, Box<dyn Error + Send + Sync>> {
-        self.tools
-            .get_or_try_init(|| async {
-                // TODO: Support other transport types
-                let transport = SseTransport::start(self.url.clone()).await?;
+    ) -> Result<HashMap<String, Box<dyn Tool>>, Box<dyn Error + Send + Sync>> {
+        // TODO: Support other transport types
+        let transport = SseTransport::start(self.url.clone()).await?;
 
-                // TODO: Support other client info
-                let client_info = ClientInfo {
-                    protocol_version: Default::default(),
-                    capabilities: ClientCapabilities::default(),
-                    client_info: Implementation {
-                        name: "MCP Client".to_string(),
-                        version: "0.0.1".to_string(),
-                    },
-                };
+        // TODO: Support other client info
+        let client_info = ClientInfo {
+            protocol_version: Default::default(),
+            capabilities: ClientCapabilities::default(),
+            client_info: Implementation {
+                name: "MCP Client".to_string(),
+                version: "0.0.1".to_string(),
+            },
+        };
 
-                let client = client_info
-                    .serve(transport)
-                    .await
-                    .inspect_err(|e| log::error!("Failed to connect to MCP server: {:?}", e))?;
+        let client = client_info
+            .serve(transport)
+            .await
+            .inspect_err(|e| log::error!("Failed to connect to MCP server: {:?}", e))?;
 
-                let client = Arc::new(client);
+        let client = Arc::new(client);
 
-                let tools = client
-                    .list_all_tools()
-                    .await?
-                    .into_iter()
-                    .map(
-                        |tool| -> Result<(String, Box<dyn Tool>), serde_json::Error> {
-                            let tool_name = normalize_tool_name(tool.name.as_ref());
+        let tools = client
+            .list_all_tools()
+            .await?
+            .into_iter()
+            .map(
+                |tool| -> Result<(String, Box<dyn Tool>), serde_json::Error> {
+                    let tool_name = normalize_tool_name(tool.name.as_ref());
 
-                            let mcp_tool = McpTool::new(
-                                tool.name.into(),
-                                tool.description.into(),
-                                tool.input_schema.as_ref().try_into()?,
-                                Arc::clone(&client),
-                            );
+                    let mcp_tool = McpTool::new(
+                        tool.name.into(),
+                        tool.description.into(),
+                        tool.input_schema.as_ref().try_into()?,
+                        Arc::clone(&client),
+                    );
 
-                            Ok((tool_name, Box::new(mcp_tool)))
-                        },
-                    )
-                    .collect::<Result<HashMap<_, _>, _>>()?;
+                    Ok((tool_name, Box::new(mcp_tool)))
+                },
+            )
+            .collect::<Result<HashMap<_, _>, _>>()?;
 
-                if let Some(using) = &self.using {
-                    let mut tools = tools;
-                    let filtered_tools = using
-                        .iter()
-                        .filter_map(|tool_name| {
-                            let tool_name = normalize_tool_name(tool_name);
-                            match tools.remove(&tool_name) {
-                                Some(tool) => Some((tool_name, tool)),
-                                None => {
-                                    log::warn!(
-                                        "Tool {} not found in toolbox {}",
-                                        tool_name,
-                                        self.name
-                                    );
-                                    None
-                                }
-                            }
-                        })
-                        .collect::<HashMap<_, _>>();
-                    Ok(filtered_tools)
-                } else {
-                    Ok(tools)
+        let Some(using) = &self.using else {
+            return Ok(tools);
+        };
+
+        let mut tools = tools;
+        let filtered_tools = using
+            .iter()
+            .filter_map(|tool_name| {
+                let tool_name = normalize_tool_name(tool_name);
+                match tools.remove(&tool_name) {
+                    Some(tool) => Some((tool_name, tool)),
+                    None => {
+                        log::warn!("Tool {} not found in toolbox {}", tool_name, self.name);
+                        None
+                    }
                 }
             })
-            .await
+            .collect::<HashMap<_, _>>();
+        Ok(filtered_tools)
     }
 }
 
@@ -112,10 +104,16 @@ impl Toolbox for McpToolbox {
         self.name.clone()
     }
 
-    async fn get_tools(
-        &self,
-    ) -> Result<&HashMap<String, Box<dyn Tool>>, Box<dyn Error + Send + Sync>> {
-        self.get_tools().await
+    async fn get_tools(&self) -> Result<HashMap<&str, &dyn Tool>, Box<dyn Error + Send + Sync>> {
+        let tools = self
+            .tools
+            .get_or_try_init(|| self.fetch_tools())
+            .await?
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_ref()))
+            .collect();
+
+        Ok(tools)
     }
 }
 
@@ -142,12 +140,8 @@ mod tests {
         let url = Url::parse("http://localhost:8000/sse").unwrap();
         let toolbox = McpToolbox::new("Test", url, None);
 
-        let tools = toolbox
-            .get_tools()
-            .await
-            .unwrap()
-            .values()
-            .collect::<Vec<_>>();
+        let tools = toolbox.get_tools().await.unwrap();
+        let tools = tools.values().collect::<Vec<_>>();
 
         for tool in tools {
             println!("{:#?}", tool.parameters().to_openai_field())
@@ -159,12 +153,8 @@ mod tests {
         let url = Url::parse("http://localhost:8000/sse").unwrap();
         let toolbox = McpToolbox::new("Test", url, Some(vec!["say_hello".into(), "sum".into()]));
 
-        let tools = toolbox
-            .get_tools()
-            .await
-            .unwrap()
-            .values()
-            .collect::<Vec<_>>();
+        let tools = toolbox.get_tools().await.unwrap();
+        let tools = tools.values().collect::<Vec<_>>();
 
         for tool in tools {
             println!("{:#?}", tool.into_openai_tool());

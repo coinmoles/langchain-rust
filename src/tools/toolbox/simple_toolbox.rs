@@ -31,7 +31,11 @@ impl Toolbox for SimpleToolbox {
 
     async fn get_tools(
         &self,
-    ) -> Result<&HashMap<String, Box<dyn Tool>>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(&self.tools)
+    ) -> Result<HashMap<&str, &dyn Tool>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(self
+            .tools
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_ref()))
+            .collect())
     }
 }
