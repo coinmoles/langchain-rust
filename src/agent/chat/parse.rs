@@ -1,11 +1,11 @@
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 
 use regex::Regex;
 use serde_json::Value;
 
 use crate::{
     agent::AgentError,
-    schemas::{agent_plan::AgentEvent, ToolCall},
+    schemas::{ToolCall, agent_plan::AgentEvent},
 };
 
 pub fn parse_agent_output(text: &str) -> Result<AgentEvent, AgentError> {
@@ -14,11 +14,32 @@ pub fn parse_agent_output(text: &str) -> Result<AgentEvent, AgentError> {
     let json = parse_json_markdown(text).or_else(|| parse_partial_json(text, false));
 
     let agent_event = match json {
-        Some(json) => serde_json::from_value(json).ok(),
+        Some(json) => {
+            let is_malformed_event = is_malformed_event(&json);
+            match serde_json::from_value(json) {
+                Ok(agent_event) => Some(agent_event),
+                Err(_) if !is_malformed_event => Some(AgentEvent::Finish(text.into())),
+                _ => None,
+            }
+        }
         None => Some(parse_with_regex(text).unwrap_or_else(|| AgentEvent::Finish(text.into()))),
     };
 
     agent_event.ok_or(AgentError::InvalidFormatError(text.into()))
+}
+
+pub fn is_malformed_event(json: &Value) -> bool {
+    if let Some(obj) = json.as_object() {
+        let keys = obj.keys().map(|s| s.as_str()).collect::<HashSet<_>>();
+
+        if keys.contains("action") || keys.contains("action_input") {
+            return true;
+        }
+        if keys.contains("final_answer") {
+            return true;
+        }
+    }
+    false
 }
 
 fn remove_thought(text: &str) -> &str {
@@ -359,6 +380,39 @@ mod tests {
         }"#};
 
         let result = parse_agent_output(text).unwrap();
+        match result {
+            AgentEvent::Finish(final_answer) => {
+                println!("{}", final_answer);
+            }
+            _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
+        }
+    }
+
+    #[test]
+    fn test_final_answer_something() {
+        let text = indoc! {r#"
+            ```json
+            [
+                {
+                    "Title": "Wavelength-selective cleavage of photoprotecting groups: strategies and applications in dynamic systems",
+                    "URL": "https://doi.org/10.1039/c5cs00118h",
+                    "Explanation": "This article reviews strategies for wavelength-selective deprotection of photoprotecting groups, which is directly relevant to the proposal's use of photolabile protecting groups (PPGs). It discusses the design and application of these groups for controlling functions in dynamic systems, offering insights into optimizing the orthogonality and efficiency of the dual-PPG system proposed for spatiotemporally controlled Plk1 inhibition. The article highlights the potential for using different wavelengths to control different processes, which could be valuable for fine-tuning the activation of the dual-PPG system."
+                },
+                {
+                    "Title": "Illuminating the Chemistry of Life: Design, Synthesis, and Applications of “Caged” and Related Photoresponsive Compounds",
+                    "URL": "https://doi.org/10.1021/cb900036s",
+                    "Explanation": "This review provides a comprehensive overview of caged compounds and other photoresponsive reagents used in biological research. It discusses the challenges associated with their design, synthesis, and application, as well as recent advances in the field. This is highly relevant to the proposal, as it provides a broader context for the use of photolabile protecting groups and highlights the importance of precise control over spatial and temporal activation of biological processes. It also addresses the limitations of current instrumentation and potential strategies for overcoming them."
+                },
+                {
+                    "Title": "Mitochondrial pharmacology",
+                    "URL": "https://doi.org/10.1016/j.tips.2012.03.010",
+                    "Explanation": "While not directly focused on photochemistry, this review on mitochondrial pharmacology is relevant because it discusses strategies for targeted drug delivery and modulation of cellular processes. The proposal aims to achieve precise spatiotemporal control of Plk1 inhibition, and this article provides insights into the broader challenges of delivering and activating drugs within specific cellular compartments. Understanding the principles of mitochondrial pharmacology could inform the design of the dual-PPG system to enhance its specificity and efficacy."
+                }
+            ]
+            ```"#};
+
+        let result = parse_agent_output(text).unwrap();
+
         match result {
             AgentEvent::Finish(final_answer) => {
                 println!("{}", final_answer);
