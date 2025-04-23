@@ -48,7 +48,7 @@ impl<T> ToolFunction for ListTools<T>
 where
     T: Toolbox + ?Sized,
 {
-    type Input = Value;
+    type Input = ();
     type Result = String;
 
     fn name(&self) -> String {
@@ -67,10 +67,10 @@ where
         &self,
         _input: Value,
     ) -> Result<Self::Input, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(Value::Null)
+        Ok(())
     }
 
-    async fn run(&self, _: Value) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    async fn run(&self, _: ()) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let tools = self.0.get_tools().await?;
         let tool_descriptions: Vec<String> = tools
             .values()
