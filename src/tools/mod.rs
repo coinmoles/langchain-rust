@@ -4,9 +4,6 @@ pub use tool::*;
 mod toolbox;
 pub use toolbox::*;
 
-mod tool_function;
-pub use tool_function::*;
-
 pub mod tool_field;
 
 pub use wolfram::*;

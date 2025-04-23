@@ -4,8 +4,9 @@ use std::{
 };
 
 use async_trait::async_trait;
+use serde_json::Value;
 
-use crate::tools::{tool_field::ToolParameters, Tool};
+use crate::tools::{tool_field::ToolParameters, ToolFunction};
 
 use super::Toolbox;
 
@@ -43,10 +44,13 @@ where
 }
 
 #[async_trait]
-impl<T> Tool for ListTools<T>
+impl<T> ToolFunction for ListTools<T>
 where
     T: Toolbox + ?Sized,
 {
+    type Input = Value;
+    type Result = String;
+
     fn name(&self) -> String {
         format!("List tools in {}", self.0.name())
     }
@@ -59,10 +63,14 @@ where
         ToolParameters::new([]).additional_properties(false)
     }
 
-    async fn call(
+    async fn parse_input(
         &self,
-        _: serde_json::Value,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        _input: Value,
+    ) -> Result<Self::Input, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(Value::Null)
+    }
+
+    async fn run(&self, _: Value) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let tools = self.0.get_tools().await?;
         let tool_descriptions: Vec<String> = tools
             .values()

@@ -9,7 +9,7 @@ pub use async_openai::{
 use async_trait::async_trait;
 use serde_json::Value;
 
-use crate::tools::{SpeechStorage, Tool};
+use crate::tools::{SpeechStorage, ToolFunction};
 
 #[derive(Clone)]
 pub struct Text2SpeechOpenAI<C: Config> {
@@ -71,7 +71,10 @@ impl Default for Text2SpeechOpenAI<OpenAIConfig> {
 }
 
 #[async_trait]
-impl<C: Config + Send + Sync> Tool for Text2SpeechOpenAI<C> {
+impl<C: Config + Send + Sync> ToolFunction for Text2SpeechOpenAI<C> {
+    type Input = String;
+    type Result = String;
+
     fn name(&self) -> String {
         "Text2SpeechOpenAI".into()
     }
@@ -84,8 +87,14 @@ impl<C: Config + Send + Sync> Tool for Text2SpeechOpenAI<C> {
             .into()
     }
 
-    async fn call(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {
-        let input = input.as_str().ok_or("Invalid input")?;
+    async fn parse_input(&self, input: Value) -> Result<Self::Input, Box<dyn Error + Send + Sync>> {
+        match input {
+            Value::String(s) => Ok(s),
+            _ => Err("Invalid input".into()),
+        }
+    }
+
+    async fn run(&self, input: String) -> Result<String, Box<dyn Error + Send + Sync>> {
         let client = Client::new();
         let response_format: SpeechResponseFormat = self.response_format;
 

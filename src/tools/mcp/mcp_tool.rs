@@ -9,7 +9,7 @@ use url::Url;
 
 use std::{borrow::Cow, error::Error, sync::Arc};
 
-use crate::tools::{tool_field::ToolParameters, Tool};
+use crate::tools::{tool_field::ToolParameters, Tool, ToolFunction};
 
 use super::{parse_mcp_response, McpService};
 
@@ -79,7 +79,10 @@ impl McpTool {
 }
 
 #[async_trait]
-impl Tool for McpTool {
+impl ToolFunction for McpTool {
+    type Input = Value;
+    type Result = String;
+
     fn name(&self) -> String {
         self.name.to_string()
     }
@@ -96,7 +99,7 @@ impl Tool for McpTool {
         false
     }
 
-    async fn call(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {
+    async fn run(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {
         let input = match input {
             Value::Object(obj) => obj,
             _ => {
