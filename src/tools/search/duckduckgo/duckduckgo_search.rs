@@ -16,7 +16,7 @@ use crate::tools::{
 
 #[derive(Deserialize, Serialize, Default, Debug, new)]
 pub struct DuckDuckGoSearchInput {
-    query: String,
+    pub query: String,
 }
 
 pub struct DuckDuckGoSearch {

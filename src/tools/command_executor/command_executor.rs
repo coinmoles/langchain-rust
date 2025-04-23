@@ -34,14 +34,14 @@ impl Default for CommandExecutor {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CommandInput {
-    cmd: String,
+    pub cmd: String,
     #[serde(default)]
-    args: Vec<String>,
+    pub args: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 struct CommandsInput {
-    commands: Vec<CommandInput>,
+    pub commands: Vec<CommandInput>,
 }
 
 #[async_trait]
