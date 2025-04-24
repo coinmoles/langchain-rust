@@ -10,22 +10,19 @@ use crate::{
 
 pub fn parse_agent_output(text: &str) -> Result<AgentEvent, AgentError> {
     let text = remove_thought(text);
+    let text = extract_json_markdown(text);
 
-    let json = parse_json_markdown(text).or_else(|| parse_partial_json(text, false));
-
-    let agent_event = match json {
+    match parse_partial_json(text, false) {
         Some(json) => {
             let is_malformed_event = is_malformed_event(&json);
             match serde_json::from_value(json) {
-                Ok(agent_event) => Some(agent_event),
-                Err(_) if !is_malformed_event => Some(AgentEvent::Finish(text.into())),
-                _ => None,
+                Ok(agent_event) => Ok(agent_event),
+                Err(_) if !is_malformed_event => Ok(AgentEvent::Finish(text.into())),
+                _ => Err(AgentError::InvalidFormatError(text.into())),
             }
         }
-        None => Some(parse_with_regex(text).unwrap_or_else(|| AgentEvent::Finish(text.into()))),
-    };
-
-    agent_event.ok_or(AgentError::InvalidFormatError(text.into()))
+        None => Ok(parse_with_regex(text).unwrap_or_else(|| AgentEvent::Finish(text.into()))),
+    }
 }
 
 pub fn is_malformed_event(json: &Value) -> bool {
@@ -209,14 +206,14 @@ fn balance_parenthesis(s: &str) -> String {
     new_s
 }
 
-fn parse_json_markdown(json_markdown: &str) -> Option<Value> {
+fn extract_json_markdown(json_markdown: &str) -> &str {
     let re = Regex::new(r"```(?:(?:[\w+-]\s*)+)?\s*\n\s*([\s\S]+?)\s*```").unwrap();
     if let Some(caps) = re.captures(json_markdown) {
         if let Some(json_str) = caps.get(1) {
-            return parse_partial_json(json_str.as_str(), false);
+            return json_str.as_str();
         }
     }
-    None
+    json_markdown
 }
 
 #[cfg(test)]
@@ -389,7 +386,7 @@ mod tests {
     }
 
     #[test]
-    fn test_final_answer_something() {
+    fn test_final_answer_raw_json() {
         let text = indoc! {r#"
             ```json
             [
