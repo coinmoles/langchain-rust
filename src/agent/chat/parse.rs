@@ -386,6 +386,19 @@ mod tests {
     }
 
     #[test]
+    fn test_final_answer_raw_text() {
+        let text = indoc! {"
+        My final answer is 5"};
+
+        let result = parse_agent_output(text).unwrap();
+
+        match result {
+            AgentEvent::Finish(final_answer) => assert_eq!(final_answer, "My final answer is 5"),
+            _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
+        }
+    }
+
+    #[test]
     fn test_final_answer_raw_json() {
         let text = indoc! {r#"
             ```json
