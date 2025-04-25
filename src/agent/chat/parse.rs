@@ -5,23 +5,27 @@ use serde_json::Value;
 
 use crate::{
     agent::AgentError,
-    schemas::{ToolCall, agent_plan::AgentEvent},
+    schemas::{agent_plan::AgentEvent, ToolCall},
 };
 
 pub fn parse_agent_output(text: &str) -> Result<AgentEvent, AgentError> {
     let text = remove_thought(text);
     let text = extract_json_markdown(text);
 
-    match parse_partial_json(text, false) {
-        Some(json) => {
-            let is_malformed_event = is_malformed_event(&json);
-            match serde_json::from_value(json) {
-                Ok(agent_event) => Ok(agent_event),
-                Err(_) if !is_malformed_event => Ok(AgentEvent::Finish(text.into())),
-                _ => Err(AgentError::InvalidFormatError(text.into())),
-            }
-        }
-        None => Ok(parse_with_regex(text).unwrap_or_else(|| AgentEvent::Finish(text.into()))),
+    let json = parse_partial_json(text, false);
+
+    let is_malformed_event = match json.as_ref() {
+        Some(json) => is_malformed_event(json),
+        None => is_malformed_event_str(text),
+    };
+
+    match json
+        .and_then(|json| serde_json::from_value::<AgentEvent>(json).ok())
+        .or_else(|| parse_with_regex(text))
+    {
+        Some(agent_event) => Ok(agent_event),
+        None if !is_malformed_event => Ok(AgentEvent::Finish(text.into())),
+        _ => Err(AgentError::InvalidFormatError(text.into())),
     }
 }
 
@@ -37,6 +41,12 @@ pub fn is_malformed_event(json: &Value) -> bool {
         }
     }
     false
+}
+
+pub fn is_malformed_event_str(text: &str) -> bool {
+    text.contains("\"action\"")
+        || text.contains("\"action_input\"")
+        || text.contains("\"final_answer\"")
 }
 
 fn remove_thought(text: &str) -> &str {
@@ -429,5 +439,22 @@ mod tests {
             }
             _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
         }
+    }
+
+    #[test]
+    fn test_final_answer_malformed_json() {
+        let text = r#"
+        {
+            "final_answer": {
+                "lalala",
+                "foo": "bar",
+                "baz": 42,
+            }
+        }
+        "#;
+
+        let result = parse_agent_output(text);
+
+        assert!(result.is_err(), "Expected err, got {:#?}", result);
     }
 }
