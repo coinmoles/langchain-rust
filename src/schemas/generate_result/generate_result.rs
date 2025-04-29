@@ -1,7 +1,5 @@
 use std::fmt::{self, Display};
 
-use indoc::indoc;
-
 use super::{GenerateResultContent, TokenUsage};
 
 #[derive(Debug, Clone, Default)]
@@ -19,7 +17,7 @@ impl GenerateResult {
 impl Display for GenerateResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.content {
-            GenerateResultContent::Text(text) => write!(f, "Text: {}", text)?,
+            GenerateResultContent::Text(text) => write!(f, "{}", text)?,
             GenerateResultContent::ToolCall(tool_calls) => {
                 writeln!(f, "Strucuted tool call:")?;
                 for tool_call in tool_calls {
@@ -30,15 +28,7 @@ impl Display for GenerateResult {
         };
 
         if let Some(usage) = &self.usage {
-            write!(
-                f,
-                indoc! {"
-                Token Usage:
-                - Prompt Tokens: {}
-                - Completion Tokens: {}
-                - Total Tokens: {}"},
-                usage.prompt_tokens, usage.completion_tokens, usage.total_tokens
-            )?
+            write!(f, "\n\n{}", usage)?
         }
 
         Ok(())

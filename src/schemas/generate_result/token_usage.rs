@@ -1,4 +1,7 @@
+use std::fmt::{self, Display};
+
 use async_openai::types::CompletionUsage;
+use indoc::writedoc;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -61,5 +64,37 @@ impl From<TokenUsage> for CompletionUsage {
             prompt_tokens_details: None,
             completion_tokens_details: None,
         }
+    }
+}
+
+impl Display for TokenUsage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writedoc! {
+        f,
+        "
+        Token Usage:
+        - Prompt Tokens: {}
+        - Completion Tokens: {}
+        - Total Tokens: {}",
+        self.prompt_tokens, self.completion_tokens, self.total_tokens}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use indoc::indoc;
+
+    use super::*;
+
+    #[test]
+    fn test_display() {
+        let usage = TokenUsage::new(10, 20);
+        let expected_output = indoc! {"
+            Token Usage:
+            - Prompt Tokens: 10
+            - Completion Tokens: 20
+            - Total Tokens: 30"};
+
+        assert_eq!(format!("{}", usage), expected_output);
     }
 }
