@@ -1,6 +1,6 @@
 use crate::tools::Tool;
 
-const QWEN_SUFFIX: &str = r#"
+const QWEN3_TOOL_PROMPT: &str = r#"
 
 # Tools
 
@@ -16,7 +16,7 @@ For each function call, return a json object with function name and arguments wi
 {"name": <function-name>, "arguments": <args-json-object>}
 </tool_call>"#;
 
-pub fn qwen3_custom_tool_prompt(tools: &[&dyn Tool]) -> String {
+pub fn qwen3_tool_prompt(tools: &[&dyn Tool]) -> String {
     let tools_json = tools
         .iter()
         .map(|tool| {
@@ -25,5 +25,5 @@ pub fn qwen3_custom_tool_prompt(tools: &[&dyn Tool]) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n\n");
-    QWEN_SUFFIX.replace("{{tools}}", &tools_json)
+    QWEN3_TOOL_PROMPT.replace("{{tools}}", &tools_json)
 }

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    agent::{create_prompt, default_suffix, AgentError},
+    agent::{create_prompt, default_tool_prompt, AgentError},
     chain::llm_chain::LLMChainBuilder,
     language_models::llm::LLM,
     tools::{ListTools, Tool, Toolbox},
@@ -18,7 +18,7 @@ pub struct ConversationalAgentBuilder<'a, 'b, 'c> {
     toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     system_prompt: Option<&'a str>,
     initial_prompt: Option<&'b str>,
-    custom_tool_prompt: Option<Box<dyn Fn(&[&dyn Tool]) -> String + 'c>>,
+    custom_tool_prompt: Option<&'c dyn Fn(&[&dyn Tool]) -> String>,
 }
 
 impl<'a, 'b, 'c> ConversationalAgentBuilder<'a, 'b, 'c> {
@@ -54,9 +54,9 @@ impl<'a, 'b, 'c> ConversationalAgentBuilder<'a, 'b, 'c> {
 
     pub fn custom_tool_prompt(
         mut self,
-        custom_tool_prompt: impl Fn(&[&dyn Tool]) -> String + 'c,
+        custom_tool_prompt: &'c dyn Fn(&[&dyn Tool]) -> String,
     ) -> Self {
-        self.custom_tool_prompt = Some(Box::new(custom_tool_prompt));
+        self.custom_tool_prompt = Some(custom_tool_prompt);
         self
     }
 
@@ -85,7 +85,7 @@ impl<'a, 'b, 'c> ConversationalAgentBuilder<'a, 'b, 'c> {
 
         let system_prompt = {
             let body = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
-            let tool_prompt = self.custom_tool_prompt.unwrap_or(Box::new(default_suffix));
+            let tool_prompt = self.custom_tool_prompt.unwrap_or(&default_tool_prompt);
             let suffix = tool_prompt(&tools.values().map(|t| t.as_ref()).collect::<Vec<_>>());
             format!("{}{}", body, suffix)
         };

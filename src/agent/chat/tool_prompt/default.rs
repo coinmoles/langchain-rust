@@ -1,6 +1,6 @@
 use crate::{tools::Tool, utils::helper::normalize_tool_name};
 
-pub const DEFAULT_SUFFIX: &str = r#"
+pub const DEFAULT_TOOL_PROMPT: &str = r#"
 
 <INSTRUCTIONS>
 - You have two options:
@@ -35,7 +35,7 @@ Option 2 : Give your best final answer
 
 </INSTRUCTIONS>"#;
 
-pub fn default_suffix(tools: &[&dyn Tool]) -> String {
+pub fn default_tool_prompt(tools: &[&dyn Tool]) -> String {
     let tool_names = tools
         .iter()
         .map(|tool| normalize_tool_name(&tool.name()))
@@ -46,7 +46,7 @@ pub fn default_suffix(tools: &[&dyn Tool]) -> String {
         .map(|tool| tool.to_plain_description())
         .collect::<Vec<_>>()
         .join("\n");
-    DEFAULT_SUFFIX
+    DEFAULT_TOOL_PROMPT
         .replace("{{tool_names}}", &tool_names)
         .replace("{{tools}}", &tool_string)
 }
