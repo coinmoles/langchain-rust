@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    agent::AgentError,
+    agent::{create_prompt, AgentError},
     chain::llm_chain::LLMChainBuilder,
     language_models::llm::LLM,
     tools::{ListTools, Tool, Toolbox},
@@ -84,11 +84,14 @@ impl<'a, 'b, 'c> ConversationalAgentBuilder<'a, 'b, 'c> {
         };
 
         let system_prompt = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
-        let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
         let suffix = match self.custom_tool_prompt {
             Some(custom_tool_prompt) => custom_tool_prompt(&tools),
             None => {
-                let tool_names = tools.keys().cloned().collect::<Vec<_>>().join(", ");
+                let tool_names = tools
+                    .keys()
+                    .map(|n| n.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 let tool_string = tools
                     .values()
                     .map(|tool| tool.to_plain_description())
@@ -99,11 +102,10 @@ impl<'a, 'b, 'c> ConversationalAgentBuilder<'a, 'b, 'c> {
                     .replace("{{tools}}", &tool_string)
             }
         };
+        let system_prompt = format!("{}{}", system_prompt, suffix);
+        let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
 
-        let prompt = ConversationalAgent::create_prompt(
-            &format!("{}{}", system_prompt, suffix),
-            initial_prompt,
-        );
+        let prompt = create_prompt(system_prompt, initial_prompt);
         let chain = Box::new(LLMChainBuilder::new().prompt(prompt).llm(llm).build()?);
 
         Ok(ConversationalAgent {

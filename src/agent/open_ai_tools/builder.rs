@@ -1,7 +1,7 @@
 use futures::future::try_join_all;
 
 use crate::{
-    agent::AgentError,
+    agent::{create_prompt, AgentError},
     chain::LLMChainBuilder,
     language_models::{llm::LLM, options::CallOptions, LLMError},
     tools::{Tool, Toolbox},
@@ -84,7 +84,7 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
                 .collect::<Vec<_>>()
         };
 
-        let prompt = OpenAiToolAgent::create_prompt(system_prompt, initial_prompt);
+        let prompt = create_prompt(system_prompt, initial_prompt);
         let mut llm = llm;
         llm.add_call_options(CallOptions::new().with_tools(tools_openai));
         let chain = Box::new(LLMChainBuilder::new().prompt(prompt).llm(llm).build()?);

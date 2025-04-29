@@ -5,9 +5,7 @@ use async_trait::async_trait;
 use crate::{
     agent::{agent::Agent, AgentError},
     chain::chain_trait::Chain,
-    prompt_template,
-    schemas::{AgentResult, AgentStep, InputVariables, Message, MessageType},
-    template::{MessageOrTemplate, MessageTemplate, PromptTemplate},
+    schemas::{AgentResult, AgentStep, InputVariables, Message},
     tools::{Tool, Toolbox},
 };
 
@@ -20,16 +18,6 @@ pub struct ConversationalAgent {
 }
 
 impl ConversationalAgent {
-    pub fn create_prompt(system_prompt: &str, initial_prompt: &str) -> PromptTemplate {
-        prompt_template![
-            MessageTemplate::from_jinja2(MessageType::SystemMessage, system_prompt),
-            MessageOrTemplate::Placeholder("chat_history".into()),
-            MessageTemplate::from_jinja2(MessageType::HumanMessage, initial_prompt),
-            MessageOrTemplate::Placeholder("agent_scratchpad".into()),
-            MessageOrTemplate::Placeholder("ultimatum".into())
-        ]
-    }
-
     fn construct_scratchpad(&self, intermediate_steps: &[AgentStep]) -> Vec<Message> {
         intermediate_steps
             .iter()

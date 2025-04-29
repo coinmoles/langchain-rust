@@ -8,9 +8,7 @@ use crate::{
     agent::{Agent, AgentError},
     chain::Chain,
     language_models::LLMError,
-    prompt_template,
-    schemas::{agent_plan::AgentEvent, InputVariables, Message, MessageType},
-    template::{MessageOrTemplate, MessageTemplate, PromptTemplate},
+    schemas::{agent_plan::AgentEvent, InputVariables, Message},
     tools::Tool,
 };
 
@@ -28,16 +26,6 @@ pub struct OpenAiToolAgent {
 }
 
 impl OpenAiToolAgent {
-    pub fn create_prompt(system_prompt: &str, initial_prompt: &str) -> PromptTemplate {
-        prompt_template![
-            MessageTemplate::from_jinja2(MessageType::SystemMessage, system_prompt),
-            MessageOrTemplate::Placeholder("chat_history".into()),
-            MessageTemplate::from_jinja2(MessageType::HumanMessage, initial_prompt),
-            MessageOrTemplate::Placeholder("agent_scratchpad".into()),
-            MessageOrTemplate::Placeholder("ultimatum".into())
-        ]
-    }
-
     fn construct_scratchpad(&self, steps: &[AgentStep]) -> Vec<Message> {
         steps
             .iter()
