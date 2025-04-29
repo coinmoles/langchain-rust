@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    agent::{create_prompt, AgentError},
+    agent::{create_prompt, default_suffix, AgentError},
     chain::llm_chain::LLMChainBuilder,
     language_models::llm::LLM,
     tools::{ListTools, Tool, Toolbox},
@@ -9,7 +9,7 @@ use crate::{
 };
 
 use super::{
-    prompt::{DEFAULT_INITIAL_PROMPT, DEFAULT_SYSTEM_PROMPT, SUFFIX},
+    prompt::{DEFAULT_INITIAL_PROMPT, DEFAULT_SYSTEM_PROMPT},
     ConversationalAgent,
 };
 
@@ -18,7 +18,7 @@ pub struct ConversationalAgentBuilder<'a, 'b, 'c> {
     toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     system_prompt: Option<&'a str>,
     initial_prompt: Option<&'b str>,
-    custom_tool_prompt: Option<Box<dyn Fn(&HashMap<String, Box<dyn Tool>>) -> String + 'c>>,
+    custom_tool_prompt: Option<Box<dyn Fn(&[&dyn Tool]) -> String + 'c>>,
 }
 
 impl<'a, 'b, 'c> ConversationalAgentBuilder<'a, 'b, 'c> {
@@ -54,7 +54,7 @@ impl<'a, 'b, 'c> ConversationalAgentBuilder<'a, 'b, 'c> {
 
     pub fn custom_tool_prompt(
         mut self,
-        custom_tool_prompt: impl Fn(&HashMap<String, Box<dyn Tool>>) -> String + 'c,
+        custom_tool_prompt: impl Fn(&[&dyn Tool]) -> String + 'c,
     ) -> Self {
         self.custom_tool_prompt = Some(Box::new(custom_tool_prompt));
         self
@@ -83,26 +83,12 @@ impl<'a, 'b, 'c> ConversationalAgentBuilder<'a, 'b, 'c> {
                 .collect::<HashMap<_, _>>()
         };
 
-        let system_prompt = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
-        let suffix = match self.custom_tool_prompt {
-            Some(custom_tool_prompt) => custom_tool_prompt(&tools),
-            None => {
-                let tool_names = tools
-                    .keys()
-                    .map(|n| n.as_str())
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                let tool_string = tools
-                    .values()
-                    .map(|tool| tool.to_plain_description())
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                SUFFIX
-                    .replace("{{tool_names}}", &tool_names)
-                    .replace("{{tools}}", &tool_string)
-            }
+        let system_prompt = {
+            let body = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
+            let tool_prompt = self.custom_tool_prompt.unwrap_or(Box::new(default_suffix));
+            let suffix = tool_prompt(&tools.values().map(|t| t.as_ref()).collect::<Vec<_>>());
+            format!("{}{}", body, suffix)
         };
-        let system_prompt = format!("{}{}", system_prompt, suffix);
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
 
         let prompt = create_prompt(system_prompt, initial_prompt);
