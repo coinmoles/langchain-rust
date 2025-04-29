@@ -1,3 +1,5 @@
+use std::fmt::{self, Display};
+
 use async_openai::types::{ChatCompletionResponseMessage, Role};
 use serde::{de::Error, Deserialize, Serialize};
 
@@ -115,5 +117,21 @@ impl<'de> Deserialize<'de> for GenerateResultContent {
         let openai_rep = ChatCompletionResponseMessage::deserialize(deserializer)?;
 
         openai_rep.try_into().map_err(serde::de::Error::custom)
+    }
+}
+
+impl Display for GenerateResultContent {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            GenerateResultContent::Text(text) => write!(f, "{}", text),
+            GenerateResultContent::ToolCall(tool_calls) => {
+                writeln!(f, "Structured tool call:")?;
+                for tool_call in tool_calls {
+                    writeln!(f, "{}", tool_call)?;
+                }
+                Ok(())
+            }
+            GenerateResultContent::Refusal(refusal) => write!(f, "Refused: {}", refusal),
+        }
     }
 }

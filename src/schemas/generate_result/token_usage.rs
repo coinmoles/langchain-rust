@@ -72,7 +72,6 @@ impl Display for TokenUsage {
         writedoc! {
         f,
         "
-        Token Usage:
         - Prompt Tokens: {}
         - Completion Tokens: {}
         - Total Tokens: {}",
@@ -90,7 +89,6 @@ mod tests {
     fn test_display() {
         let usage = TokenUsage::new(10, 20);
         let expected_output = indoc! {"
-            Token Usage:
             - Prompt Tokens: 10
             - Completion Tokens: 20
             - Total Tokens: 30"};

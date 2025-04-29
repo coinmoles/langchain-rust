@@ -101,7 +101,10 @@ impl Chain for LLMChain {
             output.content = GenerateResultContent::Text(self.output_parser.parse(&content).await?);
         }
 
-        log::trace!("Agent output:\n{}", output);
+        log::trace!("LLM output:\n{}", output.content);
+        if let Some(ref usage) = output.usage {
+            log::trace!("Token usage:\n{}", usage);
+        }
 
         Ok(output)
     }
