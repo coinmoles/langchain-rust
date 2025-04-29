@@ -9,24 +9,26 @@ use crate::{
 };
 
 use super::{
-    prompt::{DEFAULT_INITIAL_PROMPT, DEFAULT_SYSTEM_PROMPT},
+    prompt::{DEFAULT_INITIAL_PROMPT, DEFAULT_SYSTEM_PROMPT, SUFFIX},
     ConversationalAgent,
 };
 
-pub struct ConversationalAgentBuilder<'a, 'b> {
+pub struct ConversationalAgentBuilder<'a, 'b, 'c> {
     tools: Option<Vec<Box<dyn Tool>>>,
     toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     system_prompt: Option<&'a str>,
     initial_prompt: Option<&'b str>,
+    custom_tool_prompt: Option<Box<dyn Fn(&HashMap<String, Box<dyn Tool>>) -> String + 'c>>,
 }
 
-impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
+impl<'a, 'b, 'c> ConversationalAgentBuilder<'a, 'b, 'c> {
     pub fn new() -> Self {
         Self {
             tools: None,
             toolboxes: None,
             system_prompt: None,
             initial_prompt: None,
+            custom_tool_prompt: None,
         }
     }
 
@@ -47,6 +49,14 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
 
     pub fn initial_prompt(mut self, initial_prompt: &'b str) -> Self {
         self.initial_prompt = Some(initial_prompt);
+        self
+    }
+
+    pub fn custom_tool_prompt(
+        mut self,
+        custom_tool_prompt: impl Fn(&HashMap<String, Box<dyn Tool>>) -> String + 'c,
+    ) -> Self {
+        self.custom_tool_prompt = Some(Box::new(custom_tool_prompt));
         self
     }
 
@@ -73,14 +83,27 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
                 .collect::<HashMap<_, _>>()
         };
 
+        let system_prompt = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
+        let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
+        let suffix = match self.custom_tool_prompt {
+            Some(custom_tool_prompt) => custom_tool_prompt(&tools),
+            None => {
+                let tool_names = tools.keys().cloned().collect::<Vec<_>>().join(", ");
+                let tool_string = tools
+                    .values()
+                    .map(|tool| tool.to_plain_description())
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                SUFFIX
+                    .replace("{{tool_names}}", &tool_names)
+                    .replace("{{tools}}", &tool_string)
+            }
+        };
+
         let prompt = ConversationalAgent::create_prompt(
-            self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT),
-            self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT),
-            &tools
-                .iter()
-                .map(|(name, tool)| (name.as_ref(), tool.as_ref()))
-                .collect(),
-        )?;
+            &format!("{}{}", system_prompt, suffix),
+            initial_prompt,
+        );
         let chain = Box::new(LLMChainBuilder::new().prompt(prompt).llm(llm).build()?);
 
         Ok(ConversationalAgent {
@@ -91,7 +114,7 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
     }
 }
 
-impl Default for ConversationalAgentBuilder<'_, '_> {
+impl Default for ConversationalAgentBuilder<'_, '_, '_> {
     fn default() -> Self {
         Self::new()
     }

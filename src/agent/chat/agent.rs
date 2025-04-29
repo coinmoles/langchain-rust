@@ -11,7 +11,7 @@ use crate::{
     tools::{Tool, Toolbox},
 };
 
-use super::{parse::parse_agent_output, prompt::SUFFIX};
+use super::parse::parse_agent_output;
 
 pub struct ConversationalAgent {
     pub(crate) chain: Box<dyn Chain>,
@@ -20,31 +20,14 @@ pub struct ConversationalAgent {
 }
 
 impl ConversationalAgent {
-    pub fn create_prompt(
-        system_prompt: &str,
-        initial_prompt: &str,
-        tools: &HashMap<&str, &dyn Tool>,
-    ) -> Result<PromptTemplate, AgentError> {
-        let tool_names = tools.keys().cloned().collect::<Vec<_>>().join(", ");
-        let tool_string = tools
-            .values()
-            .map(|tool| tool.to_plain_description())
-            .collect::<Vec<_>>()
-            .join("\n");
-        let suffix = SUFFIX
-            .replace("{{tool_names}}", &tool_names)
-            .replace("{{tools}}", &tool_string);
-        let system_message = format!("{}{}", system_prompt, suffix);
-
-        let prompt = prompt_template![
-            MessageTemplate::from_jinja2(MessageType::SystemMessage, system_message),
+    pub fn create_prompt(system_prompt: &str, initial_prompt: &str) -> PromptTemplate {
+        prompt_template![
+            MessageTemplate::from_jinja2(MessageType::SystemMessage, system_prompt),
             MessageOrTemplate::Placeholder("chat_history".into()),
             MessageTemplate::from_jinja2(MessageType::HumanMessage, initial_prompt),
             MessageOrTemplate::Placeholder("agent_scratchpad".into()),
             MessageOrTemplate::Placeholder("ultimatum".into())
-        ];
-
-        Ok(prompt)
+        ]
     }
 
     fn construct_scratchpad(&self, intermediate_steps: &[AgentStep]) -> Vec<Message> {

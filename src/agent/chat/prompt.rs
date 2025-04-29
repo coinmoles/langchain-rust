@@ -37,8 +37,6 @@ Option 2 : Give your best final answer
 }
 </FINAL_ANSWER_OUTPUT_FORMAT>
 
-</INSTRUCTIONS>
-
-"#;
+</INSTRUCTIONS>"#;
 
 pub const DEFAULT_INITIAL_PROMPT: &str = r#"{{input}}"#;

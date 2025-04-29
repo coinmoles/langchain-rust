@@ -84,7 +84,7 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
                 .collect::<Vec<_>>()
         };
 
-        let prompt = OpenAiToolAgent::create_prompt(system_prompt, initial_prompt)?;
+        let prompt = OpenAiToolAgent::create_prompt(system_prompt, initial_prompt);
         let mut llm = llm;
         llm.add_call_options(CallOptions::new().with_tools(tools_openai));
         let chain = Box::new(LLMChainBuilder::new().prompt(prompt).llm(llm).build()?);
