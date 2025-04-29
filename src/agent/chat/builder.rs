@@ -1,7 +1,11 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    agent::{create_prompt, AgentError, DefaultInstructor},
+    agent::{
+        create_prompt,
+        instructor::{DefaultInstructor, Instructor},
+        AgentError,
+    },
     chain::llm_chain::LLMChainBuilder,
     language_models::llm::LLM,
     tools::{ListTools, Tool, Toolbox},
@@ -10,7 +14,7 @@ use crate::{
 
 use super::{
     prompt::{DEFAULT_INITIAL_PROMPT, DEFAULT_SYSTEM_PROMPT},
-    ConversationalAgent, Instructor,
+    ConversationalAgent,
 };
 
 pub struct ConversationalAgentBuilder<'a, 'b> {

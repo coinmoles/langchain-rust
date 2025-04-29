@@ -3,13 +3,11 @@ use std::{collections::HashMap, error::Error, sync::Arc};
 use async_trait::async_trait;
 
 use crate::{
-    agent::{agent::Agent, AgentError},
+    agent::{instructor::Instructor, Agent, AgentError},
     chain::chain_trait::Chain,
     schemas::{AgentResult, AgentStep, InputVariables, Message},
     tools::{Tool, Toolbox},
 };
-
-use super::Instructor;
 
 pub struct ConversationalAgent {
     pub(crate) chain: Box<dyn Chain>,
