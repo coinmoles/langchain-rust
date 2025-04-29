@@ -1,7 +1,8 @@
 use std::collections::{HashSet, VecDeque};
 
 use regex::Regex;
-use serde_json::Value;
+use serde_json::{Map, Value};
+use uuid::Uuid;
 
 use crate::{
     agent::AgentError,
@@ -20,7 +21,7 @@ pub fn parse_agent_output(text: &str) -> Result<AgentEvent, AgentError> {
     };
 
     match json
-        .and_then(|json| serde_json::from_value::<AgentEvent>(json).ok())
+        .and_then(|json| value_to_agent_event(json))
         .or_else(|| parse_with_regex(text))
     {
         Some(agent_event) => Ok(agent_event),
@@ -224,6 +225,51 @@ fn extract_json_markdown(json_markdown: &str) -> &str {
         }
     }
     json_markdown
+}
+
+pub fn value_to_agent_event(value: Value) -> Option<AgentEvent> {
+    let Value::Object(mut obj) = value else {
+        return None;
+    };
+
+    if let Some((id, name, arguments)) = take_action(&mut obj) {
+        Some(AgentEvent::Action(vec![ToolCall {
+            id,
+            name,
+            arguments,
+        }]))
+    } else if let Some(final_answer) = take_final_answer(&mut obj) {
+        Some(AgentEvent::Finish(final_answer))
+    } else {
+        None
+    }
+}
+
+/// Helper function to extract the action from the JSON value.
+fn take_action(value: &mut Map<String, Value>) -> Option<(String, String, Value)> {
+    // Do not want to early return since id can be missing
+    let id = match value.remove("id") {
+        Some(Value::String(id)) => id,
+        _ => Uuid::new_v4().to_string(),
+    };
+
+    let Some(Value::String(action)) = value.remove("action") else {
+        return None;
+    };
+
+    let action_input = value.remove("action_input")?;
+
+    Some((id, action, action_input))
+}
+
+/// Helper function to extract the final answer from the JSON value.
+fn take_final_answer(value: &mut Map<String, Value>) -> Option<String> {
+    let final_answer = match value.remove("final_answer")? {
+        Value::String(value) => value,
+        other => serde_json::to_string_pretty(&other).unwrap_or_else(|_| other.to_string()),
+    };
+
+    Some(final_answer)
 }
 
 #[cfg(test)]
