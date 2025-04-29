@@ -15,4 +15,3 @@ impl Display for Article {
         write!(f, "[{}]({})\n{}", self.title, self.link, self.snippet)
     }
 }
-

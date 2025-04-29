@@ -6,8 +6,8 @@ use futures::Stream;
 use crate::{
     chain::{chain_trait::Chain, llm_chain::LLMChain, ChainError},
     schemas::{
-        {GenerateResult, GenerateResultContent, TokenUsage},
         InputVariables, StreamData, TextReplacements,
+        {GenerateResult, GenerateResultContent, TokenUsage},
     },
     text_replacements,
     tools::SQLDatabase,

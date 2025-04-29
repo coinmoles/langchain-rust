@@ -1,6 +1,8 @@
 use thiserror::Error;
 
-use crate::{language_models::LLMError, output_parsers::OutputParserError, template::TemplateError};
+use crate::{
+    language_models::LLMError, output_parsers::OutputParserError, template::TemplateError,
+};
 
 #[derive(Error, Debug)]
 pub enum ChainError {
