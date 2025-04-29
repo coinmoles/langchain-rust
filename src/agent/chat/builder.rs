@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    agent::{create_prompt, default_tool_prompt, AgentError},
+    agent::{create_prompt, AgentError, DefaultInstructor},
     chain::llm_chain::LLMChainBuilder,
     language_models::llm::LLM,
     tools::{ListTools, Tool, Toolbox},
@@ -10,25 +10,25 @@ use crate::{
 
 use super::{
     prompt::{DEFAULT_INITIAL_PROMPT, DEFAULT_SYSTEM_PROMPT},
-    ConversationalAgent,
+    ConversationalAgent, Instructor,
 };
 
-pub struct ConversationalAgentBuilder<'a, 'b, 'c> {
+pub struct ConversationalAgentBuilder<'a, 'b> {
     tools: Option<Vec<Box<dyn Tool>>>,
     toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     system_prompt: Option<&'a str>,
     initial_prompt: Option<&'b str>,
-    custom_tool_prompt: Option<&'c (dyn Fn(&[&dyn Tool]) -> String + Send + Sync)>,
+    instructor: Option<Box<dyn Instructor>>,
 }
 
-impl<'a, 'b, 'c> ConversationalAgentBuilder<'a, 'b, 'c> {
+impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
     pub fn new() -> Self {
         Self {
             tools: None,
             toolboxes: None,
             system_prompt: None,
             initial_prompt: None,
-            custom_tool_prompt: None,
+            instructor: None,
         }
     }
 
@@ -52,11 +52,8 @@ impl<'a, 'b, 'c> ConversationalAgentBuilder<'a, 'b, 'c> {
         self
     }
 
-    pub fn custom_tool_prompt(
-        mut self,
-        custom_tool_prompt: &'c (dyn Fn(&[&dyn Tool]) -> String + Send + Sync),
-    ) -> Self {
-        self.custom_tool_prompt = Some(custom_tool_prompt);
+    pub fn instructor(mut self, instructor: impl Instructor + 'static) -> Self {
+        self.instructor = Some(Box::new(instructor));
         self
     }
 
@@ -83,10 +80,14 @@ impl<'a, 'b, 'c> ConversationalAgentBuilder<'a, 'b, 'c> {
                 .collect::<HashMap<_, _>>()
         };
 
+        let instructor = self
+            .instructor
+            .unwrap_or_else(|| Box::new(DefaultInstructor::new()));
+
         let system_prompt = {
             let body = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
-            let tool_prompt = self.custom_tool_prompt.unwrap_or(&default_tool_prompt);
-            let suffix = tool_prompt(&tools.values().map(|t| t.as_ref()).collect::<Vec<_>>());
+            let suffix =
+                instructor.create_suffix(&tools.values().map(|t| t.as_ref()).collect::<Vec<_>>());
             format!("{}{}", body, suffix)
         };
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
@@ -98,11 +99,12 @@ impl<'a, 'b, 'c> ConversationalAgentBuilder<'a, 'b, 'c> {
             chain,
             tools,
             toolboxes,
+            instructor,
         })
     }
 }
 
-impl Default for ConversationalAgentBuilder<'_, '_, '_> {
+impl Default for ConversationalAgentBuilder<'_, '_> {
     fn default() -> Self {
         Self::new()
     }

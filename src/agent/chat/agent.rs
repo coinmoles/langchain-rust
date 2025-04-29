@@ -9,12 +9,13 @@ use crate::{
     tools::{Tool, Toolbox},
 };
 
-use super::parse::parse_agent_output;
+use super::Instructor;
 
 pub struct ConversationalAgent {
     pub(crate) chain: Box<dyn Chain>,
     pub(crate) tools: HashMap<String, Box<dyn Tool>>,
     pub(crate) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
+    pub(crate) instructor: Box<dyn Instructor>,
 }
 
 impl ConversationalAgent {
@@ -42,7 +43,7 @@ impl Agent for ConversationalAgent {
         inputs.insert_placeholder_replacement("agent_scratchpad", scratchpad);
         let output = self.chain.call(inputs).await?;
 
-        let content = parse_agent_output(&output.content.text())?;
+        let content = self.instructor.parse_output(&output.content.text())?;
         let usage = output.usage;
 
         Ok(AgentResult { content, usage })
