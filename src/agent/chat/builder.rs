@@ -18,7 +18,7 @@ pub struct ConversationalAgentBuilder<'a, 'b, 'c> {
     toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     system_prompt: Option<&'a str>,
     initial_prompt: Option<&'b str>,
-    custom_tool_prompt: Option<&'c dyn Fn(&[&dyn Tool]) -> String>,
+    custom_tool_prompt: Option<&'c (dyn Fn(&[&dyn Tool]) -> String + Send + Sync)>,
 }
 
 impl<'a, 'b, 'c> ConversationalAgentBuilder<'a, 'b, 'c> {
@@ -54,7 +54,7 @@ impl<'a, 'b, 'c> ConversationalAgentBuilder<'a, 'b, 'c> {
 
     pub fn custom_tool_prompt(
         mut self,
-        custom_tool_prompt: &'c dyn Fn(&[&dyn Tool]) -> String,
+        custom_tool_prompt: &'c (dyn Fn(&[&dyn Tool]) -> String + Send + Sync),
     ) -> Self {
         self.custom_tool_prompt = Some(custom_tool_prompt);
         self
