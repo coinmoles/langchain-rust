@@ -101,9 +101,9 @@ impl Chain for LLMChain {
             *content = self.output_parser.parse(&content).await?;
         }
 
-        log::trace!("LLM output:\n{}", output.content);
+        log::trace!("\nLLM output:\n{}", output.content);
         if let Some(ref usage) = output.usage {
-            log::trace!("Token usage:\n{}", usage);
+            log::trace!("\nToken usage:\n{}", usage);
         }
 
         Ok(output)
@@ -127,7 +127,11 @@ impl Chain for LLMChain {
         let prompt = self.prompt.format(inputs)?;
 
         for message in prompt.to_messages() {
-            log::debug!("{}:\n{}", message.message_type, message.content);
+            log::debug!(
+                "\n{}:\n{}",
+                message.message_type.to_string().to_uppercase(),
+                message.content
+            );
         }
 
         Ok(())

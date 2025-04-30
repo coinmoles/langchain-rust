@@ -120,7 +120,7 @@ impl<'a> Chain for AgentExecutor<'a> {
                     }
 
                     for tool_call in tool_calls {
-                        log::debug!("{}", tool_call);
+                        log::debug!("\nTool call:\n{}", tool_call);
 
                         let tool_name = tool_call.name.to_lowercase().replace(" ", "_");
                         let Some(tool) = self.agent.get_tool(&tool_name).await else {
@@ -172,7 +172,7 @@ impl<'a> Chain for AgentExecutor<'a> {
                             }
                         };
 
-                        log::debug!("Tool {} result:\n{}", &tool_call.name, &result);
+                        log::debug!("\nTool {} result:\n{}", &tool_call.name, &result);
 
                         let agent_step = AgentStep::new(tool_call, result);
 
@@ -213,7 +213,7 @@ impl<'a> Chain for AgentExecutor<'a> {
                         memory.add_ai_message(final_answer.clone());
                     }
 
-                    log::debug!("Agent finished with result:\n{}", &final_answer);
+                    log::debug!("\nAgent finished with result:\n{}", &final_answer);
 
                     return Ok(GenerateResult {
                         content: GenerateResultContent::Text(final_answer),
