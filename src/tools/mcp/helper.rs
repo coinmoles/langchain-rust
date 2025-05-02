@@ -1,11 +1,11 @@
 use std::error::Error;
 
+use reqwest::IntoUrl;
 use rmcp::{
     model::{Annotated, RawContent, ResourceContents},
     transport::SseTransport,
     ServiceExt,
 };
-use url::Url;
 
 pub(super) fn parse_mcp_response(response: Annotated<RawContent>) -> String {
     match response.raw {
@@ -44,7 +44,9 @@ pub(super) fn parse_mcp_response(response: Annotated<RawContent>) -> String {
 type McpClient =
     rmcp::service::RunningService<rmcp::RoleClient, rmcp::model::InitializeRequestParam>;
 
-pub(super) async fn create_mcp_client(url: Url) -> Result<McpClient, Box<dyn Error + Send + Sync>> {
+pub(super) async fn create_mcp_client(
+    url: impl IntoUrl,
+) -> Result<McpClient, Box<dyn Error + Send + Sync>> {
     let transport = SseTransport::start(url).await?;
 
     let client_info = rmcp::model::ClientInfo {

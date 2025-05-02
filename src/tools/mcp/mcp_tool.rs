@@ -1,7 +1,7 @@
 use async_trait::async_trait;
+use reqwest::IntoUrl;
 use rmcp::model::CallToolRequestParam;
 use serde_json::Value;
-use url::Url;
 
 use std::{borrow::Cow, collections::HashMap, error::Error, sync::Arc};
 
@@ -35,7 +35,7 @@ impl McpTool {
     }
 
     pub async fn fetch_tools(
-        url: Url,
+        url: impl IntoUrl,
         names: Option<impl IntoIterator<Item = impl AsRef<str>>>,
     ) -> Result<HashMap<String, Self>, Box<dyn Error + Send + Sync>> {
         let client = create_mcp_client(url).await?;
@@ -80,7 +80,7 @@ impl McpTool {
     }
 
     pub async fn fetch_tool(
-        url: Url,
+        url: impl IntoUrl,
         name: impl AsRef<str>,
     ) -> Result<Self, Box<dyn Error + Send + Sync>> {
         let tool_name = normalize_tool_name(name.as_ref());
