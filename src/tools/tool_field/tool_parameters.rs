@@ -3,7 +3,7 @@ use serde_json::{Map, Value};
 
 use crate::utils::helper::to_unexpected;
 
-use super::{parse_value::parse_tool_parameters_from_value, ObjectField, ToolField};
+use super::{parse_value::parse_tool_parameters_from_value, ObjectField, StringField, ToolField};
 
 #[derive(Clone)]
 pub struct ToolParameters(ObjectField);
@@ -81,6 +81,15 @@ impl TryFrom<&Map<String, Value>> for ToolParameters {
         let mut value = value.clone();
 
         parse_tool_parameters_from_value(&mut value)
+    }
+}
+
+impl Default for ToolParameters {
+    fn default() -> Self {
+        Self::new([StringField::new("input")
+            .description("The input for the tool")
+            .into()])
+        .additional_properties(false)
     }
 }
 

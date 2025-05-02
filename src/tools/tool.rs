@@ -9,8 +9,6 @@ use indoc::indoc;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::tools::tool_field::StringField;
-
 use super::tool_field::ToolParameters;
 
 mod sealed {
@@ -41,10 +39,7 @@ pub trait Tool: sealed::Sealed + Send + Sync {
     /// }
     /// ```
     fn parameters(&self) -> ToolParameters {
-        ToolParameters::new([StringField::new("input")
-            .description("The input for the tool")
-            .into()])
-        .additional_properties(false)
+        ToolParameters::default()
     }
 
     /// Value for `strict` in the OpenAI function call
@@ -104,10 +99,7 @@ pub trait ToolFunction: Send + Sync {
     fn description(&self) -> String;
 
     fn parameters(&self) -> ToolParameters {
-        ToolParameters::new([StringField::new("input")
-            .description("The input for the tool")
-            .into()])
-        .additional_properties(false)
+        ToolParameters::default()
     }
 
     fn strict(&self) -> bool {
