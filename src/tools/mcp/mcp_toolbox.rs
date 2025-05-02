@@ -1,18 +1,10 @@
-use std::{collections::HashMap, error::Error, sync::Arc};
+use std::{collections::HashMap, error::Error};
 
 use async_trait::async_trait;
-use rmcp::{
-    model::{ClientCapabilities, ClientInfo, Implementation},
-    transport::SseTransport,
-    ServiceExt,
-};
 use tokio::sync::OnceCell;
 use url::Url;
 
-use crate::{
-    tools::{Tool, Toolbox},
-    utils::helper::normalize_tool_name,
-};
+use crate::tools::{Tool, Toolbox};
 
 use super::McpTool;
 
@@ -20,7 +12,7 @@ pub struct McpToolbox {
     pub name: String,
     pub url: Url,
     pub using: Option<Vec<String>>,
-    pub tools: OnceCell<HashMap<String, Box<dyn Tool>>>,
+    pub tools: OnceCell<HashMap<String, McpTool>>,
 }
 
 impl McpToolbox {
@@ -31,70 +23,6 @@ impl McpToolbox {
             using,
             tools: OnceCell::new(),
         }
-    }
-
-    async fn fetch_tools(
-        &self,
-    ) -> Result<HashMap<String, Box<dyn Tool>>, Box<dyn Error + Send + Sync>> {
-        // TODO: Support other transport types
-        let transport = SseTransport::start(self.url.clone()).await?;
-
-        // TODO: Support other client info
-        let client_info = ClientInfo {
-            protocol_version: Default::default(),
-            capabilities: ClientCapabilities::default(),
-            client_info: Implementation {
-                name: "MCP Client".to_string(),
-                version: "0.0.1".to_string(),
-            },
-        };
-
-        let client = client_info
-            .serve(transport)
-            .await
-            .inspect_err(|e| log::error!("Failed to connect to MCP server: {:?}", e))?;
-
-        let client = Arc::new(client);
-
-        let tools = client
-            .list_all_tools()
-            .await?
-            .into_iter()
-            .map(
-                |tool| -> Result<(String, Box<dyn Tool>), serde_json::Error> {
-                    let tool_name = normalize_tool_name(tool.name.as_ref());
-
-                    let mcp_tool = McpTool::new(
-                        tool.name.into(),
-                        tool.description.into(),
-                        tool.input_schema.as_ref().try_into()?,
-                        Arc::clone(&client),
-                    );
-
-                    Ok((tool_name, Box::new(mcp_tool)))
-                },
-            )
-            .collect::<Result<HashMap<_, _>, _>>()?;
-
-        let Some(using) = &self.using else {
-            return Ok(tools);
-        };
-
-        let mut tools = tools;
-        let filtered_tools = using
-            .iter()
-            .filter_map(|tool_name| {
-                let tool_name = normalize_tool_name(tool_name);
-                match tools.remove(&tool_name) {
-                    Some(tool) => Some((tool_name, tool)),
-                    None => {
-                        log::warn!("Tool {} not found in toolbox {}", tool_name, self.name);
-                        None
-                    }
-                }
-            })
-            .collect::<HashMap<_, _>>();
-        Ok(filtered_tools)
     }
 }
 
@@ -107,10 +35,10 @@ impl Toolbox for McpToolbox {
     async fn get_tools(&self) -> Result<HashMap<&str, &dyn Tool>, Box<dyn Error + Send + Sync>> {
         let tools = self
             .tools
-            .get_or_try_init(|| self.fetch_tools())
+            .get_or_try_init(|| McpTool::fetch_tools(self.url.clone(), self.using.clone()))
             .await?
             .iter()
-            .map(|(k, v)| (k.as_str(), v.as_ref()))
+            .map(|(k, v)| (k.as_str(), v as &dyn Tool))
             .collect();
 
         Ok(tools)
@@ -119,6 +47,8 @@ impl Toolbox for McpToolbox {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use serde_json::json;
 
     use crate::tools::ListTools;

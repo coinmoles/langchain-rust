@@ -1,4 +1,11 @@
-use rmcp::model::{Annotated, RawContent, ResourceContents};
+use std::error::Error;
+
+use rmcp::{
+    model::{Annotated, RawContent, ResourceContents},
+    transport::SseTransport,
+    ServiceExt,
+};
+use url::Url;
 
 pub(super) fn parse_mcp_response(response: Annotated<RawContent>) -> String {
     match response.raw {
@@ -32,4 +39,27 @@ pub(super) fn parse_mcp_response(response: Annotated<RawContent>) -> String {
             }
         },
     }
+}
+
+type McpClient =
+    rmcp::service::RunningService<rmcp::RoleClient, rmcp::model::InitializeRequestParam>;
+
+pub(super) async fn create_mcp_client(url: Url) -> Result<McpClient, Box<dyn Error + Send + Sync>> {
+    let transport = SseTransport::start(url).await?;
+
+    let client_info = rmcp::model::ClientInfo {
+        protocol_version: Default::default(),
+        capabilities: rmcp::model::ClientCapabilities::default(),
+        client_info: rmcp::model::Implementation {
+            name: "MCP Client".to_string(),
+            version: "0.0.1".to_string(),
+        },
+    };
+
+    let client = client_info
+        .serve(transport)
+        .await
+        .map_err(|e| format!("Failed to connect to MCP server: {:?}", e))?;
+
+    Ok(client)
 }
