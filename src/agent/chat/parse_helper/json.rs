@@ -44,7 +44,7 @@ pub fn take_action(
         return None;
     };
 
-    let action_input = value.remove(action_input_key)?;
+    let action_input = value.remove(action_input_key).unwrap_or(Value::Null);
 
     Some((id, action, action_input))
 }
