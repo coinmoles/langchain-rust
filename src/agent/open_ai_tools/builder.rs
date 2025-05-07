@@ -1,5 +1,3 @@
-use futures::future::try_join_all;
-
 use crate::{
     agent::{create_prompt, AgentError},
     chain::LLMChainBuilder,
@@ -63,12 +61,10 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
                 .map(|tool| tool.into_openai_tool())
                 .collect::<Vec<_>>();
 
-            let get_toolbox_tools_futures = toolboxes
+            let toolbox_tools = toolboxes
                 .iter()
                 .map(|toolbox| toolbox.get_tools())
-                .collect::<Vec<_>>();
-            let toolbox_tools = try_join_all(get_toolbox_tools_futures)
-                .await
+                .collect::<Result<Vec<_>, _>>()
                 .or_else(|e| {
                     Err(LLMError::OtherError(format!(
                         "Failed to fetch tool metadata from toolbox: {e}"

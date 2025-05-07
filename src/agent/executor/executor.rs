@@ -123,7 +123,7 @@ impl<'a> Chain for AgentExecutor<'a> {
                         log::debug!("\nTool call:\n{}", tool_call);
 
                         let tool_name = tool_call.name.to_lowercase().replace(" ", "_");
-                        let Some(tool) = self.agent.get_tool(&tool_name).await else {
+                        let Some(tool) = self.agent.get_tool(&tool_name) else {
                             consecutive_fails += 1;
                             log::warn!(
                                 "Agent tried to use nonexistent tool {}, retrying ({} consecutive fails)",

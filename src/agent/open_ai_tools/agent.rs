@@ -65,13 +65,13 @@ impl Agent for OpenAiToolAgent {
         Ok(AgentResult { content, usage })
     }
 
-    async fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool> {
+    fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool> {
         if let Some(tool) = self.tools.get(tool_name).map(|t| t.as_ref()) {
             return Some(tool);
         }
 
         for toolbox in &self.toolboxes {
-            if let Ok(tool) = toolbox.get_tool(tool_name).await {
+            if let Ok(tool) = toolbox.get_tool(tool_name) {
                 return Some(tool);
             }
         }

@@ -9,11 +9,11 @@ use crate::{tools::Tool, utils::helper::normalize_tool_name};
 pub trait Toolbox: Send + Sync {
     fn name(&self) -> String;
 
-    async fn get_tools(&self) -> Result<HashMap<&str, &dyn Tool>, Box<dyn Error + Send + Sync>>;
+    fn get_tools(&self) -> Result<HashMap<&str, &dyn Tool>, Box<dyn Error + Send + Sync>>;
 
-    async fn get_tool(&self, tool_name: &str) -> Result<&dyn Tool, Box<dyn Error + Send + Sync>> {
+    fn get_tool(&self, tool_name: &str) -> Result<&dyn Tool, Box<dyn Error + Send + Sync>> {
         let tool_name = normalize_tool_name(tool_name);
-        let tools = self.get_tools().await?;
+        let tools = self.get_tools()?;
 
         tools
             .get(tool_name.as_str())
@@ -26,7 +26,7 @@ pub trait Toolbox: Send + Sync {
         tool_name: &str,
         input: Value,
     ) -> Result<String, Box<dyn Error + Send + Sync>> {
-        let tool = self.get_tool(tool_name).await?;
+        let tool = self.get_tool(tool_name)?;
 
         tool.call(input).await
     }
