@@ -37,3 +37,70 @@ pub fn extract_from_tag<'a>(text: &'a str, tag: &str) -> &'a str {
         .or_else(|| try_extract(text, &close_only))
         .unwrap_or_else(|| text.trim())
 }
+
+#[cfg(test)]
+mod tests {
+    use indoc::indoc;
+
+    use super::*;
+
+    #[test]
+    fn test_extract_from_tag() {
+        let text =
+            r#"<tool_call> {"name": "test_tool", "arguments": {"arg1": "value1"}}</tool_call>"#;
+        let result = extract_from_tag(text, "tool_call");
+        assert_eq!(
+            result,
+            r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#
+        );
+
+        let text = r#"<tool_call> {"name": "test_tool", "arguments": {"arg1": "value1"}}"#;
+        let result = extract_from_tag(text, "tool_call");
+        assert_eq!(
+            result,
+            r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#
+        );
+
+        let text = r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}</tool_call>"#;
+        let result = extract_from_tag(text, "tool_call");
+        assert_eq!(
+            result,
+            r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#
+        );
+
+        let text = r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#;
+        let result = extract_from_tag(text, "tool_call");
+        assert_eq!(
+            result,
+            r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#
+        );
+
+        let text = r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}</tool_call> <FINAL_ANSWER_FORMAT>final answer"#;
+        let result = extract_from_tag(text, "tool_call");
+        assert_eq!(
+            result,
+            r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#
+        );
+
+        let text = indoc! {r#"
+        <tool_call> 
+        {
+            "name": "test_tool",
+            "arguments": {
+                "arg1": "value1"
+            }
+        }
+        </tool_call>"#};
+        let result = extract_from_tag(text, "tool_call");
+        assert_eq!(
+            result,
+            indoc! {r#"
+            {
+                "name": "test_tool",
+                "arguments": {
+                    "arg1": "value1"
+                }
+            }"#}
+        );
+    }
+}
