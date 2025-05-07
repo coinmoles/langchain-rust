@@ -73,7 +73,7 @@ impl Instructor for Qwen3Instructor {
 
     fn parse_output(&self, output: &str) -> Result<AgentEvent, AgentError> {
         let text = remove_thought(output);
-        let text = extract_from_tag(text);
+        let text = extract_from_tag(text, "tool_call");
 
         let json = parse_partial_json(text, false);
 

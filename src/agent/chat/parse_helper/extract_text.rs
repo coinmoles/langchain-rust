@@ -19,12 +19,21 @@ pub fn extract_from_codeblock(json_markdown: &str) -> &str {
     json_markdown
 }
 
-pub fn extract_from_tag(text: &str) -> &str {
-    let re = Regex::new(r"^<\w+>\s*([\s\S]+?)\s*</\w+>$").unwrap();
-    if let Some(caps) = re.captures(text) {
-        if let Some(tool_call_str) = caps.get(1) {
-            return tool_call_str.as_str().trim();
-        }
+pub fn extract_from_tag<'a>(text: &'a str, tag: &str) -> &'a str {
+    fn try_extract<'a>(text: &'a str, pattern: &str) -> Option<&'a str> {
+        Regex::new(pattern)
+            .ok()
+            .and_then(|re| re.captures(text))
+            .and_then(|caps| caps.get(1))
+            .map(|m| m.as_str().trim())
     }
-    text
+
+    let full = format!(r"(?s)<{0}>\s*(.*?)\s*</{0}>", tag);
+    let open_only = format!(r"(?s)<{}>\s*(.*?)\s*$", tag);
+    let close_only = format!(r"(?s)^\s*(.*?)\s*</{}>", tag);
+
+    try_extract(text, &full)
+        .or_else(|| try_extract(text, &open_only))
+        .or_else(|| try_extract(text, &close_only))
+        .unwrap_or_else(|| text.trim())
 }
