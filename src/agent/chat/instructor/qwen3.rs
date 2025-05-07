@@ -32,7 +32,10 @@ For each function call, return a json object with function name and arguments wi
 
 const NAME_KEY: &str = "name";
 const ARGUMENTS_KEY: &str = "arguments";
+const ALTERNATIVE_NAME_KEY: &str = "action";
+const ALTERNATIVE_ARGUMENTS_KEY: &str = "action_input";
 const VALID_KEYS: &[&[&str]] = &[&[NAME_KEY, ARGUMENTS_KEY]];
+const ALTERNATIVE_KEYS: &[&[&str]] = &[&[ALTERNATIVE_NAME_KEY, ALTERNATIVE_ARGUMENTS_KEY]];
 
 pub struct Qwen3Instructor {}
 
@@ -47,11 +50,21 @@ impl Qwen3Instructor {
         };
 
         if let Some((id, name, arguments)) = take_action(&mut obj, NAME_KEY, ARGUMENTS_KEY) {
-            Some(AgentEvent::Action(vec![ToolCall {
+            let action = AgentEvent::Action(vec![ToolCall {
                 id,
                 name,
                 arguments,
-            }]))
+            }]);
+            Some(action)
+        } else if let Some((id, name, arguments)) =
+            take_action(&mut obj, ALTERNATIVE_NAME_KEY, ALTERNATIVE_ARGUMENTS_KEY)
+        {
+            let action = AgentEvent::Action(vec![ToolCall {
+                id,
+                name,
+                arguments,
+            }]);
+            Some(action)
         } else {
             None
         }
@@ -78,8 +91,13 @@ impl Instructor for Qwen3Instructor {
         let json = parse_partial_json(text, false);
 
         let is_malformed_event = match json.as_ref() {
-            Some(json) => is_malformed_event(json, VALID_KEYS),
-            None => is_malformed_event_str(text, VALID_KEYS),
+            Some(json) => {
+                is_malformed_event(json, VALID_KEYS) || is_malformed_event(json, ALTERNATIVE_KEYS)
+            }
+            None => {
+                is_malformed_event_str(text, VALID_KEYS)
+                    || is_malformed_event_str(text, ALTERNATIVE_KEYS)
+            }
         };
 
         match json.and_then(|json| self.value_to_agent_event(json)) {
