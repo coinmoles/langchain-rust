@@ -90,8 +90,11 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
 
         let system_prompt = {
             let body = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
-            let suffix =
-                instructor.create_suffix(&tools.values().map(|t| t.as_ref()).collect::<Vec<_>>());
+            let suffix = if tools.is_empty() {
+                String::new()
+            } else {
+                instructor.create_suffix(&tools.values().map(|t| t.as_ref()).collect::<Vec<_>>())
+            };
             format!("{}{}", body, suffix)
         };
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
