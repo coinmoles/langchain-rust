@@ -28,6 +28,7 @@ pub fn extract_from_tag<'a>(text: &'a str, tag: &str) -> &'a str {
             .map(|m| m.as_str().trim())
     }
 
+    let tag = regex::escape(tag);
     let full = format!(r"(?s)<{0}>\s*(.*?)\s*</{0}>", tag);
     let open_only = format!(r"(?s)<{}>\s*(.*?)\s*$", tag);
     let close_only = format!(r"(?s)^\s*(.*?)\s*</{}>", tag);
