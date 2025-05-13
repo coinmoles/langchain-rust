@@ -179,7 +179,7 @@ impl TryFrom<Message> for ChatCompletionRequestMessage {
                             .into_iter()
                             .map(TryInto::try_into)
                             .collect::<Result<Vec<_>, _>>()
-                            .map_err(|e| OpenAIError::JSONDeserialize(e))?,
+                            .map_err(OpenAIError::JSONDeserialize)?,
                     )
                     .content(value.content)
                     .build()?

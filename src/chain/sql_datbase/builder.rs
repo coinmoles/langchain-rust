@@ -71,7 +71,7 @@ impl SQLDatabaseChainBuilder {
 
         let prompt: PromptTemplate = prompt_template![MessageTemplate::from_jinja2(
             MessageType::HumanMessage,
-            &format!("{}{}", DEFAULT_SQLTEMPLATE, DEFAULT_SQLSUFFIX),
+            format!("{}{}", DEFAULT_SQLTEMPLATE, DEFAULT_SQLSUFFIX),
         )];
 
         let llm_chain = {

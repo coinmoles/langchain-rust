@@ -86,7 +86,7 @@ impl OpenAIRequest {
             presence_penalty: call_options.presence_penalty,
             tools: call_options.tools.clone(),
             tool_choice: call_options.tool_choice.clone(),
-            response_format: call_options.response_format.clone().map(|r| r.into()),
+            response_format: call_options.response_format.clone(),
         })
     }
 }

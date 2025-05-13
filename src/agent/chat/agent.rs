@@ -41,7 +41,7 @@ impl Agent for ConversationalAgent {
         inputs.insert_placeholder_replacement("agent_scratchpad", scratchpad);
         let output = self.chain.call(inputs).await?;
 
-        let content = self.instructor.parse_output(&output.content.text())?;
+        let content = self.instructor.parse_output(output.content.text())?;
         let usage = output.usage;
 
         Ok(AgentResult { content, usage })

@@ -39,6 +39,12 @@ const ALTERNATIVE_KEYS: &[&[&str]] = &[&[ALTERNATIVE_NAME_KEY, ALTERNATIVE_ARGUM
 
 pub struct Qwen3Instructor {}
 
+impl Default for Qwen3Instructor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Qwen3Instructor {
     pub fn new() -> Self {
         Self {}
@@ -76,7 +82,7 @@ impl Instructor for Qwen3Instructor {
         let tools_json = tools
             .iter()
             .map(|tool| {
-                let tool = tool.into_openai_tool();
+                let tool = tool.as_openai_tool();
                 serde_json::to_string_pretty(&tool).unwrap_or_else(|_| format!("{:#?}", tool))
             })
             .collect::<Vec<_>>()

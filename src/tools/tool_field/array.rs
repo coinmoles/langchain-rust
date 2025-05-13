@@ -31,7 +31,7 @@ impl ArrayField {
     ) -> Self {
         ArrayField {
             name: name.into(),
-            description: description.map(Into::into),
+            description,
             required,
             field,
         }

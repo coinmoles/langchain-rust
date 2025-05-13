@@ -19,7 +19,7 @@ impl NumberField {
     ) -> Self {
         NumberField {
             name: name.into(),
-            description: description.map(Into::into),
+            description,
             required,
             r#enum: r#enum.map(|options| {
                 let mut options = options.clone();

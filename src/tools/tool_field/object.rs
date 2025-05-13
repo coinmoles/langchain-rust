@@ -43,7 +43,7 @@ impl ObjectField {
 
         Self {
             name: name.into(),
-            description: description.map(Into::into),
+            description,
             required,
             properties,
             additional_properties,

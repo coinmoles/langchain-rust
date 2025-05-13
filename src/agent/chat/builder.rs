@@ -69,7 +69,7 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
             .toolboxes
             .unwrap_or_default()
             .into_iter()
-            .map(|tool| Arc::from(tool))
+            .map(Arc::from)
             .collect::<Vec<_>>();
 
         let tools = {

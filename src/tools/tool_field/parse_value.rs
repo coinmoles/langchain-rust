@@ -249,7 +249,7 @@ mod tests {
         let field = parse_property_from_value(value.clone(), "test".to_string(), true).unwrap();
         assert_eq!(field.name(), "test");
         assert_eq!(field.description(), Some("A string field"));
-        assert_eq!(field.required(), true);
+        assert!(field.required());
         assert_eq!(field.to_openai_field(), value);
 
         let value2 = json!({
@@ -260,7 +260,7 @@ mod tests {
         let field = parse_property_from_value(value2.clone(), "test".to_string(), true).unwrap();
         assert_eq!(field.name(), "test");
         assert_eq!(field.description(), Some("A string field"));
-        assert_eq!(field.required(), true);
+        assert!(field.required());
         assert_eq!(field.to_openai_field(), value2);
     }
 
@@ -275,7 +275,7 @@ mod tests {
         let field = parse_property_from_value(value.clone(), "test".to_string(), true).unwrap();
         assert_eq!(field.name(), "test");
         assert_eq!(field.description(), Some("A number field"));
-        assert_eq!(field.required(), true);
+        assert!(field.required());
         assert_eq!(field.to_openai_field(), value);
 
         let value2 = json!({
@@ -284,7 +284,7 @@ mod tests {
         let field = parse_property_from_value(value2.clone(), "test".to_string(), true).unwrap();
         assert_eq!(field.name(), "test");
         assert_eq!(field.description(), None);
-        assert_eq!(field.required(), true);
+        assert!(field.required());
         assert_eq!(field.to_openai_field(), value2);
     }
 
@@ -299,7 +299,7 @@ mod tests {
         let field = parse_property_from_value(value.clone(), "test".to_string(), true).unwrap();
         assert_eq!(field.name(), "test");
         assert_eq!(field.description(), Some("An integer field"));
-        assert_eq!(field.required(), true);
+        assert!(field.required());
         assert_eq!(field.to_openai_field(), value);
     }
 
@@ -313,7 +313,7 @@ mod tests {
         let field = parse_property_from_value(value.clone(), "test".to_string(), true).unwrap();
         assert_eq!(field.name(), "test");
         assert_eq!(field.description(), Some("A boolean field"));
-        assert_eq!(field.required(), true);
+        assert!(field.required());
         assert_eq!(field.to_openai_field(), value);
     }
 
@@ -330,7 +330,7 @@ mod tests {
         let field = parse_property_from_value(value.clone(), "test".to_string(), true).unwrap();
         assert_eq!(field.name(), "test");
         assert_eq!(field.description(), Some("A string array field"));
-        assert_eq!(field.required(), true);
+        assert!(field.required());
         assert_eq!(field.to_openai_field(), value);
 
         let value2 = json!({
@@ -345,7 +345,7 @@ mod tests {
         let field = parse_property_from_value(value2.clone(), "test".to_string(), true).unwrap();
         assert_eq!(field.name(), "test");
         assert_eq!(field.description(), Some("An integer array field"));
-        assert_eq!(field.required(), true);
+        assert!(field.required());
         assert_eq!(field.to_openai_field(), value2);
     }
 
@@ -373,7 +373,7 @@ mod tests {
         let field = parse_property_from_value(value, "test".to_string(), true).unwrap();
         assert_eq!(field.name(), "test");
         assert_eq!(field.description(), None);
-        assert_eq!(field.required(), true);
+        assert!(field.required());
         assert_eq!(
             field.to_openai_field(),
             json!({

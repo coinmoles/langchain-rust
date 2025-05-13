@@ -71,7 +71,7 @@ impl ToolFunction for McpTool {
         let tool_result: rmcp::model::CallToolResult = self
             .client
             .call_tool(CallToolRequestParam {
-                name: self.name.clone().into(),
+                name: self.name.clone(),
                 arguments: Some(input),
             })
             .await?;
@@ -86,7 +86,7 @@ impl ToolFunction for McpTool {
         if tool_result.is_error.unwrap_or(false) {
             Err(content.into())
         } else {
-            Ok(content.into())
+            Ok(content)
         }
     }
 }

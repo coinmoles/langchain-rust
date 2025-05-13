@@ -98,7 +98,7 @@ impl Chain for LLMChain {
         let mut output = self.llm.generate(prompt.to_messages()).await?;
 
         if let GenerateResultContent::Text(content) = &mut output.content {
-            *content = self.output_parser.parse(&content).await?;
+            *content = self.output_parser.parse(content).await?;
         }
 
         log::trace!("\nLLM output:\n{}", output.content);

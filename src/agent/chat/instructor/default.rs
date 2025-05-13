@@ -58,6 +58,12 @@ const VALID_KEYS: &[&[&str]] = &[&[ACTION_KEY, ACTION_INPUT_KEY], &[FINAL_ANSWER
 
 pub struct DefaultInstructor {}
 
+impl Default for DefaultInstructor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DefaultInstructor {
     pub fn new() -> Self {
         DefaultInstructor {}
@@ -68,17 +74,15 @@ impl DefaultInstructor {
             return None;
         };
 
-        if let Some((id, name, arguments)) = take_action(&mut obj, ACTION_KEY, ACTION_INPUT_KEY) {
-            Some(AgentEvent::Action(vec![ToolCall {
-                id,
-                name,
-                arguments,
-            }]))
-        } else if let Some(final_answer) = take_final_answer(&mut obj, FINAL_ANSWER_KEY) {
-            Some(AgentEvent::Finish(final_answer))
-        } else {
-            None
-        }
+        take_action(&mut obj, ACTION_KEY, ACTION_INPUT_KEY)
+            .map(|(id, name, arguments)| {
+                AgentEvent::Action(vec![ToolCall {
+                    id,
+                    name,
+                    arguments,
+                }])
+            })
+            .or_else(|| take_final_answer(&mut obj, FINAL_ANSWER_KEY).map(AgentEvent::Finish))
     }
 
     fn parse_with_regex(&self, text: &str) -> Option<AgentEvent> {

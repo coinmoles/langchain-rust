@@ -48,7 +48,7 @@ impl<'a> AgentExecutor<'a> {
 }
 
 #[async_trait]
-impl<'a> Chain for AgentExecutor<'a> {
+impl Chain for AgentExecutor<'_> {
     async fn call(
         &self,
         input_variables: &mut InputVariables,

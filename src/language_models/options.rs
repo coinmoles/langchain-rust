@@ -26,11 +26,10 @@ impl StreamOption {
         F: FnMut(&str) -> Fut + Send + 'static,
         Fut: Future<Output = Result<(), Box<dyn Error + Send + Sync>>> + Send + 'static,
     {
-        let func = Arc::new(Mutex::new(
-            move |s: &str| -> Pin<
-                Box<dyn Future<Output = Result<(), Box<dyn Error + Send + Sync>>> + Send>,
-            > { Box::pin(func(s)) },
-        ));
+        let func = Arc::new(Mutex::new(move |s: &str| {
+            Box::pin(func(s))
+                as Pin<Box<dyn Future<Output = Result<(), Box<dyn Error + Send + Sync>>> + Send>>
+        }));
 
         self.streaming_func = Some(func);
         self

@@ -58,20 +58,18 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
         let tools_openai = {
             let local_tools = tools
                 .iter()
-                .map(|tool| tool.into_openai_tool())
+                .map(|tool| tool.as_openai_tool())
                 .collect::<Vec<_>>();
 
             let toolbox_tools = toolboxes
                 .iter()
                 .map(|toolbox| toolbox.get_tools())
                 .collect::<Result<Vec<_>, _>>()
-                .or_else(|e| {
-                    Err(LLMError::OtherError(format!(
-                        "Failed to fetch tool metadata from toolbox: {e}"
-                    )))
+                .map_err(|e| {
+                    LLMError::OtherError(format!("Failed to fetch tool metadata from toolbox: {e}"))
                 })?
                 .iter()
-                .flat_map(|tools| tools.values().map(|tool| tool.into_openai_tool()))
+                .flat_map(|tools| tools.values().map(|tool| tool.as_openai_tool()))
                 .collect::<Vec<_>>();
 
             local_tools
@@ -98,7 +96,7 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
     }
 }
 
-impl<'a, 'b> Default for OpenAiToolAgentBuilder<'a, 'b> {
+impl Default for OpenAiToolAgentBuilder<'_, '_> {
     fn default() -> Self {
         Self::new()
     }

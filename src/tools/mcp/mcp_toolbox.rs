@@ -72,7 +72,7 @@ mod tests {
         let toolbox = McpToolbox::fetch(client, "Test", None).await.unwrap();
 
         let list_tools_tool = ListTools::new(&Arc::new(toolbox));
-        println!("{:#?}", list_tools_tool.into_openai_tool());
+        println!("{:#?}", list_tools_tool.as_openai_tool());
         println!("{}", list_tools_tool.call(json!({})).await.unwrap());
     }
 
@@ -103,7 +103,7 @@ mod tests {
         let tools = tools.values().collect::<Vec<_>>();
 
         for tool in tools {
-            println!("{:#?}", tool.into_openai_tool());
+            println!("{:#?}", tool.as_openai_tool());
             println!("{:#?}", tool.usage_limit());
         }
     }

@@ -17,7 +17,7 @@ pub trait Toolbox: Send + Sync {
 
         tools
             .get(tool_name.as_str())
-            .map(|&t| t)
+            .copied()
             .ok_or(format!("Tool {} not found", tool_name).into())
     }
 

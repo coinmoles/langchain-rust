@@ -72,7 +72,7 @@ pub trait Tool: sealed::Sealed + Send + Sync {
         )
     }
 
-    fn into_openai_tool(&self) -> ChatCompletionTool {
+    fn as_openai_tool(&self) -> ChatCompletionTool {
         let tool = FunctionObjectArgs::default()
             .name(self.name().to_lowercase().replace(" ", "_"))
             .description(self.description())
