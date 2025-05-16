@@ -42,8 +42,14 @@ pub enum LoaderError {
 
     #[cfg(feature = "git")]
     #[error(transparent)]
-    DiscoveryError(#[from] gix::discover::Error),
+    DiscoveryError(Box<gix::discover::Error>),
 
     #[error("Error: {0}")]
     OtherError(String),
+}
+
+impl From<gix::discover::Error> for LoaderError {
+    fn from(err: gix::discover::Error) -> Self {
+        LoaderError::DiscoveryError(Box::new(err))
+    }
 }
