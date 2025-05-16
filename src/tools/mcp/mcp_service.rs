@@ -78,11 +78,12 @@ impl McpServiceExt for Arc<McpService> {
             .into_iter()
             .map(|tool| -> Result<(String, McpTool), serde_json::Error> {
                 let tool_name = normalize_tool_name(tool.name.as_ref());
+                let parameters = tool.schema_as_json_value();
                 let mcp_tool = McpTool::new(
                     Arc::clone(self),
                     tool.name,
                     tool.description,
-                    tool.input_schema.as_ref().try_into()?,
+                    serde_json::from_value(parameters)?,
                 );
 
                 Ok((tool_name, mcp_tool))

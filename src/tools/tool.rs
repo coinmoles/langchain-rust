@@ -6,10 +6,11 @@ use async_openai::types::{
 };
 use async_trait::async_trait;
 use indoc::indoc;
+use schemars::{gen::SchemaSettings, schema::RootSchema, schema_for, JsonSchema};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use super::tool_field::ToolParameters;
+use crate::tools::input::DefaultToolInput;
 
 mod sealed {
     /// A sealed trait to prevent external implementations of the `Tool` trait.
@@ -38,8 +39,8 @@ pub trait Tool: sealed::Sealed + Send + Sync {
     ///     required: ["input"]
     /// }
     /// ```
-    fn parameters(&self) -> ToolParameters {
-        ToolParameters::default()
+    fn parameters(&self) -> RootSchema {
+        schema_for!(DefaultToolInput)
     }
 
     /// Value for `strict` in the OpenAI function call
@@ -60,7 +61,8 @@ pub trait Tool: sealed::Sealed + Send + Sync {
     }
 
     fn to_plain_description(&self) -> String {
-        format!(
+        todo!();
+        // format!(
             indoc! {"
             > {}: {}
             <INPUT_FORMAT>
@@ -73,10 +75,18 @@ pub trait Tool: sealed::Sealed + Send + Sync {
     }
 
     fn as_openai_tool(&self) -> ChatCompletionTool {
+        let parameters = serde_json::to_value(self.parameters()).unwrap_or_else(|e| {
+            log::warn!(
+                "Failed to serialize parameters for tool {}: {e}",
+                self.name(),
+            );
+            Value::Null
+        });
+
         let tool = FunctionObjectArgs::default()
             .name(self.name().to_lowercase().replace(" ", "_"))
             .description(self.description())
-            .parameters(self.parameters().to_openai_field())
+            .parameters(parameters)
             .strict(self.strict())
             .build()
             .unwrap_or_else(|e| unreachable!("All fields must be set: {}", e));
@@ -91,15 +101,26 @@ pub trait Tool: sealed::Sealed + Send + Sync {
 
 #[async_trait]
 pub trait ToolFunction: Send + Sync {
-    type Input: Send + Sync + DeserializeOwned;
+    type Input: JsonSchema + DeserializeOwned + Send + Sync;
     type Result: Display + Send + Sync;
 
     fn name(&self) -> String;
 
     fn description(&self) -> String;
 
-    fn parameters(&self) -> ToolParameters {
-        ToolParameters::default()
+    fn inline_subschema(&self) -> bool {
+        false
+    }
+
+    fn parameters(&self) -> RootSchema {
+        if self.inline_subschema() {
+            SchemaSettings::default()
+                .with(|s| s.inline_subschemas = true)
+                .into_generator()
+                .into_root_schema_for::<Self::Input>()
+        } else {
+            schema_for!(Self::Input)
+        }
     }
 
     fn strict(&self) -> bool {
@@ -146,7 +167,7 @@ where
         self.description()
     }
 
-    fn parameters(&self) -> ToolParameters {
+    fn parameters(&self) -> RootSchema {
         self.parameters()
     }
 

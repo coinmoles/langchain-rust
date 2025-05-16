@@ -6,7 +6,7 @@ use std::{
 use async_trait::async_trait;
 use serde_json::Value;
 
-use crate::tools::{tool_field::ToolParameters, ToolFunction};
+use crate::tools::ToolFunction;
 
 use super::Toolbox;
 
@@ -32,10 +32,10 @@ where
             .field(
                 "tool",
                 &format_args!(
-                    "{{ name: {}, description: {}, parameters: {}, strict: {} }}",
+                    "{{ name: {}, description: {}, parameters: {:#?}, strict: {} }}",
                     self.name(),
                     self.description(),
-                    self.parameters().to_openai_field(),
+                    self.parameters(),
                     self.strict()
                 ),
             )
@@ -57,10 +57,6 @@ where
 
     fn description(&self) -> String {
         format!("List all tools in the toolbox {}", self.0.name())
-    }
-
-    fn parameters(&self) -> ToolParameters {
-        ToolParameters::new([]).additional_properties(false)
     }
 
     async fn parse_input(

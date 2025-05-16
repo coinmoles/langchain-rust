@@ -7,9 +7,8 @@ pub use async_openai::{
     types::{SpeechModel, SpeechResponseFormat, Voice},
 };
 use async_trait::async_trait;
-use serde_json::Value;
 
-use crate::tools::{SpeechStorage, ToolFunction};
+use crate::tools::{input::DefaultToolInput, SpeechStorage, ToolFunction};
 
 #[derive(Clone)]
 pub struct Text2SpeechOpenAI<C: Config> {
@@ -72,7 +71,7 @@ impl Default for Text2SpeechOpenAI<OpenAIConfig> {
 
 #[async_trait]
 impl<C: Config + Send + Sync> ToolFunction for Text2SpeechOpenAI<C> {
-    type Input = String;
+    type Input = DefaultToolInput;
     type Result = String;
 
     fn name(&self) -> String {
@@ -87,19 +86,12 @@ impl<C: Config + Send + Sync> ToolFunction for Text2SpeechOpenAI<C> {
             .into()
     }
 
-    async fn parse_input(&self, input: Value) -> Result<Self::Input, Box<dyn Error + Send + Sync>> {
-        match input {
-            Value::String(s) => Ok(s),
-            _ => Err("Invalid input".into()),
-        }
-    }
-
-    async fn run(&self, input: String) -> Result<String, Box<dyn Error + Send + Sync>> {
+    async fn run(&self, input: Self::Input) -> Result<Self::Result, Box<dyn Error + Send + Sync>> {
         let client = Client::new();
         let response_format: SpeechResponseFormat = self.response_format;
 
         let request = CreateSpeechRequestArgs::default()
-            .input(input)
+            .input(input.0)
             .voice(self.voice.clone())
             .response_format(response_format)
             .model(self.model.clone())

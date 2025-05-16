@@ -86,7 +86,7 @@ mod tests {
         let tools = tools.values().collect::<Vec<_>>();
 
         for tool in tools {
-            println!("{:#?}", tool.parameters().to_openai_field())
+            println!("{:#?}", tool.parameters())
         }
     }
 

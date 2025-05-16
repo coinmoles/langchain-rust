@@ -1,13 +1,10 @@
 use std::error::Error;
 
 use async_trait::async_trait;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
-use crate::tools::{
-    tool_field::{ArrayField, ObjectField, StringField, ToolParameters},
-    ToolFunction,
-};
+use crate::tools::ToolFunction;
 
 pub struct CommandExecutor {
     platform: String,
@@ -32,21 +29,25 @@ impl Default for CommandExecutor {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct CommandInput {
+#[derive(Deserialize, Serialize, Debug, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[schemars(description = "Object representing a command and its optional arguments")]
+pub struct Command {
+    #[schemars(description = "The command to execute")]
     pub cmd: String,
     #[serde(default)]
+    #[schemars(description = "List of arguments for the command")]
     pub args: Vec<String>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
-struct CommandsInput {
-    pub commands: Vec<CommandInput>,
-}
+#[derive(Deserialize, Serialize, Debug, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[schemars(description = "An array of commands to be executed")]
+pub struct CommandExecutorInput(pub Vec<Command>);
 
 #[async_trait]
 impl ToolFunction for CommandExecutor {
-    type Input = Vec<CommandInput>;
+    type Input = CommandExecutorInput;
     type Result = String;
 
     fn name(&self) -> String {
@@ -64,42 +65,12 @@ impl ToolFunction for CommandExecutor {
         )
     }
 
-    fn parameters(&self) -> ToolParameters {
-        ToolParameters::new([ArrayField::new_items_array(
-            "commands",
-            ObjectField::new(
-                "items",
-                [
-                    StringField::new("cmd")
-                        .description("The command to execute")
-                        .into(),
-                    ArrayField::new_string_array("args")
-                        .description("List of arguments for the command")
-                        .optional()
-                        .into(),
-                ],
-            )
-            .description("Object representing a command and its optional arguments")
-            .additional_properties(false)
-            .into(),
-        )
-        .description("An array of command objects to be executed")
-        .into()])
-        .additional_properties(false)
+    fn inline_subschema(&self) -> bool {
+        true
     }
 
-    async fn parse_input(
-        &self,
-        input: Value,
-    ) -> Result<Vec<CommandInput>, Box<dyn Error + Send + Sync>> {
-        serde_json::from_value::<CommandsInput>(input.clone())
-            .map(|commands| commands.commands)
-            .or_else(|_| serde_json::from_value::<Vec<CommandInput>>(input))
-            .map_err(|e| e.into())
-    }
-
-    async fn run(&self, input: Vec<CommandInput>) -> Result<String, Box<dyn Error + Send + Sync>> {
-        let commands = input;
+    async fn run(&self, input: Self::Input) -> Result<Self::Result, Box<dyn Error + Send + Sync>> {
+        let commands = input.0;
         let mut result = String::new();
 
         for command in commands {
@@ -131,23 +102,51 @@ impl ToolFunction for CommandExecutor {
 
 #[cfg(test)]
 mod test {
+    use serde_json::json;
+
     use super::*;
 
     #[tokio::test]
     async fn test_with_string_executor() {
         let tool = CommandExecutor::new("linux");
-        let input = vec![CommandInput {
+        let input = CommandExecutorInput(vec![Command {
             cmd: "ls".into(),
             args: vec![],
-        }];
+        }]);
         let result = tool.run(input).await.unwrap();
         println!("Res: {}", result);
     }
 
     #[test]
-    fn command_executor_properties_description() {
-        let tool = CommandExecutor::new("linux");
+    fn test_command_executor_input_schema() {
+        let schema = CommandExecutor::default().parameters();
+        let schema = serde_json::to_value(schema).unwrap();
 
-        println!("{}", tool.parameters().properties_description());
+        let expected = json!({
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "CommandExecutorInput",
+            "type": "array",
+            "description": "An array of commands to be executed",
+            "items": {
+                "type": "object",
+                "description": "Object representing a command and its optional arguments",
+                "properties": {
+                    "cmd": {
+                        "type": "string",
+                        "description": "The command to execute",
+                    },
+                    "args": {
+                        "type": "array",
+                        "description": "List of arguments for the command",
+                        "items": { "type": "string" },
+                        "default": [],
+                    },
+                },
+                "required": ["cmd"],
+                "additionalProperties": false
+            }
+        });
+
+        assert_eq!(schema, expected)
     }
 }

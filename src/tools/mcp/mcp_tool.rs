@@ -1,10 +1,11 @@
 use async_trait::async_trait;
 use rmcp::model::CallToolRequestParam;
+use schemars::schema::RootSchema;
 use serde_json::Value;
 
 use std::{borrow::Cow, error::Error, sync::Arc};
 
-use crate::tools::{tool_field::ToolParameters, ToolFunction};
+use crate::tools::ToolFunction;
 
 use super::{parse_mcp_response, McpService, McpServiceExt};
 
@@ -12,7 +13,7 @@ pub struct McpTool {
     client: Arc<McpService>,
     name: Cow<'static, str>,
     description: Cow<'static, str>,
-    parameters: ToolParameters,
+    parameters: RootSchema,
 }
 
 impl McpTool {
@@ -20,7 +21,7 @@ impl McpTool {
         client: Arc<McpService>,
         name: Cow<'static, str>,
         description: Cow<'static, str>,
-        parameters: ToolParameters,
+        parameters: RootSchema,
     ) -> Self {
         Self {
             client,
@@ -52,7 +53,7 @@ impl ToolFunction for McpTool {
         self.description.to_string()
     }
 
-    fn parameters(&self) -> ToolParameters {
+    fn parameters(&self) -> RootSchema {
         self.parameters.clone()
     }
 

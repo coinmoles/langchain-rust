@@ -1,7 +1,6 @@
 use async_trait::async_trait;
-use serde_json::Value;
 
-use crate::tools::ToolFunction;
+use crate::tools::{input::DefaultToolInput, ToolFunction};
 use std::error::Error;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -115,7 +114,7 @@ impl Default for Wolfram {
 
 #[async_trait]
 impl ToolFunction for Wolfram {
-    type Input = String;
+    type Input = DefaultToolInput;
     type Result = String;
 
     fn name(&self) -> String {
@@ -130,18 +129,11 @@ impl ToolFunction for Wolfram {
             .into()
     }
 
-    async fn parse_input(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {
-        input
-            .as_str()
-            .map(|s| s.to_string())
-            .ok_or("Invalid input".into())
-    }
-
-    async fn run(&self, input: String) -> Result<String, Box<dyn Error + Send + Sync>> {
+    async fn run(&self, input: Self::Input) -> Result<Self::Result, Box<dyn Error + Send + Sync>> {
         let mut url = format!(
             "https://api.wolframalpha.com/v2/query?appid={}&input={}&output=JSON&format=plaintext&podstate=Result__Step-by-step+solution",
             &self.app_id,
-            urlencoding::encode(&input)
+            urlencoding::encode(&input.0)
         );
 
         if !self.exclude_pods.is_empty() {
@@ -184,7 +176,7 @@ mod tests {
     async fn test_wolfram() {
         let wolfram = Wolfram::default().with_excludes(&["Plot"]);
         let input = "Solve x^2 - 2x + 1 = 0";
-        let result = wolfram.run(input.to_string()).await;
+        let result = wolfram.run(input.into()).await;
 
         assert!(result.is_ok());
         println!("{}", result.unwrap());

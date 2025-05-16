@@ -1,20 +1,23 @@
 use async_trait::async_trait;
 use regex::Regex;
+use schemars::JsonSchema;
 use scraper::{ElementRef, Html, Selector};
-use serde_json::Value;
+use serde::Deserialize;
 use std::error::Error;
 
-use crate::tools::{
-    tool_field::{StringField, ToolParameters},
-    ToolFunction,
-};
+use crate::tools::ToolFunction;
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[schemars(description = "The URL to scrape, MUST be a working URL")]
+pub struct WebScrapperInput(pub String);
 
 #[derive(Default)]
 pub struct WebScrapper {}
 
 #[async_trait]
 impl ToolFunction for WebScrapper {
-    type Input = String;
+    type Input = WebScrapperInput;
     type Result = String;
 
     fn name(&self) -> String {
@@ -25,27 +28,15 @@ impl ToolFunction for WebScrapper {
         "Scan a url and return the content of the web page.".into()
     }
 
-    fn parameters(&self) -> ToolParameters {
-        ToolParameters::new([StringField::new("input")
-            .description("The URL to scrape, MUST be a working URL")
-            .into()])
-        .additional_properties(false)
-    }
-
     fn strict(&self) -> bool {
         true
     }
 
-    async fn parse_input(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {
-        input
-            .as_str()
-            .map(|s| s.to_string())
-            .ok_or("Invalid input".into())
-    }
-    async fn run(&self, input: String) -> Result<String, Box<dyn Error + Send + Sync>> {
-        match scrape_url(&input).await {
+    async fn run(&self, input: Self::Input) -> Result<String, Box<dyn Error + Send + Sync>> {
+        let url = input.0;
+        match scrape_url(&url).await {
             Ok(content) => Ok(content),
-            Err(e) => Ok(format!("Error scraping {}: {}\n", input, e)),
+            Err(e) => Ok(format!("Error scraping {}: {}\n", url, e)),
         }
     }
 }
@@ -84,10 +75,10 @@ fn collect_text_not_in_script(element: &ElementRef, text: &mut Vec<String>) {
 
 #[cfg(test)]
 mod tests {
-    use crate::tools::Tool;
+    use serde_json::{json, Value};
+    use tokio;
 
     use super::*;
-    use tokio;
 
     #[tokio::test]
     async fn test_scrape_url() {
@@ -109,7 +100,7 @@ mod tests {
         let url = server.url();
 
         // Call the WebScrapper with the mocked URL
-        let result = scraper.call(Value::String(url)).await;
+        let result = scraper.run(WebScrapperInput(url)).await;
 
         // Assert that the result is Ok and contains "Hello World"
         assert!(result.is_ok());
@@ -118,5 +109,29 @@ mod tests {
 
         // Verify that the mock was called as expected
         mock.assert();
+    }
+
+    #[test]
+    fn test_web_scrapper_input_deserialize() {
+        let input = Value::String("https://example.com".to_string());
+
+        let input = serde_json::from_value::<WebScrapperInput>(input).unwrap();
+
+        assert_eq!(input.0, "https://example.com");
+    }
+
+    #[test]
+    fn test_web_scrapper_input_schema() {
+        let schema = WebScrapper::default().parameters();
+        let schema = serde_json::to_value(schema).unwrap();
+
+        let expected = json!({
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "WebScrapperInput",
+            "type": "string",
+            "description": "The URL to scrape, MUST be a working URL"
+        });
+
+        assert_eq!(schema, expected);
     }
 }

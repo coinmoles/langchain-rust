@@ -1,20 +1,18 @@
 use std::{collections::HashMap, error::Error};
 
 use async_trait::async_trait;
-use derive_new::new;
 use reqwest::Client;
+use schemars::JsonSchema;
 use scraper::{Html, Selector};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::Value;
 use url::Url;
 
-use crate::tools::{
-    search::article::Article,
-    tool_field::{StringField, ToolParameters},
-    FormattedVec, ToolFunction,
-};
+use crate::tools::{search::article::Article, FormattedVec, ToolFunction};
 
-#[derive(Deserialize, Serialize, Default, Debug, new)]
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[schemars(description = "Search query to look up")]
 pub struct DuckDuckGoSearchInput {
     pub query: String,
 }
@@ -97,22 +95,17 @@ impl ToolFunction for DuckDuckGoSearch {
             .into()
     }
 
-    fn parameters(&self) -> ToolParameters {
-        ToolParameters::new([StringField::new("query")
-            .description("Search query to look up")
-            .into()])
-        .additional_properties(false)
-    }
-
     fn strict(&self) -> bool {
         true
     }
 
     async fn parse_input(&self, input: Value) -> Result<Self::Input, Box<dyn Error + Send + Sync>> {
-        let result = serde_json::from_value::<DuckDuckGoSearchInput>(input.clone())
-            .or_else(|_| serde_json::from_value::<String>(input).map(DuckDuckGoSearchInput::new))?;
+        if let Ok(result) = serde_json::from_value::<DuckDuckGoSearchInput>(input.clone()) {
+            return Ok(result);
+        }
 
-        Ok(result)
+        let query = serde_json::from_value::<String>(input)?;
+        Ok(DuckDuckGoSearchInput { query })
     }
 
     async fn run(
