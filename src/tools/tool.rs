@@ -5,11 +5,12 @@ use async_openai::types::{
     ChatCompletionTool, ChatCompletionToolArgs, ChatCompletionToolType, FunctionObjectArgs,
 };
 use async_trait::async_trait;
-use indoc::indoc;
+use indoc::formatdoc;
 use schemars::{gen::SchemaSettings, schema::RootSchema, schema_for, JsonSchema};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
+use crate::tools::describe_parameters;
 use crate::tools::input::DefaultToolInput;
 
 mod sealed {
@@ -61,17 +62,27 @@ pub trait Tool: sealed::Sealed + Send + Sync {
     }
 
     fn to_plain_description(&self) -> String {
-        todo!();
-        // format!(
-            indoc! {"
-            > {}: {}
-            <INPUT_FORMAT>
-            {}
-            </INPUT_FORMAT>"},
+        let name_and_desc = format!(
+            "> {}: {}",
             self.name().to_lowercase().replace(" ", "_"),
-            self.description(),
-            self.parameters().properties_description()
-        )
+            self.description()
+        );
+        let parameters = describe_parameters(&self.parameters());
+
+        match parameters {
+            Ok(parameters) => formatdoc! {"
+                {name_and_desc}
+                <INPUT_FORMAT>
+                {parameters}
+                </INPUT_FORMAT>"},
+            Err(e) => {
+                log::warn!(
+                    "Failed to describe parameters for tool {}: {e}",
+                    self.name(),
+                );
+                name_and_desc
+            }
+        }
     }
 
     fn as_openai_tool(&self) -> ChatCompletionTool {

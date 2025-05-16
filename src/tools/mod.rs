@@ -6,6 +6,9 @@ pub use toolbox::*;
 
 pub mod input;
 
+mod describe_parameters;
+pub use describe_parameters::*;
+
 pub use wolfram::*;
 mod wolfram;
 

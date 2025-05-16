@@ -89,7 +89,9 @@ rmcp = { version = "0.1.5", features = [
 ], optional = true }
 schemars = { version = "0.8.22", default-features = false, features = [
     "derive",
+    "preserve_order",
 ] }
+indexmap = "1.9.3"
 
 
 [features]
