@@ -4,13 +4,13 @@ use async_trait::async_trait;
 use reqwest::Client;
 use schemars::JsonSchema;
 use scraper::{Html, Selector};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 
 use crate::tools::{search::article::Article, FormattedVec, ToolFunction};
 
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 #[schemars(description = "Search query to look up")]
 pub struct DuckDuckGoSearchInput {
