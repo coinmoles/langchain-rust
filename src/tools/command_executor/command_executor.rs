@@ -86,13 +86,11 @@ impl ToolFunction for CommandExecutor {
             ));
 
             if !output.status.success() {
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!(
-                        "Command {} failed with status: {}",
-                        command.cmd, output.status
-                    ),
-                )));
+                let err = std::io::Error::other(format!(
+                    "Command {} failed with status: {}",
+                    command.cmd, output.status
+                ));
+                return Err(err.into());
             }
         }
 

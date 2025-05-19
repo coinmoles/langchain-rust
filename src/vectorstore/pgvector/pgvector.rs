@@ -202,10 +202,10 @@ impl VectorStore for Store {
         opt: &PgOptions,
     ) -> Result<Vec<String>, Box<dyn Error>> {
         if opt.score_threshold.is_some() || opt.filters.is_some() || opt.name_space.is_some() {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
+            let err = std::io::Error::other(
                 "score_threshold, filters, and name_space are not supported in pgvector",
-            )));
+            );
+            return Err(err.into());
         }
         let texts: Vec<String> = docs.iter().map(|d| d.page_content.clone()).collect();
 
@@ -214,10 +214,8 @@ impl VectorStore for Store {
         let vectors = embedder.embed_documents(&texts).await?;
 
         if vectors.len() != docs.len() {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Number of vectors and documents do not match",
-            )));
+            let err = std::io::Error::other("Number of vectors and documents do not match");
+            return Err(err.into());
         }
 
         let mut tx = self.pool.begin().await?;

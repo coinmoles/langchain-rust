@@ -143,15 +143,13 @@ impl ToolFunction for Wolfram {
         let response: WolframResponse = self.client.get(&url).send().await?.json().await?;
 
         if let WolframErrorStatus::Error(error) = response.queryresult.error {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("Wolfram Error {}: {}", error.code, error.msg),
-            )));
+            let err = std::io::Error::other(format!("Wolfram Error {}: {}", error.code, error.msg));
+            return Err(err.into());
         } else if !response.queryresult.success {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Wolfram Error invalid query input: The query requested can not be processed by Wolfram".to_string(),
-            )));
+            let err = std::io::Error::other(
+                "Wolfram Error: The query requested can not be processed by Wolfram",
+            );
+            return Err(err.into());
         }
 
         let pods_str: Vec<String> = response

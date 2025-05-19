@@ -1,6 +1,7 @@
 use std::{collections::HashMap, error::Error, sync::Arc};
 
 use async_trait::async_trait;
+use indoc::formatdoc;
 use serde_json::{json, Value};
 use sqlx::{Pool, Row, Sqlite};
 
@@ -88,10 +89,8 @@ impl VectorStore for Store {
 
         let vectors = embedder.embed_documents(&texts).await?;
         if vectors.len() != docs.len() {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Number of vectors and documents do not match",
-            )));
+            let err = std::io::Error::other("Number of vectors and documents do not match");
+            return Err(err.into());
         }
 
         let table = &self.table;
