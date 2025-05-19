@@ -210,6 +210,7 @@ fn resolve_reference(
 }
 
 #[cfg(test)]
+#[allow(dead_code)]
 mod tests {
     use indoc::indoc;
     use schemars::{schema_for, JsonSchema};

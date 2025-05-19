@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 pub mod agent;
 pub mod chain;
 pub mod document_loaders;

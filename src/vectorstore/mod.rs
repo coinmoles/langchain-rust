@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+// I have no idea how to remove dead codes here.
+
 mod options;
 
 #[cfg(feature = "postgres")]

@@ -94,7 +94,7 @@ impl StoreBuilder<PgFilter> {
         self
     }
 
-    fn collection_metadata(mut self, collecion_metadata: HashMap<String, Value>) -> Self {
+    pub fn collection_metadata(mut self, collecion_metadata: HashMap<String, Value>) -> Self {
         self.collection_metadata = collecion_metadata;
         self
     }

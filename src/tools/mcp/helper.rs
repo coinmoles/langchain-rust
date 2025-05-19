@@ -33,6 +33,3 @@ pub(super) fn parse_mcp_response(response: Annotated<RawContent>) -> String {
         },
     }
 }
-
-type McpClient =
-    rmcp::service::RunningService<rmcp::RoleClient, rmcp::model::InitializeRequestParam>;
