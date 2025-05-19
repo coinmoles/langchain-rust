@@ -1,15 +1,20 @@
 use std::collections::HashMap;
 
-use derive_new::new;
-
 use super::Message;
 
-#[derive(Clone, new)]
+#[derive(Clone)]
 pub struct InputVariables(TextReplacements, PlaceholderReplacements);
 pub type TextReplacements = HashMap<String, String>;
 pub type PlaceholderReplacements = HashMap<String, Vec<Message>>;
 
 impl InputVariables {
+    pub fn new(
+        text_replacements: TextReplacements,
+        placeholder_replacements: PlaceholderReplacements,
+    ) -> Self {
+        Self(text_replacements, placeholder_replacements)
+    }
+
     pub fn contains_text_key(&self, key: &str) -> bool {
         self.0.contains_key(key)
     }

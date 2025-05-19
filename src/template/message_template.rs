@@ -1,7 +1,5 @@
 use std::collections::HashSet;
 
-use derive_new::new;
-
 use crate::schemas::{InputVariables, Message, MessageType};
 use crate::template::TemplateError;
 
@@ -11,16 +9,29 @@ pub enum TemplateFormat {
     Jinja2,
 }
 
-#[derive(Clone, new)]
+#[derive(Clone)]
 pub struct MessageTemplate {
     message_type: MessageType,
-    #[new(into)]
     template: String,
     variables: HashSet<String>,
     format: TemplateFormat,
 }
 
 impl MessageTemplate {
+    pub fn new(
+        message_type: MessageType,
+        template: impl Into<String>,
+        variables: HashSet<String>,
+        format: TemplateFormat,
+    ) -> Self {
+        Self {
+            message_type,
+            template: template.into(),
+            variables,
+            format,
+        }
+    }
+
     pub fn from_fstring(message_type: MessageType, content: impl Into<String>) -> Self {
         let content = content.into();
 

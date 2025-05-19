@@ -1,13 +1,26 @@
 use std::fmt::Display;
 
-use derive_new::new;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, new)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Article {
     title: String,
     link: String,
     snippet: String,
+}
+
+impl Article {
+    pub fn new(
+        title: impl Into<String>,
+        link: impl Into<String>,
+        snippet: impl Into<String>,
+    ) -> Self {
+        Self {
+            title: title.into(),
+            link: link.into(),
+            snippet: snippet.into(),
+        }
+    }
 }
 
 impl Display for Article {

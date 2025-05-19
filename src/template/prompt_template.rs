@@ -1,7 +1,5 @@
 use std::collections::HashSet;
 
-use derive_new::new;
-
 use super::MessageTemplate;
 use crate::schemas::{InputVariables, Message, Prompt};
 use crate::template::TemplateError;
@@ -13,12 +11,17 @@ pub enum MessageOrTemplate {
     Placeholder(String),
 }
 
-#[derive(new)]
 pub struct PromptTemplate {
     messages: Vec<MessageOrTemplate>,
 }
 
 impl PromptTemplate {
+    pub fn new(messages: impl IntoIterator<Item = MessageOrTemplate>) -> Self {
+        Self {
+            messages: messages.into_iter().collect(),
+        }
+    }
+
     pub fn insert_message(&mut self, message: Message) {
         self.messages.push(MessageOrTemplate::Message(message));
     }
