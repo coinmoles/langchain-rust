@@ -12,7 +12,7 @@ pub mod semantic_router;
 pub mod template;
 pub mod text_splitter;
 pub mod tools;
-pub(crate) mod utils;
 pub mod vectorstore;
+pub extern crate url;
 
-pub use url;
+pub(crate) mod utils;
