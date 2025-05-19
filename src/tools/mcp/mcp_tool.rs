@@ -5,7 +5,7 @@ use serde_json::Value;
 
 use std::{borrow::Cow, error::Error, sync::Arc};
 
-use crate::tools::ToolFunction;
+use crate::tools::{FormattedVec, ToolFunction};
 
 use super::{parse_mcp_response, McpService, McpServiceExt};
 
@@ -43,7 +43,7 @@ impl McpTool {
 #[async_trait]
 impl ToolFunction for McpTool {
     type Input = Value;
-    type Result = String;
+    type Result = FormattedVec<String>;
 
     fn name(&self) -> String {
         self.name.to_string()
@@ -61,7 +61,7 @@ impl ToolFunction for McpTool {
         false
     }
 
-    async fn run(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {
+    async fn run(&self, input: Self::Input) -> Result<Self::Result, Box<dyn Error + Send + Sync>> {
         let input = match input {
             Value::Object(obj) => obj,
             _ => {
@@ -81,13 +81,12 @@ impl ToolFunction for McpTool {
             .content
             .into_iter()
             .map(parse_mcp_response)
-            .collect::<Vec<_>>()
-            .join("\n");
+            .collect::<Vec<_>>();
 
         if tool_result.is_error.unwrap_or(false) {
-            Err(content.into())
+            Err(content.join("\n").into())
         } else {
-            Ok(content)
+            Ok(FormattedVec(content))
         }
     }
 }
