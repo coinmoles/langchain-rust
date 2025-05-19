@@ -34,7 +34,7 @@ pub use error::*;
 mod dir_loader;
 pub use dir_loader::*;
 
-#[cfg(feature = "tree-sitter")]
+#[cfg(feature = "language-parser")]
 mod source_code_loader;
-#[cfg(feature = "tree-sitter")]
+#[cfg(feature = "language-parser")]
 pub use source_code_loader::*;
