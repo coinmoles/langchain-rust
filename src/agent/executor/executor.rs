@@ -7,6 +7,7 @@ use indoc::indoc;
 use tokio::sync::RwLock;
 
 use crate::agent::AgentError;
+use crate::schemas::Prompt;
 use crate::{
     agent::Agent,
     chain::{chain_trait::Chain, ChainError},
@@ -71,9 +72,16 @@ impl Chain for AgentExecutor<'_> {
         {
             let mut input_variables_demo = input_variables.clone();
             input_variables_demo.insert_placeholder_replacement("agent_scratchpad", vec![]);
-            self.log_messages(&input_variables_demo).map_err(|e| {
+            let prompt = self.get_prompt(&input_variables_demo).map_err(|e| {
                 ChainError::AgentError(format!("Error formatting initial messages: {e}"))
             })?;
+            for message in prompt.to_messages() {
+                log::debug!(
+                    "\n{}:\n{}",
+                    message.message_type.to_string().to_uppercase(),
+                    message.content
+                );
+            }
         }
 
         'step: loop {
@@ -224,7 +232,7 @@ impl Chain for AgentExecutor<'_> {
         }
     }
 
-    fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>> {
-        self.agent.log_messages(inputs)
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>> {
+        self.agent.get_prompt(inputs)
     }
 }

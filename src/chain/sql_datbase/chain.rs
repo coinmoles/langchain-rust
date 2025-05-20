@@ -6,8 +6,8 @@ use futures::Stream;
 use crate::{
     chain::{chain_trait::Chain, llm_chain::LLMChain, ChainError},
     schemas::{
-        InputVariables, StreamData, TextReplacements,
-        {GenerateResult, GenerateResultContent, TokenUsage},
+        GenerateResult, GenerateResultContent, InputVariables, Prompt, StreamData,
+        TextReplacements, TokenUsage,
     },
     text_replacements,
     tools::SQLDatabase,
@@ -205,7 +205,7 @@ impl Chain for SQLDatabaseChain {
         self.llmchain.stream(&mut llm_inputs).await
     }
 
-    fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn std::error::Error>> {
-        self.llmchain.log_messages(inputs)
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn std::error::Error>> {
+        self.llmchain.get_prompt(inputs)
     }
 }

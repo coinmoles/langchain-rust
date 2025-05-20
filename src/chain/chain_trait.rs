@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use futures::Stream;
 use serde_json::Value;
 
-use crate::schemas::{GenerateResult, InputVariables, StreamData};
+use crate::schemas::{GenerateResult, InputVariables, Prompt, StreamData};
 
 use super::ChainError;
 
@@ -202,5 +202,5 @@ pub trait Chain: Sync + Send {
         .collect()
     }
 
-    fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>>;
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>>;
 }

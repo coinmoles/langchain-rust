@@ -3,7 +3,7 @@ use std::error::Error;
 use async_trait::async_trait;
 
 use crate::{
-    schemas::{AgentResult, AgentStep, InputVariables},
+    schemas::{AgentResult, AgentStep, InputVariables, Prompt},
     tools::Tool,
 };
 
@@ -19,7 +19,7 @@ pub trait Agent: Send + Sync {
 
     fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool>;
 
-    fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>>;
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>>;
 
     fn executor<'a>(self) -> AgentExecutor<'a>
     where

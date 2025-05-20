@@ -9,8 +9,7 @@ use serde_json::{json, Value};
 use crate::{
     chain::{Chain, ChainError, DEFAULT_OUTPUT_KEY, DEFAULT_RESULT_KEY},
     schemas::{
-        {GenerateResult, TokenUsage},
-        InputVariables,
+        InputVariables, {GenerateResult, TokenUsage},
     },
 };
 
@@ -92,11 +91,11 @@ impl Chain for SequentialChain {
         Ok(output_result)
     }
 
-    fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>> {
-        for chain in &self.chains {
-            chain.log_messages(inputs)?;
-        }
-        Ok(())
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>> {
+        self.chains
+            .iter()
+            .map(|chain| chain.get_prompt(inputs))
+            .collect::<Result<Vec<_>, _>>()
     }
 }
 

@@ -1,7 +1,6 @@
 use std::{collections::HashMap, error::Error, sync::Arc};
 
 use async_trait::async_trait;
-use indoc::formatdoc;
 use serde_json::{json, Value};
 use sqlx::{Pool, Row, Sqlite};
 

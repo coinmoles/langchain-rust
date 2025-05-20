@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use crate::{
     agent::{instructor::Instructor, Agent, AgentError},
     chain::chain_trait::Chain,
-    schemas::{AgentResult, AgentStep, InputVariables, Message},
+    schemas::{AgentResult, AgentStep, InputVariables, Message, Prompt},
     tools::{Tool, Toolbox},
 };
 
@@ -61,8 +61,8 @@ impl Agent for ConversationalAgent {
         None
     }
 
-    fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>> {
-        self.chain.log_messages(inputs)
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>> {
+        self.chain.get_prompt(inputs)
     }
 }
 

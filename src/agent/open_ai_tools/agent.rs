@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, error::Error};
 
-use crate::schemas::{AgentResult, AgentStep, GenerateResultContent};
+use crate::schemas::{AgentResult, AgentStep, GenerateResultContent, Prompt};
 use crate::tools::Toolbox;
 use crate::{
     agent::{Agent, AgentError},
@@ -79,7 +79,7 @@ impl Agent for OpenAiToolAgent {
         None
     }
 
-    fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>> {
-        self.chain.log_messages(inputs)
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>> {
+        self.chain.get_prompt(inputs)
     }
 }

@@ -10,8 +10,8 @@ use crate::{
     language_models::LLMError,
     memory::Memory,
     schemas::{
-        messages::Message, GenerateResult, GenerateResultContent, InputVariables, StreamData,
-        TextReplacements,
+        messages::Message, GenerateResult, GenerateResultContent, InputVariables, Prompt,
+        StreamData, TextReplacements,
     },
     text_replacements,
 };
@@ -151,8 +151,8 @@ impl Chain for ConversationalChain {
         [self.input_key.clone()].into_iter().collect()
     }
 
-    fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>> {
-        self.llm.log_messages(inputs)
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>> {
+        self.llm.get_prompt(inputs)
     }
 }
 

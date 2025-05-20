@@ -9,7 +9,7 @@ use futures::Stream;
 use crate::{
     chain::{load_stuff_qa, Chain, ChainError, LLMChain},
     language_models::llm::LLM,
-    schemas::{GenerateResult, InputVariables, StreamData},
+    schemas::{GenerateResult, InputVariables, Prompt, StreamData},
 };
 
 const COMBINE_DOCUMENTS_DEFAULT_INPUT_KEY: &str = "input_documents";
@@ -89,7 +89,7 @@ impl Chain for StuffDocument {
         [self.input_key.clone()].into_iter().collect()
     }
 
-    fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn std::error::Error>> {
-        self.llm_chain.log_messages(inputs)
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn std::error::Error>> {
+        self.llm_chain.get_prompt(inputs)
     }
 }

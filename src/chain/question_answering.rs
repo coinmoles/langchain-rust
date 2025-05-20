@@ -3,8 +3,8 @@ use std::{error::Error, pin::Pin};
 use crate::{
     language_models::llm::LLM,
     schemas::{
-        messages::Message, Document, GenerateResult, InputVariables, MessageType, StreamData,
-        TextReplacements,
+        messages::Message, Document, GenerateResult, InputVariables, MessageType, Prompt,
+        StreamData, TextReplacements,
     },
     template::MessageTemplate,
     text_replacements,
@@ -100,8 +100,8 @@ impl Chain for CondenseQuestionGeneratorChain {
         self.chain.stream(input_variables).await
     }
 
-    fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>> {
-        self.chain.log_messages(inputs)
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>> {
+        self.chain.get_prompt(inputs)
     }
 }
 

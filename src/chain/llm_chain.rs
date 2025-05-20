@@ -6,9 +6,7 @@ use futures::{Stream, TryStreamExt};
 use crate::{
     language_models::llm::LLM,
     output_parsers::{OutputParser, SimpleParser},
-    schemas::{
-        InputVariables, StreamData, {GenerateResult, GenerateResultContent},
-    },
+    schemas::{GenerateResult, GenerateResultContent, InputVariables, Prompt, StreamData},
     template::PromptTemplate,
 };
 
@@ -123,18 +121,10 @@ impl Chain for LLMChain {
         Ok(Box::pin(mapped_stream))
     }
 
-    fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>> {
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>> {
         let prompt = self.prompt.format(inputs)?;
 
-        for message in prompt.to_messages() {
-            log::debug!(
-                "\n{}:\n{}",
-                message.message_type.to_string().to_uppercase(),
-                message.content
-            );
-        }
-
-        Ok(())
+        Ok(prompt)
     }
 }
 

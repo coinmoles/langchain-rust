@@ -231,8 +231,8 @@ impl Chain for ConversationalRetrieverChain {
         keys
     }
 
-    fn log_messages(&self, inputs: &InputVariables) -> Result<(), Box<dyn Error>> {
-        self.condense_question_chain.log_messages(inputs)
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>> {
+        self.condense_question_chain.get_prompt(inputs)
     }
 }
 
