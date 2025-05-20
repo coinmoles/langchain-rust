@@ -1,4 +1,4 @@
-use std::{collections::HashSet, pin::Pin};
+use std::{collections::HashSet, error::Error, pin::Pin};
 
 use async_trait::async_trait;
 use futures::Stream;
@@ -205,7 +205,7 @@ impl Chain for SQLDatabaseChain {
         self.llmchain.stream(&mut llm_inputs).await
     }
 
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn std::error::Error>> {
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>> {
         self.llmchain.get_prompt(inputs)
     }
 }

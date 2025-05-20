@@ -121,7 +121,7 @@ impl Chain for LLMChain {
         Ok(Box::pin(mapped_stream))
     }
 
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>> {
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>> {
         let prompt = self.prompt.format(inputs)?;
 
         Ok(prompt)

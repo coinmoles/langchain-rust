@@ -231,7 +231,7 @@ impl Chain for ConversationalRetrieverChain {
         keys
     }
 
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>> {
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>> {
         self.condense_question_chain.get_prompt(inputs)
     }
 }

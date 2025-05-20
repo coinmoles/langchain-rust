@@ -91,7 +91,7 @@ impl Chain for SequentialChain {
         Ok(output_result)
     }
 
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>> {
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>> {
         self.chains
             .iter()
             .map(|chain| chain.get_prompt(inputs))

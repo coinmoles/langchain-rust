@@ -100,7 +100,7 @@ impl Chain for CondenseQuestionGeneratorChain {
         self.chain.stream(input_variables).await
     }
 
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>> {
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>> {
         self.chain.get_prompt(inputs)
     }
 }

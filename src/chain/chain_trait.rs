@@ -202,5 +202,5 @@ pub trait Chain: Sync + Send {
         .collect()
     }
 
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>>;
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>>;
 }

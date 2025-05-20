@@ -19,7 +19,7 @@ pub trait Agent: Send + Sync {
 
     fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool>;
 
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>>;
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>>;
 
     fn executor<'a>(self) -> AgentExecutor<'a>
     where

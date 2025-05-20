@@ -151,7 +151,7 @@ impl Chain for ConversationalChain {
         [self.input_key.clone()].into_iter().collect()
     }
 
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error>> {
+    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>> {
         self.llm.get_prompt(inputs)
     }
 }
