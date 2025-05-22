@@ -93,6 +93,6 @@ mod tests {
             - Completion Tokens: 20
             - Total Tokens: 30"};
 
-        assert_eq!(format!("{}", usage), expected_output);
+        assert_eq!(format!("{usage}"), expected_output);
     }
 }

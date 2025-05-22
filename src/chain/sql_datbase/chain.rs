@@ -145,11 +145,11 @@ impl SQLDatabaseChain {
             "input",
             format!(
                 "{}{}{}{}{}",
-                &query,
+                query,
                 QUERY_PREFIX_WITH,
                 output.content.text(),
                 STOP_WORD,
-                &query_result,
+                query_result,
             ),
         );
         Ok((llm_inputs, token_usage))

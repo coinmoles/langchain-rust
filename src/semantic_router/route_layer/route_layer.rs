@@ -212,6 +212,8 @@ impl RouteLayer {
 #[cfg(test)]
 mod tests {
 
+    use indoc::indoc;
+
     use crate::{embedding::openai::OpenAiEmbedder, semantic_router::RouteLayerBuilder};
 
     use super::*;
@@ -226,12 +228,12 @@ mod tests {
                 "What is the captial of France?",
             ],
         );
-        let description = String::from(
-            r#""A wrapper around Google Search. "
-	"Useful for when you need to answer questions about current events. "
-	"Always one of the first options when you need to find information on internet"
-	"Input should be a search query."#,
-        );
+        let description = indoc! {"
+            A wrapper around Google Search. 
+            Useful for when you need to answer questions about current events. 
+            Always one of the first options when you need to find information on internet
+            Input should be a search query."
+        };
 
         let weather_route = Router::new(
             "temperature",

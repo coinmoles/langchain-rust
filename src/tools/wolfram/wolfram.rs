@@ -48,7 +48,7 @@ impl From<Pod> for String {
         }
 
         format!(
-            "{{\"title\": {},\"subpods\": [{}]}}",
+            r#"{{ "title": {}, "subpods": [{}] }}"#,
             pod.title,
             subpods_str.join(",")
         )
@@ -68,7 +68,7 @@ impl From<Subpod> for String {
         }
 
         format!(
-            "{{\"title\": \"{}\",\"plaintext\": \"{}\"}}",
+            r#"{{ "title": "{}", "plaintext": "{}" }}"#,
             subpod.title,
             subpod.plaintext.replace("\n", " // ")
         )
@@ -161,7 +161,7 @@ impl ToolFunction for Wolfram {
             .filter(|s| !s.is_empty())
             .collect();
 
-        Ok(format!("{{\"pods\": [{}]}}", pods_str.join(",")))
+        Ok(format!(r#"{{ "pods": [{}] }}"#, pods_str.join(",")))
     }
 }
 

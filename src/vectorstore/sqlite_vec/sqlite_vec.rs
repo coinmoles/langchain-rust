@@ -1,6 +1,7 @@
 use std::{collections::HashMap, error::Error, sync::Arc};
 
 use async_trait::async_trait;
+use indoc::formatdoc;
 use serde_json::{json, Value};
 use sqlx::{Pool, Row, Sqlite};
 
@@ -28,44 +29,36 @@ impl Store {
     async fn create_table_if_not_exists(&self) -> Result<(), Box<dyn Error>> {
         let table = &self.table;
 
-        sqlx::query(&format!(
-            r#"
-                CREATE TABLE IF NOT EXISTS {table}
-                (
-                  rowid INTEGER PRIMARY KEY AUTOINCREMENT,
-                  text TEXT,
-                  metadata BLOB,
-                  text_embedding BLOB
-                )
-                ;
-                "#
-        ))
+        sqlx::query(&formatdoc! {"
+            CREATE TABLE IF NOT EXISTS {table}
+            (
+                rowid INTEGER PRIMARY KEY AUTOINCREMENT,
+                text TEXT,
+                metadata BLOB,
+                text_embedding BLOB
+            );"
+        })
         .execute(&self.pool)
         .await?;
 
         let dimensions = self.vector_dimensions;
-        sqlx::query(&format!(
-            r#"
-                CREATE VIRTUAL TABLE IF NOT EXISTS vec_{table} USING vec0(
-                  text_embedding float[{dimensions}]
-                );
-                "#
-        ))
+        sqlx::query(&formatdoc! {"
+            CREATE VIRTUAL TABLE IF NOT EXISTS vec_{table} USING vec0(
+                text_embedding float[{dimensions}]
+            );"
+        })
         .execute(&self.pool)
         .await?;
 
         // NOTE: python langchain seems to only use "embed_text" as the trigger name
-        sqlx::query(&format!(
-            r#"
-                CREATE TRIGGER IF NOT EXISTS embed_text_{table}
-                AFTER INSERT ON {table}
-                BEGIN
-                    INSERT INTO vec_{table}(rowid, text_embedding)
-                    VALUES (new.rowid, new.text_embedding)
-                    ;
-                END;
-                "#
-        ))
+        sqlx::query(&formatdoc! {r#"
+            CREATE TRIGGER IF NOT EXISTS embed_text_{table}
+            AFTER INSERT ON {table}
+            BEGIN
+                INSERT INTO vec_{table} (rowid, text_embedding)
+                VALUES (new.rowid, new.text_embedding);
+            END;"#
+        })
         .execute(&self.pool)
         .await?;
 
@@ -112,13 +105,12 @@ impl VectorStore for Store {
 
         for (doc, vector) in docs.iter().zip(vectors.iter()) {
             let text_embedding = json!(&vector);
-            let id = sqlx::query(&format!(
-                r#"
-                    INSERT INTO {table}
-                        (text, metadata, text_embedding)
-                    VALUES
-                        (?,?,?)"#
-            ))
+            let id = sqlx::query(&formatdoc! {"
+                INSERT INTO {table}
+                    (text, metadata, text_embedding)
+                VALUES
+                    (?,?,?)"
+            })
             .bind(&doc.page_content)
             .bind(json!(&doc.metadata))
             .bind(text_embedding.to_string())
@@ -148,7 +140,7 @@ impl VectorStore for Store {
 
         let mut metadata_query = filter
             .iter()
-            .map(|(k, v)| format!("json_extract(e.metadata, '$.{}') = '{}'", k, v))
+            .map(|(k, v)| format!("json_extract(e.metadata, '$.{k}') = '{v}'"))
             .collect::<Vec<String>>()
             .join(" AND ");
 
@@ -156,17 +148,17 @@ impl VectorStore for Store {
             metadata_query = "TRUE".to_string();
         }
 
-        let rows = sqlx::query(&format!(
-            r#"SELECT
-                    text,
-                    metadata,
-                    distance
-                FROM {table} e
-                INNER JOIN vec_{table} v on v.rowid = e.rowid
-                WHERE v.text_embedding match '{query_vector}' AND k = ? AND {metadata_query}
-                ORDER BY distance
-                LIMIT ?"#
-        ))
+        let rows = sqlx::query(&formatdoc! {"
+            SELECT
+                text,
+                metadata,
+                distance
+            FROM {table} e
+            INNER JOIN vec_{table} v on v.rowid = e.rowid
+            WHERE v.text_embedding match '{query_vector}' AND k = ? AND {metadata_query}
+            ORDER BY distance
+            LIMIT ?"
+        })
         .bind(limit as i32)
         .bind(limit as i32)
         .fetch_all(&self.pool)

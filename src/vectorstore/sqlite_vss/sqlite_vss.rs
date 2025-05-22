@@ -29,44 +29,36 @@ impl Store {
     async fn create_table_if_not_exists(&self) -> Result<(), Box<dyn Error>> {
         let table = &self.table;
 
-        sqlx::query(&format!(
-            r#"
-                CREATE TABLE IF NOT EXISTS {table}
-                (
-                  rowid INTEGER PRIMARY KEY AUTOINCREMENT,
-                  text TEXT,
-                  metadata BLOB,
-                  text_embedding BLOB
-                )
-                ;
-                "#
-        ))
+        sqlx::query(&formatdoc! {"
+            CREATE TABLE IF NOT EXISTS {table}
+            (
+                rowid INTEGER PRIMARY KEY AUTOINCREMENT,
+                text TEXT,
+                metadata BLOB,
+                text_embedding BLOB
+            );"
+        })
         .execute(&self.pool)
         .await?;
 
         let dimensions = self.vector_dimensions;
-        sqlx::query(&format!(
-            r#"
-                CREATE VIRTUAL TABLE IF NOT EXISTS vss_{table} USING vss0(
-                  text_embedding({dimensions})
-                );
-                "#
-        ))
+        sqlx::query(&formatdoc! {"
+            CREATE VIRTUAL TABLE IF NOT EXISTS vss_{table} USING vss0(
+                text_embedding({dimensions})
+            );"
+        })
         .execute(&self.pool)
         .await?;
 
         // NOTE: python langchain seems to only use "embed_text" as the trigger name
-        sqlx::query(&format!(
-            r#"
-                CREATE TRIGGER IF NOT EXISTS embed_text_{table}
-                AFTER INSERT ON {table}
-                BEGIN
-                    INSERT INTO vss_{table}(rowid, text_embedding)
-                    VALUES (new.rowid, new.text_embedding)
-                    ;
-                END;
-                "#
-        ))
+        sqlx::query(&formatdoc! {"
+            CREATE TRIGGER IF NOT EXISTS embed_text_{table}
+            AFTER INSERT ON {table}
+            BEGIN
+                INSERT INTO vss_{table}(rowid, text_embedding)
+                VALUES (new.rowid, new.text_embedding);
+            END;"
+        })
         .execute(&self.pool)
         .await?;
 
@@ -101,13 +93,12 @@ impl VectorStore for Store {
 
         for (doc, vector) in docs.iter().zip(vectors.iter()) {
             let text_embedding = json!(&vector);
-            let id = sqlx::query(&format!(
-                r#"
-                    INSERT INTO {table}
-                        (text, metadata, text_embedding)
-                    VALUES
-                        (?,?,?)"#
-            ))
+            let id = sqlx::query(&formatdoc! {"
+                INSERT INTO {table}
+                    (text, metadata, text_embedding)
+                VALUES
+                    (?,?,?)"
+            })
             .bind(&doc.page_content)
             .bind(json!(&doc.metadata))
             .bind(text_embedding.to_string())
@@ -133,19 +124,19 @@ impl VectorStore for Store {
 
         let query_vector = json!(self.embedder.embed_query(query).await?);
 
-        let rows = sqlx::query(&format!(
-            r#"SELECT
-                    text,
-                    metadata,
-                    distance
-                FROM {table} e
-                INNER JOIN vss_{table} v on v.rowid = e.rowid
-                WHERE vss_search(
-                  v.text_embedding,
-                  vss_search_params('{query_vector}', ?)
-                )
-                LIMIT ?"#
-        ))
+        let rows = sqlx::query(&formatdoc! {"
+            SELECT
+                text,
+                metadata,
+                distance
+            FROM {table} e
+            INNER JOIN vss_{table} v on v.rowid = e.rowid
+            WHERE vss_search(
+            v.text_embedding,
+            vss_search_params('{query_vector}', ?)
+            )
+            LIMIT ?"
+        })
         .bind(limit as i32)
         .bind(limit as i32)
         .fetch_all(&self.pool)

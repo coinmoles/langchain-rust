@@ -168,6 +168,8 @@ pub(crate) fn load_stuff_qa<L: Into<Box<dyn LLM>>>(llm: L) -> StuffDocument {
 
 #[cfg(test)]
 mod tests {
+    use indoc::indoc;
+
     use crate::{
         chain::{Chain, StuffDocument, StuffQABuilder},
         llm::openai::OpenAI,
@@ -181,14 +183,14 @@ mod tests {
         let chain = StuffDocument::load_stuff_qa(llm);
         let mut input: InputVariables = StuffQABuilder::new()
             .documents(&[
-                Document::new(format!(
-                    "\nQuestion: {}\nAnswer: {}\n",
-                    "Which is the favorite text editor of luis", "Nvim"
-                )),
-                Document::new(format!(
-                    "\nQuestion: {}\nAnswer: {}\n",
-                    "How old is Luis", "24"
-                )),
+                Document::new(indoc! {"
+                    Question: Which is the favorite text editor of luis
+                    Answer: Nvim"
+                }),
+                Document::new(indoc! {"
+                    Question: How old is Luis
+                    Answer: 24"
+                }),
             ])
             .question("How old is luis and whats his favorite text editor")
             .build()

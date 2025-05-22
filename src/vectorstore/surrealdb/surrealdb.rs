@@ -1,6 +1,7 @@
 use std::{collections::HashMap, error::Error, sync::Arc};
 
 use async_trait::async_trait;
+use indoc::formatdoc;
 use serde::Deserialize;
 use serde_json::Value;
 use surrealdb::{Connection, Surreal};
@@ -57,14 +58,13 @@ impl<C: Connection> Store<C> {
         match &self.collection_table_name {
             Some(collection_table_name) => {
                 self.db
-                    .query(format!(
-                        r#"
-                            DEFINE TABLE IF NOT EXISTS {collection_table_name} SCHEMAFULL;
-                            DEFINE FIELD IF NOT EXISTS text                      ON {collection_table_name} TYPE string;
-                            DEFINE FIELD IF NOT EXISTS embedding                 ON {collection_table_name} TYPE array ASSERT (array::len($value) = {vector_dimensions}) || (array::len($value) = 0);
-                            DEFINE FIELD IF NOT EXISTS embedding.*               ON {collection_table_name} TYPE float;
-                            DEFINE FIELD IF NOT EXISTS metadata                  ON {collection_table_name} FLEXIBLE TYPE option<object>;"#
-                    ))
+                    .query(formatdoc! {"
+                        DEFINE TABLE IF NOT EXISTS {collection_table_name} SCHEMAFULL;
+                        DEFINE FIELD IF NOT EXISTS text ON {collection_table_name} TYPE string;
+                        DEFINE FIELD IF NOT EXISTS embedding ON {collection_table_name} TYPE array ASSERT (array::len($value) = {vector_dimensions}) || (array::len($value) = 0);
+                        DEFINE FIELD IF NOT EXISTS embedding.* ON {collection_table_name} TYPE float;
+                        DEFINE FIELD IF NOT EXISTS metadata ON {collection_table_name} FLEXIBLE TYPE option<object>;"
+                    })
                     .await?
                     .check()?;
             }
@@ -72,14 +72,13 @@ impl<C: Connection> Store<C> {
                 let collection_table_name = &self.collection_name;
                 dbg!(&collection_table_name);
                 self.db
-                    .query(format!(
-                        r#"
-                            DEFINE TABLE IF NOT EXISTS {collection_table_name} SCHEMAFULL;
-                            DEFINE FIELD IF NOT EXISTS text              ON {collection_table_name} TYPE string;
-                            DEFINE FIELD IF NOT EXISTS embedding         ON {collection_table_name} TYPE array ASSERT (array::len($value) = {vector_dimensions}) || (array::len($value) = 0);
-                            DEFINE FIELD IF NOT EXISTS embedding.*       ON {collection_table_name} TYPE float;
-                            DEFINE FIELD IF NOT EXISTS metadata          ON {collection_table_name} FLEXIBLE TYPE option<object>;"#
-                    ))
+                    .query(formatdoc! {"
+                        DEFINE TABLE IF NOT EXISTS {collection_table_name} SCHEMAFULL;
+                        DEFINE FIELD IF NOT EXISTS text ON {collection_table_name} TYPE string;
+                        DEFINE FIELD IF NOT EXISTS embedding ON {collection_table_name} TYPE array ASSERT (array::len($value) = {vector_dimensions}) || (array::len($value) = 0);
+                        DEFINE FIELD IF NOT EXISTS embedding.* ON {collection_table_name} TYPE float;
+                        DEFINE FIELD IF NOT EXISTS metadata ON {collection_table_name} FLEXIBLE TYPE option<object>;"
+                    })
                     .await?
                     .check()?;
             }
@@ -121,14 +120,14 @@ impl<C: Connection> VectorStore for Store<C> {
 
                     let mut result = self
                         .db
-                        .query(format!(
-                            r#"CREATE {collection_table_name} CONTENT {{
+                        .query(formatdoc! {"
+                            CREATE {collection_table_name} CONTENT {{
                                 text: $text,
                                 embedding: $embedding,
                                 metadata: $metadata,
                             }}
-                            RETURN record::id(id) as id"#
-                        ))
+                            RETURN record::id(id) as id"
+                        })
                         .bind(("text", doc.page_content.to_owned()))
                         .bind(("embedding", vector.to_owned()))
                         .bind(("metadata", metadata.to_owned()))
@@ -142,14 +141,14 @@ impl<C: Connection> VectorStore for Store<C> {
                     let collection_table_name = &self.collection_name;
                     let mut result = self
                         .db
-                        .query(format!(
-                            r#"CREATE {collection_table_name} CONTENT {{
+                        .query(formatdoc! {"
+                            CREATE {collection_table_name} CONTENT {{
                                 text: $text,
                                 embedding: $embedding,
                                 metadata: $metadata,
                             }}
-                            RETURN record::id(id) as id"#
-                        ))
+                            RETURN record::id(id) as id"
+                        })
                         .bind(("text", doc.page_content.to_owned()))
                         .bind(("embedding", vector.to_owned()))
                         .bind(("metadata", doc.metadata.to_owned()))
@@ -183,15 +182,16 @@ impl<C: Connection> VectorStore for Store<C> {
 
         let mut result = self
             .db
-            .query(format!(
-                r#"
-        SELECT record::id(id) as id, text, metadata,
-        vector::similarity::cosine(embedding, $embedding) as similarity
-        FROM {collection_table_name}
-        WHERE vector::similarity::cosine(embedding, $embedding) >= $score_threshold {collection_predicate}
-        ORDER BY similarity DESC LIMIT $k
-            "#
-            ))
+            .query(formatdoc! {"
+                SELECT 
+                    record::id(id) as id,
+                    text,
+                    metadata,
+                    vector::similarity::cosine(embedding, $embedding) as similarity
+                FROM {collection_table_name}
+                WHERE vector::similarity::cosine(embedding, $embedding) >= $score_threshold {collection_predicate}
+                ORDER BY similarity DESC LIMIT $k"
+            })
             .bind(("collection_name", collection_name.to_owned()))
             .bind(("collection_metadata_key", self.get_collection_metdata_key().to_owned()))
             .bind(("score_threshold", opt.score_threshold.unwrap_or(0.0)))

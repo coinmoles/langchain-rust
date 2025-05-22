@@ -66,7 +66,7 @@ impl<R: Read + Send + Sync + 'static> Loader for CsvLoader<R> {
                         continue;
                     }
 
-                    let line = format!("{}: {}", header, field);
+                    let line = format!("{header}: {field}");
                     content.push_str(&line);
                     content.push('\n');
                 }

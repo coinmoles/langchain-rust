@@ -55,8 +55,7 @@ impl Agent for OpenAiToolAgent {
             GenerateResultContent::ToolCall(tool_calls) => AgentEvent::Action(tool_calls),
             GenerateResultContent::Refusal(refusal) => {
                 return Err(AgentError::LLMError(LLMError::OtherError(format!(
-                    "LLM refused to answer: {}",
-                    refusal
+                    "LLM refused to answer: {refusal}"
                 ))));
             }
         };

@@ -28,22 +28,22 @@
 //     };
 
 //     let documents = vec![
-//         Document::new(format!(
-//             "\nQuestion: {}\nAnswer: {}\n",
-//             "Which is the favorite text editor of luis", "Nvim"
-//         )),
-//         Document::new(format!(
-//             "\nQuestion: {}\nAnswer: {}\n",
-//             "How old is Luis", "24"
-//         )),
-//         Document::new(format!(
-//             "\nQuestion: {}\nAnswer: {}\n",
-//             "Where do luis live", "Peru"
-//         )),
-//         Document::new(format!(
-//             "\nQuestion: {}\nAnswer: {}\n",
-//             "Whats his favorite food", "Pan con chicharron"
-//         )),
+//         Document::new(indoc! {"
+//             Question: Which is the favorite text editor of luis
+//             Answer: Nvim"
+//         }),
+//         Document::new(indoc! {"
+//             Question: How old is Luis
+//             Answer: 24"
+//         }),
+//         Document::new(indoc! {"
+//             Question: Where do luis live
+//             Answer: Peru"
+//         }),
+//         Document::new(indoc! {"
+//             Question: What's his favorite food
+//             Answer: Pan con chicharron"
+//         }),
 //     ];
 
 //     let store = StoreBuilder::new()

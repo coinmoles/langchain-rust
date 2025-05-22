@@ -19,28 +19,30 @@
 //         _question: &str,
 //     ) -> Result<Vec<Document>, Box<dyn Error>> {
 //         Ok(vec![
-//             Document::new(format!(
-//                 "\nQuestion: {}\nAnswer: {}\n",
-//                 "Which is the favorite text editor of luis", "Nvim"
-//             )),
-//             Document::new(format!(
-//                 "\nQuestion: {}\nAnswer: {}\n",
-//                 "How old is Luis", "24"
-//             )),
-//             Document::new(format!(
-//                 "\nQuestion: {}\nAnswer: {}\n",
-//                 "Where do luis live", "Peru"
-//             )),
-//             Document::new(format!(
-//                 "\nQuestion: {}\nAnswer: {}\n",
-//                 "Whats his favorite food", "Pan con chicharron"
-//             )),
+//             Document::new(indoc! {"
+//                 Question: Which is the favorite text editor of luis
+//                 Answer: Nvim"
+//             }),
+//             Document::new(indoc! {"
+//                 Question: How old is Luis
+//                 Answer: 24"
+//             }),
+//             Document::new(indoc! {"
+//                 Question: Where do luis live
+//                 Answer: Peru"
+//             }),
+//             Document::new(indoc! {"
+//                 Question: Whats his favorite food
+//                 Answer: Pan con chicharron"
+//             }),
 //         ])
 //     }
 // }
 // #[tokio::main]
 // async fn main() {
-//     let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt35.to_string()).build();
+//     let llm: OpenAI<OpenAIConfig> = OpenAI::builder()
+//         .with_model(OpenAIModel::Gpt35.to_string())
+//         .build();
 //     let prompt = prompt_template![
 //         Message::new(MessageType::SystemMessage, "You are a helpful assistant"),
 //         MessageTemplate::from_jinja2(

@@ -51,7 +51,7 @@ impl Engine for PostgreSQLEngine {
                     "TEXT[]" => {
                         // Fetch the TEXT[] column as a vector of strings
                         match row.try_get::<Vec<String>, _>(index) {
-                            Ok(array) => format!("{:?}", array), // Format the vector as a string
+                            Ok(array) => format!("{array:?}"), // Format the vector as a string
                             Err(_) => "N/A".to_string(),
                         }
                     }
@@ -110,7 +110,7 @@ impl Engine for PostgreSQLEngine {
             .collect::<Vec<_>>()
             .join(", ");
 
-        Ok(format!("CREATE TABLE {} ({})", table, info))
+        Ok(format!("CREATE TABLE {table} ({info})"))
     }
 
     fn close(&self) -> Result<(), Box<dyn Error>> {

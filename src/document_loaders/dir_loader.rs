@@ -48,8 +48,7 @@ pub async fn list_files_in_path(
     }
     if !dir_path.is_dir() {
         return Err(LoaderError::OtherError(format!(
-            "Path is not a directory: {:?}",
-            dir_path
+            "Path is not a directory: {dir_path:?}",
         )));
     }
     let mut reader = fs::read_dir(dir_path).await.unwrap();

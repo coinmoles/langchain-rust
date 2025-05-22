@@ -73,7 +73,7 @@ impl Loader for SourceCodeLoader {
                     let mut file = match File::open(&filename) {
                         Ok(file) => file,
                         Err(e) => {
-                            yield Err(LoaderError::OtherError(format!("Error opening file: {:?}", e)));
+                            yield Err(LoaderError::OtherError(format!("Error opening file: {e:?}")));
                             continue;
                         }
                     };

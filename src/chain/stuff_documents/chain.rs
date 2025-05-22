@@ -46,14 +46,14 @@ impl StuffDocument {
     /// let input = chain
     /// .qa_prompt_builder()
     /// .documents(&[
-    /// Document::new(format!(
-    /// "\nQuestion: {}\nAnswer: {}\n",
-    /// "Which is the favorite text editor of luis", "Nvim"
-    /// )),
-    /// Document::new(format!(
-    /// "\nQuestion: {}\nAnswer: {}\n",
-    /// "How old is Luis", "24"
-    /// )),
+    /// Document::new(indoc! {"
+    ///     Question: Which is the favorite text editor of luis
+    ///     Answer: Nvim"
+    /// }),
+    /// Document::new(indoc! {"
+    ///    Question: How old is luis
+    ///    Answer: 24"
+    /// }),
     /// ])
     /// .question("How old is luis and whats his favorite text editor")
     /// .build();

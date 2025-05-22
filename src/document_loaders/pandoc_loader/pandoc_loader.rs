@@ -135,7 +135,7 @@ impl<R: AsyncRead + Send + Sync + Unpin + 'static> Loader for PandocLoader<R> {
         let _exit_status = process.wait().await?;
         let stdout_result = stdout_task.await?.unwrap();
         let stdout_string = String::from_utf8(stdout_result).map_err(|e| {
-            LoaderError::OtherError(format!("Failed to convert to utf8 string: {}", e))
+            LoaderError::OtherError(format!("Failed to convert to utf8 string: {e}"))
         })?;
 
         let doc = Document::new(stdout_string);

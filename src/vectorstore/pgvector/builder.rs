@@ -1,5 +1,6 @@
 use std::{collections::HashMap, env, error::Error, sync::Arc};
 
+use indoc::formatdoc;
 use serde_json::{json, Value};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row, Transaction};
 
@@ -159,7 +160,7 @@ impl StoreBuilder<PgFilter> {
                 let new_pool = PgPoolOptions::new()
                     .connect(&connection_url)
                     .await
-                    .map_err(|e| format!("Failed to create a new connection pool: {}", e))?;
+                    .map_err(|e| format!("Failed to create a new connection pool: {e}"))?;
                 Ok(new_pool)
             }
         }
@@ -169,12 +170,13 @@ impl StoreBuilder<PgFilter> {
         &self,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<String, Box<dyn Error>> {
-        let sql = format!(
-            r#"INSERT INTO {} (uuid, name, cmetadata)
-        VALUES($1, $2, $3) ON CONFLICT (name) DO
-        UPDATE SET cmetadata = $3"#,
+        let sql = formatdoc! {"
+            INSERT INTO {} (uuid, name, cmetadata)
+            VALUES($1, $2, $3) 
+            ON CONFLICT (name) DO
+                UPDATE SET cmetadata = $3",
             self.collection_table_name
-        );
+        };
         sqlx::query(&sql)
             .bind(uuid::Uuid::new_v4().to_string())
             .bind(&self.collection_name)
@@ -182,10 +184,14 @@ impl StoreBuilder<PgFilter> {
             .execute(&mut **tx)
             .await?;
 
-        let sql = format!(
-            r#"SELECT uuid FROM {} WHERE name = $1 ORDER BY name limit 1"#,
+        let sql = formatdoc! {"
+            SELECT uuid 
+            FROM {} 
+            WHERE name = $1 
+            ORDER BY name 
+            LIMIT 1",
             self.collection_table_name
-        );
+        };
         let row = sqlx::query(&sql)
             .bind(&self.collection_name)
             .fetch_one(&mut **tx)
@@ -250,16 +256,16 @@ impl StoreBuilder<PgFilter> {
             .await?;
 
         // Now, create the table
-        let create_table_sql = format!(
-            r#"CREATE TABLE IF NOT EXISTS {} (
-        name VARCHAR,
-        cmetadata JSON,
-        "uuid" TEXT NOT NULL,
-        UNIQUE (name),
-        PRIMARY KEY (uuid)
-    )"#,
+        let create_table_sql = formatdoc! {r#"
+            CREATE TABLE IF NOT EXISTS {} (
+                name VARCHAR,
+                cmetadata JSON,
+                "uuid" TEXT NOT NULL,
+                UNIQUE (name),
+                PRIMARY KEY (uuid)
+            )"#,
             self.collection_table_name
-        );
+        };
         sqlx::query(&create_table_sql).execute(&mut **tx).await?;
 
         Ok(())
@@ -279,18 +285,19 @@ impl StoreBuilder<PgFilter> {
             vector_dimensions = format!("({})", self.vector_dimensions);
         }
 
-        let sql = format!(
-            r#"CREATE TABLE IF NOT EXISTS {}
-             (collection_id TEXT,
-             embedding VECTOR{},
-             document VARCHAR,
-             cmetadata JSON,
-             "uuid" TEXT NOT NULL,
-             CONSTRAINT langchain_pg_embedding_collection_id_fkey
-             FOREIGN KEY (collection_id) REFERENCES {}("uuid") ON DELETE CASCADE,
-             PRIMARY KEY ("uuid"))"#,
+        let sql = formatdoc! {r#"
+            CREATE TABLE IF NOT EXISTS {} (
+                collection_id TEXT,
+                embedding VECTOR{},
+                document VARCHAR,
+                cmetadata JSON,
+                "uuid" TEXT NOT NULL,
+                PRIMARY KEY ("uuid"),
+                FOREIGN KEY (collection_id) REFERENCES {}("uuid") ON DELETE CASCADE,
+                CONSTRAINT langchain_pg_embedding_collection_id_fkey
+            )"#,
             self.embedder_table_name, vector_dimensions, self.collection_table_name
-        );
+        };
 
         sqlx::query(&sql).execute(&mut **tx).await?;
 

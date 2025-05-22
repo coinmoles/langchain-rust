@@ -12,10 +12,8 @@ pub(super) fn parse_mcp_response(response: Annotated<RawContent>) -> String {
                 text,
             } => {
                 format!(
-                    "[Resource]({}){}: {}",
-                    uri,
-                    mime_type.map(|s| format!(" ({})", s)).unwrap_or_default(),
-                    text,
+                    "[Resource]({uri}){}: {text}",
+                    mime_type.map(|s| format!(" ({s})")).unwrap_or_default(),
                 )
             }
             ResourceContents::BlobResourceContents {
@@ -24,10 +22,8 @@ pub(super) fn parse_mcp_response(response: Annotated<RawContent>) -> String {
                 blob,
             } => {
                 format!(
-                    "[Resource]({}){}: {}",
-                    uri,
-                    mime_type.map(|s| format!(" ({})", s)).unwrap_or_default(),
-                    blob
+                    "[Resource]({uri}){}: {blob}",
+                    mime_type.map(|s| format!(" ({s})")).unwrap_or_default(),
                 )
             }
         },

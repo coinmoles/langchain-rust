@@ -68,8 +68,8 @@ impl MessageTemplate {
 
         for (key, value) in input_variables.iter_test_replacements() {
             let key = match self.format {
-                TemplateFormat::FString => format!("{{{}}}", key),
-                TemplateFormat::Jinja2 => format!("{{{{{}}}}}", key),
+                TemplateFormat::FString => format!("{{{key}}}"),
+                TemplateFormat::Jinja2 => format!("{{{{{key}}}}}"),
             };
             content = content.replace(&key, value);
         }

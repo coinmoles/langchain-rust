@@ -1,3 +1,4 @@
+use indoc::indoc;
 use langchain_rust::{
     chain::{Chain, StuffDocumentBuilder, StuffQABuilder},
     llm::openai::OpenAI,
@@ -16,14 +17,14 @@ async fn main() {
     let mut input: InputVariables = StuffQABuilder::new()
         .question("How old is luis and whats his favorite text editor")
         .documents(&[
-            Document::new(format!(
-                "\nQuestion: {}\nAnswer: {}\n",
-                "Which is the favorite text editor of luis", "Nvim"
-            )),
-            Document::new(format!(
-                "\nQuestion: {}\nAnswer: {}\n",
-                "How old is Luis", "24"
-            )),
+            Document::new(indoc! {"
+                Question: Which is the favorite text editor of luis
+                Answer: Nvim"
+            }),
+            Document::new(indoc! {"
+                Question: How old is Luis
+                Answer: 24"
+            }),
         ])
         .build()
         .into();

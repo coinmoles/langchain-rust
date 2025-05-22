@@ -6,6 +6,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use indoc::formatdoc;
 use pgvector::Vector;
 use serde_json::{json, Value};
 use sqlx::{Pool, Postgres, Row};
@@ -83,7 +84,7 @@ impl Display for PgFilter {
                 a,
                 values
                     .iter()
-                    .map(|s| format!("'{}'", s))
+                    .map(|s| format!("'{s}'"))
                     .collect::<Vec<String>>()
                     .join(",")
             ),
@@ -228,11 +229,11 @@ impl VectorStore for Store {
 
             let vector_value = Vector::from(vector.iter().map(|x| *x as f32).collect::<Vec<f32>>());
 
-            sqlx::query(&format!(
-                r#"INSERT INTO {} 
-(uuid, document, embedding, cmetadata, collection_id) VALUES ($1, $2, $3, $4, $5)"#,
+            sqlx::query(&formatdoc! {"
+                INSERT INTO {} (uuid, document, embedding, cmetadata, collection_id)
+                VALUES ($1, $2, $3, $4, $5)",
                 self.embedder_table_name
-            ))
+            })
             .bind(&id)
             .bind(&doc.page_content)
             .bind(&vector_value)
@@ -256,8 +257,8 @@ impl VectorStore for Store {
         let collection_name = self.get_name_space(opt);
         let where_filter = self.get_filters(opt)?;
 
-        let sql = format!(
-            r#"WITH filtered_embedding_dims AS MATERIALIZED (
+        let sql = formatdoc! {"
+            WITH filtered_embedding_dims AS MATERIALIZED (
                 SELECT
                     *
                 FROM
@@ -281,14 +282,14 @@ impl VectorStore for Store {
             WHERE {}
             ORDER BY
                 data.distance DESC
-            LIMIT $3"#,
+            LIMIT $3",
             self.embedder_table_name,
             self.collection_table_name,
             self.collection_table_name,
             self.collection_table_name,
             collection_name,
             where_filter,
-        );
+        };
 
         let query_vector = self.embedder.embed_query(query).await?;
 

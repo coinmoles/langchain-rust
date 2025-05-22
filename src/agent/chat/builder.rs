@@ -95,7 +95,7 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
             } else {
                 instructor.create_suffix(&tools.values().map(|t| t.as_ref()).collect::<Vec<_>>())
             };
-            format!("{}{}", body, suffix)
+            format!("{body}{suffix}")
         };
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
 

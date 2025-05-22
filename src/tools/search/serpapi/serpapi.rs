@@ -51,16 +51,16 @@ impl SerpApi {
             query, self.api_key
         );
         if let Some(location) = &self.location {
-            url.push_str(&format!("&location={}", location));
+            url.push_str(&format!("&location={location}"));
         }
         if let Some(hl) = &self.hl {
-            url.push_str(&format!("&hl={}", hl));
+            url.push_str(&format!("&hl={hl}"));
         }
         if let Some(gl) = &self.gl {
-            url.push_str(&format!("&gl={}", gl));
+            url.push_str(&format!("&gl={gl}"));
         }
         if let Some(google_domain) = &self.google_domain {
-            url.push_str(&format!("&google_domain={}", google_domain));
+            url.push_str(&format!("&google_domain={google_domain}"));
         }
         let results: Value = reqwest::get(&url).await?.json().await?;
 

@@ -240,6 +240,8 @@ impl Chain for ConversationalRetrieverChain {
 mod tests {
     use std::error::Error;
 
+    use indoc::indoc;
+
     use crate::{
         chain::ConversationalRetrieverChainBuilder,
         llm::openai::{OpenAI, OpenAIModel},
@@ -257,22 +259,22 @@ mod tests {
             _question: &str,
         ) -> Result<Vec<Document>, Box<dyn Error>> {
             Ok(vec![
-                Document::new(format!(
-                    "\nQuestion: {}\nAnswer: {}\n",
-                    "Which is the favorite text editor of luis", "Nvim"
-                )),
-                Document::new(format!(
-                    "\nQuestion: {}\nAnswer: {}\n",
-                    "How old is Luis", "24"
-                )),
-                Document::new(format!(
-                    "\nQuestion: {}\nAnswer: {}\n",
-                    "Where do luis live", "Peru"
-                )),
-                Document::new(format!(
-                    "\nQuestion: {}\nAnswer: {}\n",
-                    "Whts his favorite food", "Pan con chicharron"
-                )),
+                Document::new(indoc! {"
+                    Question: Which is the favorite text editor of luis
+                    Answer: Nvim"
+                }),
+                Document::new(indoc! {"
+                    Question: How old is luis
+                    Answer: 24"
+                }),
+                Document::new(indoc! {"
+                    Question: Where do luis live
+                    Answer: Peru"
+                }),
+                Document::new(indoc! {"
+                    Question: What's his favorite food
+                    Answer: Pan con chicharron"
+                }),
             ])
         }
     }

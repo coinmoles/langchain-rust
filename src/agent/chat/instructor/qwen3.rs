@@ -83,7 +83,7 @@ impl Instructor for Qwen3Instructor {
             .iter()
             .map(|tool| {
                 let tool = tool.as_openai_tool();
-                serde_json::to_string_pretty(&tool).unwrap_or_else(|_| format!("{:#?}", tool))
+                serde_json::to_string_pretty(&tool).unwrap_or_else(|_| format!("{tool:#?}"))
             })
             .collect::<Vec<_>>()
             .join("\n\n");

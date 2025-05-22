@@ -3,7 +3,7 @@ use std::error::Error;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use indoc::indoc;
+use indoc::formatdoc;
 use tokio::sync::RwLock;
 
 use crate::agent::AgentError;
@@ -169,18 +169,15 @@ impl Chain for AgentExecutor<'_> {
                                         AgentError::ToolError(e.to_string()).to_string(),
                                     ));
                                 } else {
-                                    format!(
-                                        indoc! {"
-                                            Tool call failed: {}
-                                            If the error doesn't make sense to you, it means that the tool is broken. DO NOT use this tool again.
-                                        "},
-                                        e
-                                    )
+                                    formatdoc! {"
+                                        Tool call failed: {e}
+                                        If the error doesn't make sense to you, it means that the tool is broken. DO NOT use this tool again."
+                                    }
                                 }
                             }
                         };
 
-                        log::debug!("\nTool {} result:\n{}", &tool_call.name, &result);
+                        log::debug!("\nTool {} result:\n{result}", &tool_call.name);
 
                         let agent_step = AgentStep::new(tool_call, result);
 

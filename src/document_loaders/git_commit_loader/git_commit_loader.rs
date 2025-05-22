@@ -6,6 +6,7 @@ use crate::{document_loaders::Loader, schemas::Document, text_splitter::TextSpli
 use async_trait::async_trait;
 use futures::Stream;
 use gix::ThreadSafeRepository;
+use indoc::formatdoc;
 use serde_json::Value;
 
 #[derive(Clone)]
@@ -51,9 +52,11 @@ impl Loader for GitCommitLoader {
                     let name = author.name.to_string();
                     let message = format!("{}", commit.message().unwrap().title);
 
-                    let mut document = Document::new(format!(
-                        "commit {commit_id}\nAuthor: {name} <{email}>\n\n    {message}"
-                    ));
+                    let mut document = Document::new(formatdoc! {"
+                        commit {commit_id}
+                        Author: {name} <{email}>
+                            {message}"
+                    });
                     let mut metadata = HashMap::new();
                     metadata.insert("commit".to_string(), Value::from(commit_id.to_string()));
 

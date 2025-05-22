@@ -59,7 +59,7 @@ async fn main() {
             &chunk.page_content
         );
 
-        let openai = Text2SpeechOpenAI::default().with_path(format!("chunk_{}.mp3", i));
+        let openai = Text2SpeechOpenAI::default().with_path(format!("chunk_{i}.mp3"));
         let path = openai
             .call(Value::String(chunk.page_content.to_string()))
             .await
@@ -76,14 +76,14 @@ async fn main() {
     let chunks_paths_list = text_chunks
         .iter()
         .enumerate()
-        .map(|(i, _)| format!("chunk_{}.mp3", i))
+        .map(|(i, _)| format!("chunk_{i}.mp3"))
         .collect::<Vec<String>>()
         .join("|");
 
     args.extend_from_slice(&[
         "-hide_banner".into(),
         "-i".into(),
-        format!("concat:{}", &chunks_paths_list),
+        format!("concat:{chunks_paths_list}"),
         "-acodec".into(),
         "copy".into(),
         "-y".into(), // overwite output file
@@ -139,7 +139,7 @@ async fn main() {
 
     println!("Cleaning up intermediate audio chunk files...");
     for (i, _) in text_chunks.iter().enumerate() {
-        let path = std::path::Path::new(&format!("chunk_{}.mp3", i))
+        let path = std::path::Path::new(&format!("chunk_{i}.mp3"))
             .canonicalize()
             .unwrap();
         tokio::fs::remove_file(path).await.unwrap();

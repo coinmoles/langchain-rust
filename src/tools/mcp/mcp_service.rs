@@ -41,7 +41,7 @@ impl McpServiceFromUrl for McpService {
         let client = client_info
             .serve(transport)
             .await
-            .map_err(|e| format!("Failed to connect to MCP server: {:?}", e))?;
+            .map_err(|e| format!("Failed to connect to MCP server: {e}"))?;
 
         Ok(client)
     }
@@ -62,7 +62,7 @@ pub trait McpServiceExt: Send + Sync {
         self.fetch_tools(Some([&tool_name]))
             .await?
             .remove(&tool_name)
-            .ok_or(format!("Tool {} not found", tool_name).into())
+            .ok_or(format!("Tool {tool_name} not found").into())
     }
 }
 

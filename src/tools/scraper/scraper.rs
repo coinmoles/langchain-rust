@@ -36,7 +36,7 @@ impl ToolFunction for WebScrapper {
         let url = input.0;
         match scrape_url(&url).await {
             Ok(content) => Ok(content),
-            Err(e) => Ok(format!("Error scraping {}: {}\n", url, e)),
+            Err(e) => Ok(format!("Error scraping {url}: {e}")),
         }
     }
 }

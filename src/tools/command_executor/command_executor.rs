@@ -1,6 +1,7 @@
 use std::error::Error;
 
 use async_trait::async_trait;
+use indoc::formatdoc;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -55,14 +56,13 @@ impl ToolFunction for CommandExecutor {
     }
 
     fn description(&self) -> String {
-        format!(
-            r#""This tool let you run command on the terminal"
-            "The input should be an array with commands for the following platform: {}"
-            "examle of input: [{{ "cmd": "ls", "args": [] }},{{"cmd":"mkdir","args":["test"]}}]"
-            "Should be a comma separated commands"
-            "#,
+        formatdoc! {r#"
+            This tool let you run command on the terminal
+            The input should be an array with commands for the following platform: {}
+            examle of input: [{{ "cmd": "ls", "args": [] }},{{"cmd":"mkdir","args":["test"]}}]
+            Should be a comma separated commands"#,
             self.platform
-        )
+        }
     }
 
     fn inline_subschema(&self) -> bool {

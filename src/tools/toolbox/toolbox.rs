@@ -18,7 +18,7 @@ pub trait Toolbox: Send + Sync {
         tools
             .get(tool_name.as_str())
             .copied()
-            .ok_or(format!("Tool {} not found", tool_name).into())
+            .ok_or(format!("Tool {tool_name} not found").into())
     }
 
     async fn call_tool(
