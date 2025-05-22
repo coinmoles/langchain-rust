@@ -82,3 +82,57 @@ impl MessageTemplate {
         self.variables.clone()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::text_replacements;
+
+    use super::*;
+
+    #[test]
+    fn test_fstring_template() {
+        let template =
+            MessageTemplate::from_fstring(MessageType::AIMessage, "Hello {name}, how are you?");
+
+        let input_variables = text_replacements! {
+            "name" => "Alice"
+        }
+        .into();
+
+        let message = template.format(&input_variables).unwrap();
+        assert_eq!(message.content, "Hello Alice, how are you?");
+    }
+
+    #[test]
+    fn test_jinja2_template() {
+        let template =
+            MessageTemplate::from_jinja2(MessageType::AIMessage, "Hello {{name}}, how are you?");
+
+        let input_variables = text_replacements! {
+            "name" => "Alice"
+        }
+        .into();
+
+        let message = template.format(&input_variables).unwrap();
+        assert_eq!(message.content, "Hello Alice, how are you?");
+    }
+
+    #[test]
+    fn test_jinja2_template_duplicate() {
+        let template = MessageTemplate::from_jinja2(
+            MessageType::AIMessage,
+            "Hello {{name}}, how are you? Nice to meet you {{name}}!",
+        );
+
+        let input_variables = text_replacements! {
+            "name" => "Alice"
+        }
+        .into();
+
+        let message = template.format(&input_variables).unwrap();
+        assert_eq!(
+            message.content,
+            "Hello Alice, how are you? Nice to meet you Alice!"
+        );
+    }
+}
