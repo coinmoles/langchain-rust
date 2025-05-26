@@ -1,17 +1,18 @@
-pub mod chain_trait;
-pub use chain_trait::*;
+#[allow(clippy::module_inception)]
+mod chain;
+pub use chain::*;
 
 pub mod conversational;
 pub use conversational::*;
 
-pub use llm_chain::*;
-pub mod llm_chain;
+pub use llm::*;
+pub mod llm;
 
 // mod sequential;
 // pub use sequential::*;
 
-pub mod sql_datbase;
-pub use sql_datbase::*;
+pub mod sql_database;
+pub use sql_database::*;
 
 mod stuff_documents;
 pub use stuff_documents::*;

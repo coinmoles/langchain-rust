@@ -1,12 +1,11 @@
 use langchain_rust::{
-    agent::{Agent, ConversationalAgentBuilder},
+    agent::{Agent, ConversationalAgent},
     chain::Chain,
     llm::{
         openai::{OpenAI, OpenAIModel},
         OpenAIConfig,
     },
     memory::SimpleMemory,
-    schemas::InputVariables,
     text_replacements,
     tools::CommandExecutor,
 };
@@ -16,7 +15,7 @@ async fn main() {
     let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt4Turbo).build();
     let memory = SimpleMemory::new();
     let command_executor = CommandExecutor::default();
-    let agent = ConversationalAgentBuilder::new()
+    let agent = ConversationalAgent::builder()
         .tools([command_executor])
         .build(llm)
         .await
@@ -24,7 +23,7 @@ async fn main() {
 
     let executor = agent.executor().with_memory(memory.into());
 
-    let mut input_variables: InputVariables = text_replacements! {
+    let mut input_variables = text_replacements! {
         "input" => "What is the name of the current dir",
     }
     .into();

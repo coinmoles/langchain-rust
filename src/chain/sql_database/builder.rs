@@ -1,5 +1,5 @@
 use crate::{
-    chain::{llm_chain::LLMChainBuilder, ChainError},
+    chain::{ChainError, LLMChain},
     language_models::{llm::LLM, options::CallOptions},
     output_parsers::OutputParser,
     prompt_template,
@@ -14,16 +14,16 @@ use super::{
     STOP_WORD,
 };
 
-pub struct SQLDatabaseChainBuilder {
+pub struct SQLDatabaseChainBuilder<'b> {
     llm: Option<Box<dyn LLM>>,
     top_k: Option<usize>,
     database: Option<SQLDatabase>,
-    output_key: Option<String>,
+    output_key: Option<&'b str>,
     output_parser: Option<Box<dyn OutputParser>>,
 }
 
-impl SQLDatabaseChainBuilder {
-    pub fn new() -> Self {
+impl<'b> SQLDatabaseChainBuilder<'b> {
+    pub(super) fn new() -> Self {
         Self {
             llm: None,
             top_k: None,
@@ -33,17 +33,20 @@ impl SQLDatabaseChainBuilder {
         }
     }
 
-    pub fn llm<L: Into<Box<dyn LLM>>>(mut self, llm: L) -> Self {
+    pub fn llm(mut self, llm: impl Into<Box<dyn LLM>>) -> Self {
         self.llm = Some(llm.into());
         self
     }
 
-    pub fn output_key<S: Into<String>>(mut self, output_key: S) -> Self {
-        self.output_key = Some(output_key.into());
+    pub fn output_key<S: Into<String>>(
+        mut self,
+        output_key: &'b (impl AsRef<str> + ?Sized),
+    ) -> Self {
+        self.output_key = Some(output_key.as_ref());
         self
     }
 
-    pub fn output_parser<P: Into<Box<dyn OutputParser>>>(mut self, output_parser: P) -> Self {
+    pub fn output_parser(mut self, output_parser: impl Into<Box<dyn OutputParser>>) -> Self {
         self.output_parser = Some(output_parser.into());
         self
     }
@@ -78,7 +81,7 @@ impl SQLDatabaseChainBuilder {
             let mut llm = llm.clone_box();
             llm.add_call_options(CallOptions::new().with_stop_words(vec![STOP_WORD.to_string()]));
 
-            let mut builder = LLMChainBuilder::new().prompt(prompt).llm(llm);
+            let mut builder = LLMChain::builder().prompt(prompt).llm(llm);
 
             if let Some(output_parser) = self.output_parser {
                 builder = builder.output_parser(output_parser);
@@ -92,11 +95,5 @@ impl SQLDatabaseChainBuilder {
             top_k,
             database,
         })
-    }
-}
-
-impl Default for SQLDatabaseChainBuilder {
-    fn default() -> Self {
-        Self::new()
     }
 }

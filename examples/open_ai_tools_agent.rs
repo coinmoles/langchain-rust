@@ -2,11 +2,10 @@ use std::error::Error;
 
 use async_trait::async_trait;
 use langchain_rust::{
-    agent::{Agent, OpenAiToolAgentBuilder},
+    agent::{Agent, OpenAiToolAgent},
     chain::Chain,
     llm::openai::OpenAI,
     memory::SimpleMemory,
-    schemas::InputVariables,
     text_replacements,
     tools::{CommandExecutor, DuckDuckGoSearch, SerpApi, Tool, ToolFunction},
     tools_vec,
@@ -43,7 +42,7 @@ impl ToolFunction for Date {
 async fn main() {
     let llm = OpenAI::default();
     let memory = SimpleMemory::new();
-    let agent = OpenAiToolAgentBuilder::new()
+    let agent = OpenAiToolAgent::builder()
         .tools(tools_vec![
             SerpApi::default(),
             Date::default(),
@@ -56,7 +55,7 @@ async fn main() {
 
     let executor = agent.executor().with_memory(memory.into());
 
-    let mut input_variables: InputVariables = text_replacements! {
+    let mut input_variables = text_replacements! {
         "input" => "What the name of the current dir, And what date is today",
     }
     .into();

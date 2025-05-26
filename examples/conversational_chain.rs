@@ -2,10 +2,9 @@ use std::io::{stdout, Write};
 
 use futures_util::StreamExt;
 use langchain_rust::{
-    chain::{builder::ConversationalChainBuilder, Chain},
+    chain::{Chain, ConversationalChain},
     llm::{openai::OpenAI, OpenAIConfig, OpenAIModel},
     memory::SimpleMemory,
-    schemas::InputVariables,
     text_replacements, // schemas::Message,
                        // template_fstring,
 };
@@ -17,7 +16,7 @@ async fn main() {
     //initialise it as an example, if you dont want to have memory use DummyMemory
     let memory = SimpleMemory::new();
 
-    let chain = ConversationalChainBuilder::new()
+    let chain = ConversationalChain::builder()
         .llm(llm)
         //IF YOU WANT TO ADD A CUSTOM PROMPT YOU CAN UN COMMENT THIS:
         //         .prompt(message_formatter![
@@ -38,7 +37,7 @@ async fn main() {
         .build()
         .expect("Error building ConversationalChain");
 
-    let mut input_variables: InputVariables = text_replacements! {
+    let mut input_variables = text_replacements! {
         "input" => "Im from Peru",
     }
     .into();
@@ -57,7 +56,7 @@ async fn main() {
         }
     }
 
-    let mut input_variables: InputVariables = text_replacements! {
+    let mut input_variables = text_replacements! {
         "input" => "Which are the typical dish",
     }
     .into();

@@ -4,19 +4,25 @@ use async_trait::async_trait;
 
 use crate::{
     agent::{instructor::Instructor, Agent, AgentError},
-    chain::chain_trait::Chain,
+    chain::Chain,
     schemas::{AgentResult, AgentStep, InputVariables, Message, Prompt},
     tools::{Tool, Toolbox},
 };
 
+use super::ConversationalAgentBuilder;
+
 pub struct ConversationalAgent {
-    pub(crate) chain: Box<dyn Chain>,
-    pub(crate) tools: HashMap<String, Box<dyn Tool>>,
-    pub(crate) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
-    pub(crate) instructor: Box<dyn Instructor>,
+    pub(super) chain: Box<dyn Chain>,
+    pub(super) tools: HashMap<String, Box<dyn Tool>>,
+    pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
+    pub(super) instructor: Box<dyn Instructor>,
 }
 
 impl ConversationalAgent {
+    pub fn builder<'a, 'b>() -> ConversationalAgentBuilder<'a, 'b> {
+        ConversationalAgentBuilder::new()
+    }
+
     fn construct_scratchpad(&self, intermediate_steps: &[AgentStep]) -> Vec<Message> {
         intermediate_steps
             .iter()
@@ -76,7 +82,7 @@ mod tests {
 
     use crate::{
         agent::{chat::builder::ConversationalAgentBuilder, Agent},
-        chain::chain_trait::Chain,
+        chain::Chain,
         llm::openai::{OpenAI, OpenAIModel},
         memory::SimpleMemory,
         schemas::InputVariables,

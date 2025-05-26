@@ -1,5 +1,5 @@
 use langchain_rust::{
-    chain::{Chain, LLMChainBuilder},
+    chain::{Chain, LLMChain},
     language_models::llm::LLM,
     llm::{openai::OpenAI, OpenAIConfig},
     placeholder_replacements, prompt_template,
@@ -29,7 +29,7 @@ async fn main() {
 
     //We can now combine these into a simple LLM chain:
 
-    let chain = LLMChainBuilder::new()
+    let chain = LLMChain::builder()
         .prompt(prompt)
         .llm(open_ai.clone())
         .build()
@@ -60,7 +60,7 @@ async fn main() {
         MessageTemplate::from_fstring(MessageType::HumanMessage, "{input}",)
     ];
 
-    let chain = LLMChainBuilder::new()
+    let chain = LLMChain::builder()
         .prompt(prompt)
         .llm(open_ai)
         .build()

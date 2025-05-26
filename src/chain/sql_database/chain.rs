@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use futures::Stream;
 
 use crate::{
-    chain::{chain_trait::Chain, llm_chain::LLMChain, ChainError},
+    chain::{Chain, ChainError, LLMChain},
     schemas::{
         GenerateResult, GenerateResultContent, InputVariables, Prompt, StreamData,
         TextReplacements, TokenUsage,
@@ -14,8 +14,8 @@ use crate::{
 };
 
 use super::{
-    QUERY_PREFIX_WITH, SQL_CHAIN_DEFAULT_INPUT_KEY_QUERY, SQL_CHAIN_DEFAULT_INPUT_KEY_TABLE_NAMES,
-    STOP_WORD,
+    SQLDatabaseChainBuilder, QUERY_PREFIX_WITH, SQL_CHAIN_DEFAULT_INPUT_KEY_QUERY,
+    SQL_CHAIN_DEFAULT_INPUT_KEY_TABLE_NAMES, STOP_WORD,
 };
 
 pub struct SqlChainPromptBuilder {
@@ -89,6 +89,10 @@ pub struct SQLDatabaseChain {
 /// }
 /// ```
 impl SQLDatabaseChain {
+    pub fn builder<'b>() -> SQLDatabaseChainBuilder<'b> {
+        SQLDatabaseChainBuilder::new()
+    }
+
     pub fn prompt_builder(&self) -> SqlChainPromptBuilder {
         SqlChainPromptBuilder::new()
     }

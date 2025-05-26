@@ -6,7 +6,7 @@ use crate::{
         instructor::{DefaultInstructor, Instructor},
         AgentError,
     },
-    chain::llm_chain::LLMChainBuilder,
+    chain::LLMChain,
     language_models::llm::LLM,
     tools::{ListTools, Tool, Toolbox},
     utils::helper::normalize_tool_name,
@@ -26,7 +26,7 @@ pub struct ConversationalAgentBuilder<'a, 'b> {
 }
 
 impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
-    pub fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
             tools: None,
             toolboxes: None,
@@ -100,7 +100,7 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
 
         let prompt = create_prompt(system_prompt, initial_prompt);
-        let chain = Box::new(LLMChainBuilder::new().prompt(prompt).llm(llm).build()?);
+        let chain = Box::new(LLMChain::builder().prompt(prompt).llm(llm).build()?);
 
         Ok(ConversationalAgent {
             chain,
@@ -108,11 +108,5 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
             toolboxes,
             instructor,
         })
-    }
-}
-
-impl Default for ConversationalAgentBuilder<'_, '_> {
-    fn default() -> Self {
-        Self::new()
     }
 }

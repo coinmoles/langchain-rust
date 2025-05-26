@@ -1,6 +1,6 @@
 use futures::StreamExt;
 use langchain_rust::{
-    chain::{Chain, LLMChainBuilder},
+    chain::{Chain, LLMChain},
     llm::openai::OpenAI,
     prompt_template,
     schemas::{Message, MessageType},
@@ -17,7 +17,7 @@ async fn main() {
         MessageTemplate::from_fstring(MessageType::HumanMessage, "{input}")
     ];
 
-    let chain = LLMChainBuilder::new()
+    let chain = LLMChain::builder()
         .prompt(prompt)
         .llm(open_ai.clone())
         .build()

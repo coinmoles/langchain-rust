@@ -1,20 +1,20 @@
 use indoc::indoc;
 use langchain_rust::{
-    chain::{Chain, StuffDocumentBuilder, StuffQABuilder},
+    chain::{Chain, StuffDocument, StuffQABuilder},
     llm::openai::OpenAI,
-    schemas::{Document, InputVariables},
+    schemas::Document,
 };
 
 #[tokio::main]
 async fn main() {
     let llm = OpenAI::default();
 
-    let chain = StuffDocumentBuilder::new()
+    let chain = StuffDocument::builder()
         .llm(llm)
         // .prompt() you can add a custom prompt if you want
         .build()
         .unwrap();
-    let mut input: InputVariables = StuffQABuilder::new()
+    let mut input = StuffQABuilder::new()
         .question("How old is luis and whats his favorite text editor")
         .documents(&[
             Document::new(indoc! {"

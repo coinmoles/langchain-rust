@@ -3,7 +3,7 @@ use std::sync::Arc;
 use futures_util::future::try_join_all;
 
 use crate::{
-    chain::{LLMChain, LLMChainBuilder},
+    chain::LLMChain,
     embedding::{openai::OpenAiEmbedder, Embedder},
     language_models::llm::LLM,
     llm::openai::OpenAI,
@@ -93,11 +93,7 @@ impl RouteLayerBuilder {
             Tool Input:
             "#,
         );
-        let chain = LLMChainBuilder::new()
-            .prompt(prompt)
-            .llm(llm)
-            .build()
-            .unwrap(); //safe to unwrap
+        let chain = LLMChain::builder().prompt(prompt).llm(llm).build().unwrap(); //safe to unwrap
         self.llm = Some(chain);
         self
     }

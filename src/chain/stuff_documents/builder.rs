@@ -1,24 +1,22 @@
-use indoc::indoc;
-
 use crate::{
-    chain::{ChainError, LLMChainBuilder},
+    chain::{ChainError, LLMChain},
     language_models::llm::LLM,
     output_parsers::OutputParser,
     schemas::MessageType,
     template::{MessageTemplate, PromptTemplate},
 };
 
-use super::StuffDocument;
+use super::{prompt::DEFAULT_STUFF_QA_TEMPLATE, StuffDocument};
 
-pub struct StuffDocumentBuilder {
+pub struct StuffDocumentBuilder<'b> {
     llm: Option<Box<dyn LLM>>,
-    output_key: Option<String>,
+    output_key: Option<&'b str>,
     output_parser: Option<Box<dyn OutputParser>>,
     prompt: Option<PromptTemplate>,
 }
 
-impl StuffDocumentBuilder {
-    pub fn new() -> Self {
+impl<'b> StuffDocumentBuilder<'b> {
+    pub(super) fn new() -> Self {
         Self {
             llm: None,
             output_key: None,
@@ -27,18 +25,18 @@ impl StuffDocumentBuilder {
         }
     }
 
-    pub fn llm<L: Into<Box<dyn LLM>>>(mut self, llm: L) -> Self {
+    pub fn llm(mut self, llm: impl Into<Box<dyn LLM>>) -> Self {
         self.llm = Some(llm.into());
         self
     }
 
-    pub fn output_key<S: Into<String>>(mut self, output_key: S) -> Self {
-        self.output_key = Some(output_key.into());
+    pub fn output_key(mut self, output_key: &'b (impl AsRef<str> + ?Sized)) -> Self {
+        self.output_key = Some(output_key.as_ref());
         self
     }
 
     ///If you want to add a custom prompt,keep in mind which variables are obligatory.
-    pub fn prompt<P: Into<PromptTemplate>>(mut self, prompt: P) -> Self {
+    pub fn prompt(mut self, prompt: impl Into<PromptTemplate>) -> Self {
         self.prompt = Some(prompt.into());
         self
     }
@@ -56,7 +54,7 @@ impl StuffDocumentBuilder {
         };
 
         let llm_chain = {
-            let mut builder = LLMChainBuilder::new().prompt(prompt).llm(llm);
+            let mut builder = LLMChain::builder().prompt(prompt).llm(llm);
             if let Some(output_parser) = self.output_parser {
                 builder = builder.output_parser(output_parser);
             }
@@ -67,18 +65,3 @@ impl StuffDocumentBuilder {
         Ok(StuffDocument::new(llm_chain))
     }
 }
-
-impl Default for StuffDocumentBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-const DEFAULT_STUFF_QA_TEMPLATE: &str = indoc! {"
-    Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
-
-    {{context}}
-
-    Question:{{question}}
-    Helpful Answer:
-"};

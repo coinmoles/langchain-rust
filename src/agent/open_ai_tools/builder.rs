@@ -1,6 +1,6 @@
 use crate::{
     agent::{create_prompt, AgentError},
-    chain::LLMChainBuilder,
+    chain::LLMChain,
     language_models::{llm::LLM, options::CallOptions, LLMError},
     tools::{Tool, Toolbox},
     utils::helper::normalize_tool_name,
@@ -19,7 +19,7 @@ pub struct OpenAiToolAgentBuilder<'a, 'b> {
 }
 
 impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
-    pub fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
             tools: None,
             toolboxes: None,
@@ -81,7 +81,7 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
         let prompt = create_prompt(system_prompt, initial_prompt);
         let mut llm = llm;
         llm.add_call_options(CallOptions::new().with_tools(tools_openai));
-        let chain = Box::new(LLMChainBuilder::new().prompt(prompt).llm(llm).build()?);
+        let chain = Box::new(LLMChain::builder().prompt(prompt).llm(llm).build()?);
 
         let tools_map = tools
             .into_iter()
@@ -93,11 +93,5 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
             tools: tools_map,
             toolboxes,
         })
-    }
-}
-
-impl Default for OpenAiToolAgentBuilder<'_, '_> {
-    fn default() -> Self {
-        Self::new()
     }
 }

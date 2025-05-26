@@ -12,10 +12,10 @@ use crate::{
     schemas::{GenerateResult, InputVariables, Prompt, StreamData},
 };
 
-const COMBINE_DOCUMENTS_DEFAULT_INPUT_KEY: &str = "input_documents";
-// const COMBINE_DOCUMENTS_DEFAULT_OUTPUT_KEY: &str = "text";
-const COMBINE_DOCUMENTS_DEFAULT_DOCUMENT_VARIABLE_NAME: &str = "context";
-const STUFF_DOCUMENTS_DEFAULT_SEPARATOR: &str = "\n\n";
+use super::{
+    StuffDocumentBuilder, COMBINE_DOCUMENTS_DEFAULT_DOCUMENT_VARIABLE_NAME,
+    COMBINE_DOCUMENTS_DEFAULT_INPUT_KEY, STUFF_DOCUMENTS_DEFAULT_SEPARATOR,
+};
 
 pub struct StuffDocument {
     llm_chain: LLMChain,
@@ -25,12 +25,16 @@ pub struct StuffDocument {
 }
 
 impl StuffDocument {
+    pub fn builder<'b>() -> StuffDocumentBuilder<'b> {
+        StuffDocumentBuilder::new()
+    }
+
     pub fn new(llm_chain: LLMChain) -> Self {
         Self {
             llm_chain,
-            input_key: COMBINE_DOCUMENTS_DEFAULT_INPUT_KEY.to_string(),
-            document_variable_name: COMBINE_DOCUMENTS_DEFAULT_DOCUMENT_VARIABLE_NAME.to_string(),
-            separator: STUFF_DOCUMENTS_DEFAULT_SEPARATOR.to_string(),
+            input_key: COMBINE_DOCUMENTS_DEFAULT_INPUT_KEY.into(),
+            document_variable_name: COMBINE_DOCUMENTS_DEFAULT_DOCUMENT_VARIABLE_NAME.into(),
+            separator: STUFF_DOCUMENTS_DEFAULT_SEPARATOR.into(),
         }
     }
 

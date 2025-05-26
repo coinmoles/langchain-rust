@@ -12,7 +12,7 @@ use crate::{
 use async_trait::async_trait;
 use futures::Stream;
 
-use super::{Chain, ChainError, LLMChain, LLMChainBuilder, StuffDocument};
+use super::{Chain, ChainError, LLMChain, StuffDocument};
 
 pub struct CondenseQuestionPromptBuilder {
     chat_history: String,
@@ -69,7 +69,7 @@ impl CondenseQuestionGeneratorChain {
             "#,
         );
 
-        let chain = LLMChainBuilder::new()
+        let chain = LLMChain::builder()
             .llm(llm)
             .prompt(condense_question_prompt_template)
             .build()
@@ -155,7 +155,7 @@ pub(crate) fn load_stuff_qa<L: Into<Box<dyn LLM>>>(llm: L) -> StuffDocument {
         "#,
     );
 
-    let llm_chain_builder = LLMChainBuilder::new()
+    let llm_chain_builder = LLMChain::builder()
         .prompt(default_qa_prompt_template)
         .llm(llm)
         .build()
@@ -173,7 +173,7 @@ mod tests {
     use crate::{
         chain::{Chain, StuffDocument, StuffQABuilder},
         llm::openai::OpenAI,
-        schemas::{Document, InputVariables},
+        schemas::Document,
     };
 
     #[tokio::test]
@@ -181,7 +181,7 @@ mod tests {
     async fn test_qa() {
         let llm = OpenAI::default();
         let chain = StuffDocument::load_stuff_qa(llm);
-        let mut input: InputVariables = StuffQABuilder::new()
+        let mut input = StuffQABuilder::new()
             .documents(&[
                 Document::new(indoc! {"
                     Question: Which is the favorite text editor of luis

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::{
-    chain::{llm_chain::LLMChainBuilder, ChainError, DEFAULT_OUTPUT_KEY},
+    chain::{ChainError, LLMChain, DEFAULT_OUTPUT_KEY},
     language_models::llm::LLM,
     memory::{Memory, SimpleMemory},
     output_parsers::OutputParser,
@@ -13,39 +13,29 @@ use crate::{
 
 use super::{prompt::DEFAULT_TEMPLATE, ConversationalChain, DEFAULT_INPUT_VARIABLE};
 
-pub struct ConversationalChainBuilder {
+pub struct ConversationalChainBuilder<'a, 'b> {
     llm: Option<Box<dyn LLM>>,
     memory: Option<Arc<RwLock<dyn Memory>>>,
-    output_key: Option<String>,
+    input_key: Option<&'a str>,
+    output_key: Option<&'b str>,
     output_parser: Option<Box<dyn OutputParser>>,
-    input_key: Option<String>,
     prompt: Option<PromptTemplate>,
 }
 
-impl ConversationalChainBuilder {
-    pub fn new() -> Self {
+impl<'a, 'b> ConversationalChainBuilder<'a, 'b> {
+    pub(super) fn new() -> Self {
         Self {
             llm: None,
             memory: None,
+            input_key: None,
             output_key: None,
             output_parser: None,
-            input_key: None,
             prompt: None,
         }
     }
 
-    pub fn llm<L: Into<Box<dyn LLM>>>(mut self, llm: L) -> Self {
+    pub fn llm(mut self, llm: impl Into<Box<dyn LLM>>) -> Self {
         self.llm = Some(llm.into());
-        self
-    }
-
-    pub fn input_key<S: Into<String>>(mut self, input_key: S) -> Self {
-        self.input_key = Some(input_key.into());
-        self
-    }
-
-    pub fn output_parser<P: Into<Box<dyn OutputParser>>>(mut self, output_parser: P) -> Self {
-        self.output_parser = Some(output_parser.into());
         self
     }
 
@@ -54,13 +44,23 @@ impl ConversationalChainBuilder {
         self
     }
 
-    pub fn output_key<S: Into<String>>(mut self, output_key: S) -> Self {
-        self.output_key = Some(output_key.into());
+    pub fn input_key(mut self, input_key: &'a (impl AsRef<str> + ?Sized)) -> Self {
+        self.input_key = Some(input_key.as_ref());
+        self
+    }
+
+    pub fn output_key(mut self, output_key: &'b (impl AsRef<str> + ?Sized)) -> Self {
+        self.output_key = Some(output_key.as_ref());
+        self
+    }
+
+    pub fn output_parser(mut self, output_parser: impl Into<Box<dyn OutputParser>>) -> Self {
+        self.output_parser = Some(output_parser.into());
         self
     }
 
     ///If you want to add a custom prompt,keep in mind which variables are obligatory.
-    pub fn prompt<P: Into<PromptTemplate>>(mut self, prompt: P) -> Self {
+    pub fn prompt(mut self, prompt: impl Into<PromptTemplate>) -> Self {
         self.prompt = Some(prompt.into());
         self
     }
@@ -76,10 +76,9 @@ impl ConversationalChainBuilder {
             }
         };
         let llm_chain = {
-            let mut builder = LLMChainBuilder::new()
-                .prompt(prompt)
-                .llm(llm)
-                .output_key(self.output_key.unwrap_or_else(|| DEFAULT_OUTPUT_KEY.into()));
+            let b = self.output_key.unwrap_or(DEFAULT_OUTPUT_KEY);
+
+            let mut builder = LLMChain::builder().prompt(prompt).llm(llm).output_key(b);
 
             if let Some(output_parser) = self.output_parser {
                 builder = builder.output_parser(output_parser);
@@ -95,15 +94,7 @@ impl ConversationalChainBuilder {
         Ok(ConversationalChain {
             llm: llm_chain,
             memory,
-            input_key: self
-                .input_key
-                .unwrap_or_else(|| DEFAULT_INPUT_VARIABLE.to_string()),
+            input_key: self.input_key.unwrap_or(DEFAULT_INPUT_VARIABLE).into(),
         })
-    }
-}
-
-impl Default for ConversationalChainBuilder {
-    fn default() -> Self {
-        Self::new()
     }
 }

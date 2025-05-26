@@ -2,7 +2,7 @@
 
 #[cfg(feature = "postgres")]
 use langchain_rust::{
-    chain::{Chain, SQLDatabaseChainBuilder},
+    chain::Chain,
     llm::openai::OpenAI,
     tools::{postgres::PostgreSQLEngine, SQLDatabaseBuilder},
 };
@@ -13,14 +13,14 @@ use std::io::{self, Write}; // Include io Library for terminal input
 #[cfg(feature = "postgres")]
 #[tokio::main]
 async fn main() {
-    use langchain_rust::schemas::InputVariables;
+    use langchain_rust::chain::SQLDatabaseChain;
 
     let llm = OpenAI::default();
 
     let db = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let engine = PostgreSQLEngine::new(&db).await.unwrap();
     let db = SQLDatabaseBuilder::new(engine).build().await.unwrap();
-    let chain = SQLDatabaseChainBuilder::new()
+    let chain = SQLDatabaseChain::builder()
         .llm(llm)
         .top_k(4)
         .database(db)
@@ -34,7 +34,7 @@ async fn main() {
     io::stdin().read_line(&mut input).unwrap();
 
     let input = input.trim();
-    let mut input_variables: InputVariables = chain.prompt_builder().query(input).build().into();
+    let mut input_variables = chain.prompt_builder().query(input).build().into();
     match chain.invoke(&mut input_variables).await {
         Ok(result) => {
             println!("Result: {:?}", result);

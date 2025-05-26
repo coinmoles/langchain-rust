@@ -1,5 +1,5 @@
 use langchain_rust::{
-    chain::{Chain, LLMChainBuilder},
+    chain::{Chain, LLMChain},
     llm::{
         openai::{OpenAI, OpenAIModel},
         OpenAIConfig,
@@ -18,11 +18,7 @@ async fn main() {
     );
 
     let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt35).build();
-    let chain = LLMChainBuilder::new()
-        .prompt(prompt)
-        .llm(llm)
-        .build()
-        .unwrap();
+    let chain = LLMChain::builder().prompt(prompt).llm(llm).build().unwrap();
 
     print!("Please enter a product: ");
     io::stdout().flush().unwrap(); // Display prompt to terminal

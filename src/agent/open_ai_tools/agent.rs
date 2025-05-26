@@ -12,6 +12,8 @@ use crate::{
     tools::Tool,
 };
 
+use super::OpenAiToolAgentBuilder;
+
 ///Log tools is a struct used by the openai-like agents
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LogTools {
@@ -20,12 +22,16 @@ pub struct LogTools {
 }
 
 pub struct OpenAiToolAgent {
-    pub(crate) chain: Box<dyn Chain>,
-    pub(crate) tools: HashMap<String, Box<dyn Tool>>,
-    pub(crate) toolboxes: Vec<Box<dyn Toolbox>>,
+    pub(super) chain: Box<dyn Chain>,
+    pub(super) tools: HashMap<String, Box<dyn Tool>>,
+    pub(super) toolboxes: Vec<Box<dyn Toolbox>>,
 }
 
 impl OpenAiToolAgent {
+    pub fn builder<'a, 'b>() -> OpenAiToolAgentBuilder<'a, 'b> {
+        OpenAiToolAgentBuilder::new()
+    }
+
     fn construct_scratchpad(&self, steps: &[AgentStep]) -> Vec<Message> {
         steps
             .iter()

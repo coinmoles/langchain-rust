@@ -2,9 +2,9 @@ use std::io::{self, BufRead};
 use std::process::{Command, Stdio};
 
 use indoc::indoc;
+use langchain_rust::chain::{Chain, LLMChain};
 use langchain_rust::{
-    chain::chain_trait::Chain, chain::llm_chain::LLMChainBuilder, llm::openai::OpenAI,
-    schemas::MessageType, template::MessageTemplate, text_replacements,
+    llm::openai::OpenAI, schemas::MessageType, template::MessageTemplate, text_replacements,
 };
 
 //to try this in action , add something to this file stage it an run it
@@ -23,7 +23,7 @@ async fn main() -> io::Result<()> {
     );
 
     let llm = OpenAI::default();
-    let chain = LLMChainBuilder::new()
+    let chain = LLMChain::builder()
         .prompt(prompt)
         .llm(llm)
         .build()

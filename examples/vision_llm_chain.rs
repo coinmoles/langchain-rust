@@ -1,10 +1,11 @@
 use base64::prelude::*;
 use langchain_rust::{
-    chain::{Chain, LLMChainBuilder},
+    chain::{Chain, LLMChain},
     llm::OpenAI,
+    prompt_template,
     schemas::{Message, MessageType},
     template::MessageTemplate,
-    {prompt_template, text_replacements},
+    text_replacements,
 };
 
 #[tokio::main]
@@ -22,7 +23,7 @@ async fn main() {
     // let open_ai = OpenAI::new(langchain_rust::llm::ollama::openai::OllamaConfig::default())
     //     .with_model("llava");
     let open_ai = OpenAI::default();
-    let chain = LLMChainBuilder::new()
+    let chain = LLMChain::builder()
         .prompt(prompt)
         .llm(open_ai)
         .build()

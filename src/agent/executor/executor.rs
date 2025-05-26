@@ -10,7 +10,7 @@ use crate::agent::AgentError;
 use crate::schemas::Prompt;
 use crate::{
     agent::Agent,
-    chain::{chain_trait::Chain, ChainError},
+    chain::{Chain, ChainError},
     memory::Memory,
     schemas::{
         agent_plan::AgentEvent, AgentResult, AgentStep, GenerateResult, GenerateResultContent,
