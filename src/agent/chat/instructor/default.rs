@@ -45,7 +45,7 @@ Option 2 : Give your best final answer
 
 <FINAL_ANSWER_OUTPUT_FORMAT>
 {
-    "final_answer": (string), Your final answer must be the robust and COMPLETE; it must be outcome described
+    "final_answer": Your final answer as requested by the user. The final answer should follow the format specified in the user request
 }
 </FINAL_ANSWER_OUTPUT_FORMAT>
 
