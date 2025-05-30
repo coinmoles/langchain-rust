@@ -3,25 +3,36 @@ use crate::{
     language_models::llm::LLM,
     output_parsers::OutputParser,
     schemas::MessageType,
+    schemas::{OutputVariable, InputVariableCtor},
     template::{MessageTemplate, PromptTemplate},
 };
 
 use super::{prompt::DEFAULT_STUFF_QA_TEMPLATE, StuffDocument};
 
-pub struct StuffDocumentBuilder<'b> {
+pub struct StuffDocumentBuilder<'b, I, O>
+where
+    I: InputVariableCtor,
+    O: OutputVariable,
+{
     llm: Option<Box<dyn LLM>>,
     output_key: Option<&'b str>,
     output_parser: Option<Box<dyn OutputParser>>,
     prompt: Option<PromptTemplate>,
+    _phantom: std::marker::PhantomData<(I, O)>,
 }
 
-impl<'b> StuffDocumentBuilder<'b> {
+impl<'b, I, O> StuffDocumentBuilder<'b, I, O>
+where
+    I: InputVariableCtor,
+    O: OutputVariable,
+{
     pub(super) fn new() -> Self {
         Self {
             llm: None,
             output_key: None,
             output_parser: None,
             prompt: None,
+            _phantom: std::marker::PhantomData,
         }
     }
 
@@ -41,7 +52,7 @@ impl<'b> StuffDocumentBuilder<'b> {
         self
     }
 
-    pub fn build(self) -> Result<StuffDocument, ChainError> {
+    pub fn build(self) -> Result<StuffDocument<I, O>, ChainError> {
         let llm = self
             .llm
             .ok_or_else(|| ChainError::MissingObject("LLM must be set".into()))?;

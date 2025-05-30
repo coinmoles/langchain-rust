@@ -92,7 +92,7 @@ impl<'a, 'b> ConversationalChainBuilder<'a, 'b> {
             .unwrap_or_else(|| Arc::new(RwLock::new(SimpleMemory::new())));
 
         Ok(ConversationalChain {
-            llm: llm_chain,
+            llm_chain,
             memory,
             input_key: self.input_key.unwrap_or(DEFAULT_INPUT_VARIABLE).into(),
         })

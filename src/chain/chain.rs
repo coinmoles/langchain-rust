@@ -1,25 +1,23 @@
-use std::{
-    collections::{HashMap, HashSet},
-    error::Error,
-    pin::Pin,
-};
+use std::{error::Error, pin::Pin};
 
 use async_trait::async_trait;
 use futures::Stream;
-use serde_json::Value;
 
-use crate::schemas::{GenerateResult, InputVariables, Prompt, StreamData};
+use crate::schemas::{
+    InputVariableCtor, OutputTrace, OutputVariable, Prompt, StreamData, WithUsage,
+};
 
 use super::ChainError;
 
 pub(crate) const DEFAULT_OUTPUT_KEY: &str = "output";
-pub(crate) const DEFAULT_RESULT_KEY: &str = "generate_result";
 
 #[async_trait]
 pub trait Chain: Sync + Send {
+    type InputCtor: InputVariableCtor;
+    type Output: OutputVariable;
+
     /// Call the `Chain` and receive as output the result of the generation process along with
-    /// additional information like token consumption. The input is a set of variables passed
-    /// as a `PromptArgs` hashmap.
+    /// additional information like token consumption.
     ///
     /// # Example
     ///
@@ -46,94 +44,24 @@ pub trait Chain: Sync + Send {
     /// };
     /// # };
     /// ```
-    async fn call(
+    async fn call<'i, 'i2>(
         &self,
-        input_variables: &mut InputVariables,
-    ) -> Result<GenerateResult, ChainError>;
+        input: &'i <Self::InputCtor as InputVariableCtor>::InputVariable<'i2>,
+    ) -> Result<WithUsage<Self::Output>, ChainError>
+    where
+        'i: 'i2;
 
-    /// Invoke the `Chain` and receive just the generation result as a String.
-    /// The input is a set of variables passed as a `PromptArgs` hashmap.
-    ///
-    /// # Example
-    ///
-    /// ```rust,ignore
-    /// # use crate::my_crate::{Chain, ConversationalChainBuilder, OpenAI, OpenAIModel, SimpleMemory, PromptArgs, prompt_args};
-    /// # async {
-    /// let llm = OpenAI::default().with_model(OpenAIModel::Gpt35);
-    /// let memory = SimpleMemory::new();
-    ///
-    /// let chain = ConversationalChainBuilder::new()
-    ///     .llm(llm)
-    ///     .memory(memory.into())
-    ///     .build().expect("Error building ConversationalChain");
-    ///
-    /// let input_variables = prompt_args! {
-    ///     "input" => "Im from Peru",
-    /// };
-    ///
-    /// match chain.invoke(input_variables).await {
-    ///     Ok(result) => {
-    ///         println!("Result: {:?}", result);
-    ///     },
-    ///     Err(e) => panic!("Error invoking Chain: {:?}", e),
-    /// };
-    /// # };
-    /// ```
-    async fn invoke(&self, input_variables: &mut InputVariables) -> Result<String, ChainError> {
-        self.call(input_variables)
-            .await
-            .map(|result| result.content.text().into())
-    }
-
-    /// Execute the `Chain` and return the result of the generation process
-    /// along with additional information like token consumption formatted as a `HashMap`.
-    /// The input is a set of variables passed as a `PromptArgs` hashmap.
-    /// The key for the generated output is specified by the `get_output_keys`
-    /// method (default key is `output`).
-    ///
-    /// # Example
-    ///
-    /// ```rust,ignore
-    /// # use crate::my_crate::{Chain, ConversationalChainBuilder, OpenAI, OpenAIModel, SimpleMemory, PromptArgs, prompt_args};
-    /// # async {
-    /// let llm = OpenAI::default().with_model(OpenAIModel::Gpt35);
-    /// let memory = SimpleMemory::new();
-    ///
-    /// let chain = ConversationalChainBuilder::new()
-    ///     .llm(llm)
-    ///     .memory(memory.into())
-    ///     .output_key("name")
-    ///     .build().expect("Error building ConversationalChain");
-    ///
-    /// let input_variables = prompt_args! {
-    ///     "input" => "Im from Peru",
-    /// };
-    ///
-    /// match chain.execute(input_variables).await {
-    ///     Ok(result) => {
-    ///         println!("Result: {:?}", result);
-    ///     },
-    ///     Err(e) => panic!("Error executing Chain: {:?}", e),
-    /// };
-    /// # };
-    /// ```
-    /// BROKEN!!
-    async fn execute(
+    async fn call_with_trace<'i, 'i2>(
         &self,
-        _input_variables: &mut InputVariables,
-    ) -> Result<HashMap<String, Value>, ChainError> {
-        // let result = self.call(input_variables).await?;
-        // let mut output = HashMap::new();
-        // let output_key = self
-        //     .get_output_keys()
-        //     .first()
-        //     .unwrap_or(&DEFAULT_OUTPUT_KEY.to_string())
-        //     .clone();
-        // output.insert(output_key, result.content);
-        // output.insert(DEFAULT_RESULT_KEY.to_string(), json!(result));
-        Ok(HashMap::new())
-    }
+        input: &'i <Self::InputCtor as InputVariableCtor>::InputVariable<'i2>,
+    ) -> Result<OutputTrace<Self::Output>, ChainError>
+    where
+        'i: 'i2,
+    {
+        let output = self.call(&input).await?;
 
+        Ok(OutputTrace::single(output))
+    }
     /// Stream the `Chain` and get an asynchronous stream of chain generations.
     /// The input is a set of variables passed as a `PromptArgs` hashmap.
     /// If the chain have memroy, the tream method will not be able to automaticaly
@@ -179,28 +107,21 @@ pub trait Chain: Sync + Send {
     /// # };
     /// ```
     ///
-    async fn stream(
+    async fn stream<'i, 'i2>(
         &self,
-        _input_variables: &mut InputVariables,
+        _input: &'i <Self::InputCtor as InputVariableCtor>::InputVariable<'i2>,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
+    where
+        'i: 'i2,
     {
         log::warn!("stream not implemented for this chain");
         unimplemented!()
     }
 
-    // Get the input keys of the prompt
-    fn get_input_keys(&self) -> HashSet<String> {
-        HashSet::new()
-    }
-
-    fn get_output_keys(&self) -> Vec<String> {
-        [
-            String::from(DEFAULT_OUTPUT_KEY),
-            String::from(DEFAULT_RESULT_KEY),
-        ]
-        .into_iter()
-        .collect()
-    }
-
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>>;
+    fn get_prompt<'i, 'i2>(
+        &self,
+        input: &'i <Self::InputCtor as InputVariableCtor>::InputVariable<'i2>,
+    ) -> Result<Prompt, Box<dyn Error + Send + Sync>>
+    where
+        'i: 'i2;
 }

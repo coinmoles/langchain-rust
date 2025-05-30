@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{borrow::Cow, collections::HashMap, sync::Arc};
 
 use serde_json::Value;
 
@@ -6,8 +6,9 @@ use crate::{
     chain::{Chain, LLMChain},
     embedding::Embedder,
     semantic_router::{Index, RouteLayerError, Router},
-    text_replacements,
 };
+
+use super::{RouteLayerInput, RouteLayerInputCtor};
 
 pub enum AggregationMethod {
     Mean,
@@ -38,7 +39,7 @@ pub struct RouteLayer {
     pub(crate) embedder: Arc<dyn Embedder>,
     pub(crate) index: Box<dyn Index>,
     pub(crate) threshold: f64,
-    pub(crate) llm: LLMChain,
+    pub(crate) llm: LLMChain<RouteLayerInputCtor>,
     pub(crate) top_k: usize,
     pub(crate) aggregation_method: AggregationMethod,
 }
@@ -121,11 +122,11 @@ impl RouteLayer {
 
     /// Call the route layer with a query and return the best route choise
     /// If route has a tool description, it will also return the tool input
-    pub async fn call<S: Into<String>>(
+    pub async fn call(
         &self,
-        query: S,
+        query: impl Into<Cow<'_, str>>,
     ) -> Result<Option<RouteChoise>, RouteLayerError> {
-        let query: String = query.into();
+        let query = query.into();
         let query_vector = self.embedder.embed_query(&query).await?;
 
         let route_choise = self.call_embedding(&query_vector).await?;
@@ -139,12 +140,12 @@ impl RouteLayer {
             .get_router(&route_choise.as_ref().unwrap().route) //safe to unwrap
             .await?;
 
-        if router.tool_description.is_none() {
+        let Some(tool_description) = router.tool_description else {
             return Ok(route_choise);
-        }
+        };
 
         let tool_input = self
-            .generate_tool_input(&query, &router.tool_description.unwrap())
+            .generate_tool_input(query, tool_description.into())
             .await?;
 
         Ok(route_choise.map(|route| RouteChoise {
@@ -189,19 +190,14 @@ impl RouteLayer {
 
     async fn generate_tool_input(
         &self,
-        query: &str,
-        description: &str,
+        query: Cow<'_, str>,
+        description: Cow<'_, str>,
     ) -> Result<Value, RouteLayerError> {
         let output = self
             .llm
-            .invoke(
-                &mut text_replacements! {
-                    "description"=>description,
-                    "query"=>query
-                }
-                .into(),
-            )
-            .await?;
+            .call(&RouteLayerInput { query, description })
+            .await?
+            .content;
         match serde_json::from_str::<Value>(&output) {
             Ok(value_result) => Ok(value_result),
             Err(_) => Ok(Value::String(output)),

@@ -1,4 +1,4 @@
-use std::{collections::HashSet, error::Error, pin::Pin};
+use std::pin::Pin;
 
 use async_trait::async_trait;
 use futures::{Stream, TryStreamExt};
@@ -7,38 +7,40 @@ use crate::{
     chain::{Chain, ChainError},
     language_models::llm::LLM,
     output_parsers::OutputParser,
-    schemas::{GenerateResult, GenerateResultContent, InputVariables, Prompt, StreamData},
+    schemas::{InputVariableCtor, LLMOutput, OutputVariable, Prompt, StreamData, WithUsage},
     template::PromptTemplate,
 };
 
 use super::LLMChainBuilder;
 
-pub struct LLMChain {
+pub struct LLMChain<I, O = String>
+where
+    I: InputVariableCtor,
+    O: OutputVariable,
+{
     pub(super) prompt: PromptTemplate,
     pub(super) llm: Box<dyn LLM>,
     pub(super) output_parser: Box<dyn OutputParser>,
+    pub(super) _phantom: std::marker::PhantomData<(I, O)>,
 }
 
-impl LLMChain {
-    pub fn builder<'b>() -> LLMChainBuilder<'b> {
+impl<I, O> LLMChain<I, O>
+where
+    I: InputVariableCtor,
+    O: OutputVariable,
+{
+    pub fn builder() -> LLMChainBuilder<I, O> {
         LLMChainBuilder::new()
     }
-}
 
-#[async_trait]
-impl Chain for LLMChain {
-    fn get_input_keys(&self) -> HashSet<String> {
-        self.prompt.variables()
-    }
-
-    async fn call(
+    pub async fn call_llm(
         &self,
-        input_variables: &mut InputVariables,
-    ) -> Result<GenerateResult, ChainError> {
+        input_variables: &I::InputVariable<'_>,
+    ) -> Result<WithUsage<LLMOutput>, ChainError> {
         let prompt = self.prompt.format(input_variables)?;
         let mut output = self.llm.generate(prompt.to_messages()).await?;
 
-        if let GenerateResultContent::Text(content) = &mut output.content {
+        if let LLMOutput::Text(content) = &mut output.content {
             *content = self.output_parser.parse(content).await?;
         }
 
@@ -49,13 +51,42 @@ impl Chain for LLMChain {
 
         Ok(output)
     }
+}
 
-    async fn stream(
+#[async_trait]
+impl<I, O> Chain for LLMChain<I, O>
+where
+    I: InputVariableCtor,
+    O: OutputVariable,
+{
+    type InputCtor = I;
+    type Output = O;
+
+    async fn call<'i, 'i2>(
         &self,
-        input_variables: &mut InputVariables,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
+        input: &'i I::InputVariable<'i2>,
+    ) -> Result<WithUsage<O>, ChainError>
+    where
+        'i: 'i2,
     {
-        let prompt = self.prompt.format(input_variables)?;
+        let llm_output = self.call_llm(input).await?;
+        let content = llm_output.content.into_text()?;
+        let content = O::try_from_string(content)?;
+
+        Ok(WithUsage {
+            content,
+            usage: llm_output.usage,
+        })
+    }
+
+    async fn stream<'i, 'i2>(
+        &self,
+        input: &'i I::InputVariable<'i2>,
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
+    where
+        'i: 'i2,
+    {
+        let prompt = self.prompt.format(input)?;
         let llm_stream = self.llm.stream(prompt.to_messages()).await?;
 
         // Map the errors from LLMError to ChainError
@@ -64,8 +95,14 @@ impl Chain for LLMChain {
         Ok(Box::pin(mapped_stream))
     }
 
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>> {
-        let prompt = self.prompt.format(inputs)?;
+    fn get_prompt<'i, 'i2>(
+        &self,
+        input: &'i I::InputVariable<'i2>,
+    ) -> Result<Prompt, Box<dyn std::error::Error + Send + Sync>>
+    where
+        'i: 'i2,
+    {
+        let prompt = self.prompt.format(input)?;
 
         Ok(prompt)
     }
@@ -73,14 +110,15 @@ impl Chain for LLMChain {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use async_openai::config::OpenAIConfig;
 
     use crate::{
         llm::openai::{OpenAI, OpenAIModel},
         prompt_template,
-        schemas::MessageType,
+        schemas::{InputVariable, MessageType, TextReplacements},
         template::MessageTemplate,
-        text_replacements,
     };
 
     use super::*;
@@ -88,10 +126,21 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_invoke_chain() {
-        let mut input_variables: InputVariables = text_replacements! {
-            "nombre" => "Juan",
+        pub struct NombreInputCtor;
+        impl InputVariableCtor for NombreInputCtor {
+            type InputVariable<'a> = NombreInput<'a>;
         }
-        .into();
+
+        pub struct NombreInput<'a> {
+            pub nombre: &'a str,
+        }
+        impl InputVariable for NombreInput<'_> {
+            fn text_replacements(&self) -> TextReplacements {
+                HashMap::from([("nombre", self.nombre.into())])
+            }
+        }
+
+        let input = NombreInput { nombre: "Juan" };
 
         // Create an AI message prompt template
         let human_message_prompt =
@@ -101,14 +150,14 @@ mod tests {
         let prompt = prompt_template!(human_message_prompt);
 
         let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt35).build();
-        let chain = LLMChain::builder()
+        let chain: LLMChain<NombreInputCtor, String> = LLMChain::builder()
             .prompt(prompt)
             .llm(llm)
             .build()
             .expect("Failed to build LLMChain");
 
         // Execute `chain.invoke` and assert that it should succeed
-        let result = chain.invoke(&mut input_variables).await;
+        let result = chain.call(&input).await;
         assert!(
             result.is_ok(),
             "Error invoking LLMChain: {:?}",

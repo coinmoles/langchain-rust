@@ -1,6 +1,6 @@
 use indoc::indoc;
 use langchain_rust::{
-    chain::{Chain, StuffDocument, StuffQABuilder},
+    chain::{Chain, StuffDocument, StuffQA},
     llm::openai::OpenAI,
     schemas::Document,
 };
@@ -14,7 +14,7 @@ async fn main() {
         // .prompt() you can add a custom prompt if you want
         .build()
         .unwrap();
-    let mut input = StuffQABuilder::new()
+    let mut input = StuffQA::new()
         .question("How old is luis and whats his favorite text editor")
         .documents(&[
             Document::new(indoc! {"

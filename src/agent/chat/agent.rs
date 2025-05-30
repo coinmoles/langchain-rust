@@ -4,15 +4,15 @@ use async_trait::async_trait;
 
 use crate::{
     agent::{instructor::Instructor, Agent, AgentError},
-    chain::Chain,
-    schemas::{AgentResult, AgentStep, InputVariables, Message, Prompt},
+    chain::{Chain, LLMChain},
+    schemas::{AgentResult, AgentStep, Message, Prompt},
     tools::{Tool, Toolbox},
 };
 
 use super::ConversationalAgentBuilder;
 
 pub struct ConversationalAgent {
-    pub(super) chain: Box<dyn Chain>,
+    pub(super) llm_chain: LLMChain,
     pub(super) tools: HashMap<String, Box<dyn Tool>>,
     pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
     pub(super) instructor: Box<dyn Instructor>,
@@ -45,9 +45,9 @@ impl Agent for ConversationalAgent {
     ) -> Result<AgentResult, AgentError> {
         let scratchpad = self.construct_scratchpad(intermediate_steps);
         inputs.insert_placeholder_replacement("agent_scratchpad", scratchpad);
-        let output = self.chain.call(inputs).await?;
+        let output = self.llm_chain.call_llm(inputs).await?;
 
-        let content = self.instructor.parse_output(output.content.text())?;
+        let content = self.instructor.parse_output(&output.content.into_text()?)?;
         let usage = output.usage;
 
         Ok(AgentResult { content, usage })
@@ -68,7 +68,7 @@ impl Agent for ConversationalAgent {
     }
 
     fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>> {
-        self.chain.get_prompt(inputs)
+        self.llm_chain.get_prompt(inputs)
     }
 }
 

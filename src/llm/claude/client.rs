@@ -1,9 +1,7 @@
 use crate::{
     language_models::{llm::LLM, options::CallOptions, LLMError},
     llm::AnthropicError,
-    schemas::{
-        Message, MessageType, StreamData, {GenerateResult, GenerateResultContent, TokenUsage},
-    },
+    schemas::{IntoWithUsage, LLMOutput, Message, MessageType, StreamData, TokenUsage, WithUsage},
 };
 use async_trait::async_trait;
 use futures::{Stream, StreamExt};
@@ -77,7 +75,7 @@ impl Claude {
         self
     }
 
-    async fn generate(&self, messages: Vec<Message>) -> Result<GenerateResult, LLMError> {
+    async fn generate(&self, messages: Vec<Message>) -> Result<WithUsage<LLMOutput>, LLMError> {
         let client = Client::new();
         let is_stream = self.options.stream_option.is_some();
 
@@ -121,10 +119,7 @@ impl Claude {
             total_tokens: res.usage.input_tokens + res.usage.output_tokens,
         });
 
-        Ok(GenerateResult {
-            content: GenerateResultContent::Text(generation),
-            usage,
-        })
+        Ok(LLMOutput::Text(generation).with_usage(usage))
     }
 
     fn build_payload(&self, messages: Vec<Message>, stream: bool) -> Payload {
@@ -154,13 +149,15 @@ impl Claude {
 
 #[async_trait]
 impl LLM for Claude {
-    async fn generate(&self, messages: Vec<Message>) -> Result<GenerateResult, LLMError> {
+    async fn generate(&self, messages: Vec<Message>) -> Result<WithUsage<LLMOutput>, LLMError> {
         match &self.options.stream_option {
             Some(stream_option) => {
                 let mut complete_response = String::new();
+                let mut usage = None;
                 let mut stream = self.stream(messages).await?;
                 while let Some(data) = stream.next().await {
                     let data = data?;
+                    usage = TokenUsage::merge_options([&usage, &data.tokens]);
                     complete_response.push_str(&data.content);
 
                     if let Some(streaming_func) = &stream_option.streaming_func {
@@ -168,11 +165,8 @@ impl LLM for Claude {
                         let _ = func(&data.content).await;
                     }
                 }
-                let generate_result = GenerateResult {
-                    content: GenerateResultContent::Text(complete_response),
-                    ..GenerateResult::default()
-                };
-                Ok(generate_result)
+
+                Ok(LLMOutput::Text(complete_response).with_usage(usage))
             }
             None => self.generate(messages).await,
         }

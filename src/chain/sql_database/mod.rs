@@ -1,9 +1,11 @@
 mod builder;
 mod chain;
+mod input;
 mod prompt;
 
 pub use builder::*;
 pub use chain::*;
+pub use input::*;
 pub use prompt::*;
 
 const STOP_WORD: &str = "\nSQLResult:";

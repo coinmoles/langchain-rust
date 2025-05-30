@@ -4,8 +4,8 @@ pub use builder::*;
 mod chain;
 pub use chain::*;
 
-mod prompt_builder;
-pub use prompt_builder::*;
+mod input;
+pub use input::*;
 
 mod prompt;
 

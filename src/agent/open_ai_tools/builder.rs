@@ -81,7 +81,7 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
         let prompt = create_prompt(system_prompt, initial_prompt);
         let mut llm = llm;
         llm.add_call_options(CallOptions::new().with_tools(tools_openai));
-        let chain = Box::new(LLMChain::builder().prompt(prompt).llm(llm).build()?);
+        let llm_chain = LLMChain::builder().prompt(prompt).llm(llm).build()?;
 
         let tools_map = tools
             .into_iter()
@@ -89,7 +89,7 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
             .collect();
 
         Ok(OpenAiToolAgent {
-            chain,
+            llm_chain,
             tools: tools_map,
             toolboxes,
         })

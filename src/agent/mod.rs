@@ -5,6 +5,9 @@ pub use agent::*;
 mod executor;
 pub use executor::*;
 
+mod agent_input;
+pub use agent_input::*;
+
 mod chat;
 pub use chat::*;
 
@@ -19,3 +22,6 @@ pub use validator::*;
 
 mod helper;
 pub use helper::*;
+
+const DEFAULT_INPUT_KEY: &str = "input";
+const DEFAULT_OUTPUT_KEY: &str = "output";

@@ -12,8 +12,7 @@ use futures::{Stream, StreamExt};
 use crate::{
     language_models::{llm::LLM, options::CallOptions, LLMError},
     schemas::{
-        messages::Message,
-        MessageType, StreamData, {GenerateResult, TokenUsage},
+        messages::Message, IntoWithUsage, LLMOutput, MessageType, StreamData, TokenUsage, WithUsage,
     },
 };
 
@@ -75,7 +74,7 @@ impl Default for OpenAI<OpenAIConfig> {
 
 #[async_trait]
 impl<C: Config + Send + Sync + 'static> LLM for OpenAI<C> {
-    async fn generate(&self, prompt: Vec<Message>) -> Result<GenerateResult, LLMError> {
+    async fn generate(&self, prompt: Vec<Message>) -> Result<WithUsage<LLMOutput>, LLMError> {
         let messages = self.process_prompt(prompt);
 
         let client = self.client.clone().with_http_client(
@@ -85,40 +84,30 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAI<C> {
         );
         let request = OpenAIRequest::build_request(&self.model, messages, &self.call_options)?;
 
-        match &self.call_options.stream_option {
+        let response = match &self.call_options.stream_option {
             Some(stream_option) => {
                 let stream = client
                     .chat()
                     .create_stream_byot::<_, CreateChatCompletionStreamResponse>(request)
                     .await?;
 
-                let response =
-                    construct_chat_completion_response(stream, &stream_option.streaming_func)
-                        .await?;
-
-                let choice: async_openai::types::ChatChoice = select_choice(response.choices)
-                    .ok_or(LLMError::ContentNotFound("No choices".into()))?;
-
-                let result =
-                    GenerateResult::new(choice.message.try_into()?, response.usage.map(Into::into));
-
-                Ok(result)
+                construct_chat_completion_response(stream, &stream_option.streaming_func).await?
             }
             None => {
-                let response = client
+                client
                     .chat()
                     .create_byot::<_, CreateChatCompletionResponse>(request)
-                    .await?;
-
-                let choice: async_openai::types::ChatChoice = select_choice(response.choices)
-                    .ok_or(LLMError::ContentNotFound("No choices".into()))?;
-
-                let result =
-                    GenerateResult::new(choice.message.try_into()?, response.usage.map(Into::into));
-
-                Ok(result)
+                    .await?
             }
-        }
+        };
+
+        let choice: async_openai::types::ChatChoice = select_choice(response.choices)
+            .ok_or(LLMError::ContentNotFound("No choices".into()))?;
+
+        let result: LLMOutput = choice.message.try_into()?;
+        let usage = response.usage.map(Into::into);
+
+        Ok(result.with_usage(usage))
     }
 
     async fn stream(

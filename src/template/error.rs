@@ -3,7 +3,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum TemplateError {
-    #[error("Variable {0} is missing from input variables")]
+    #[error("Missing input variable: {0}")]
     MissingVariable(String),
 
     #[error("Serialization error: {0}")]

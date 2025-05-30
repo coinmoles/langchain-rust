@@ -1,72 +1,79 @@
-use std::{error::Error, pin::Pin};
+use std::{borrow::Cow, collections::HashMap, error::Error, pin::Pin};
 
 use crate::{
     language_models::llm::LLM,
-    schemas::{
-        messages::Message, Document, GenerateResult, InputVariables, MessageType, Prompt,
-        StreamData, TextReplacements,
-    },
+    schemas::{messages::Message, Document, MessageType, Prompt, StreamData, WithUsage},
+    schemas::{InputVariable, InputVariableCtor, TextReplacements},
     template::MessageTemplate,
-    text_replacements,
 };
 use async_trait::async_trait;
 use futures::Stream;
+use indoc::indoc;
 
-use super::{Chain, ChainError, LLMChain, StuffDocument};
+use super::{Chain, ChainError, LLMChain};
 
-pub struct CondenseQuestionPromptBuilder {
-    chat_history: String,
-    question: String,
+pub struct CondenseQuestionPromptConstructor;
+impl InputVariableCtor for CondenseQuestionPromptConstructor {
+    type InputVariable<'a> = CondenseQuestionPrompt<'a>;
 }
 
-impl CondenseQuestionPromptBuilder {
+pub struct CondenseQuestionPrompt<'a> {
+    chat_history: Cow<'a, str>,
+    question: Cow<'a, str>,
+}
+
+impl<'a> CondenseQuestionPrompt<'a> {
     pub fn new() -> Self {
         Self {
-            chat_history: "".to_string(),
-            question: "".to_string(),
+            chat_history: "".into(),
+            question: "".into(),
         }
     }
 
-    pub fn question<S: Into<String>>(mut self, question: S) -> Self {
+    pub fn question(mut self, question: impl Into<Cow<'a, str>>) -> Self {
         self.question = question.into();
         self
     }
 
     pub fn chat_history(mut self, chat_history: &[Message]) -> Self {
-        self.chat_history = Message::messages_to_string(chat_history);
+        self.chat_history = Message::messages_to_string(chat_history).into();
         self
-    }
-
-    pub fn build(self) -> TextReplacements {
-        text_replacements! {
-            "chat_history" => self.chat_history,
-            "question" => self.question
-        }
     }
 }
 
-impl Default for CondenseQuestionPromptBuilder {
+impl InputVariable for CondenseQuestionPrompt<'_> {
+    fn text_replacements(&self) -> TextReplacements {
+        HashMap::from([
+            ("chat_history", self.chat_history.as_ref().into()),
+            ("question", self.question.as_ref().into()),
+        ])
+    }
+}
+
+impl<'a> Default for CondenseQuestionPrompt<'a> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-pub struct CondenseQuestionGeneratorChain {
-    chain: LLMChain,
+pub struct CondenseQuestionGeneratorChain<I = CondenseQuestionPromptConstructor>
+where
+    I: InputVariableCtor,
+{
+    chain: LLMChain<I>,
 }
 
-impl CondenseQuestionGeneratorChain {
+impl CondenseQuestionGeneratorChain<CondenseQuestionPromptConstructor> {
     pub fn new<L: Into<Box<dyn LLM>>>(llm: L) -> Self {
         let condense_question_prompt_template = MessageTemplate::from_jinja2(
             MessageType::SystemMessage,
-            r#"
+            indoc! {"
             Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.
 
             Chat History:
             {{chat_history}}
             Follow Up Input: {{question}}
-            Standalone question:
-            "#,
+            Standalone question:"},
         );
 
         let chain = LLMChain::builder()
@@ -78,43 +85,65 @@ impl CondenseQuestionGeneratorChain {
         Self { chain }
     }
 
-    pub fn prompt_builder(&self) -> CondenseQuestionPromptBuilder {
-        CondenseQuestionPromptBuilder::new()
+    pub fn prompt_builder(&self) -> CondenseQuestionPrompt {
+        CondenseQuestionPrompt::new()
     }
 }
 
 #[async_trait]
-impl Chain for CondenseQuestionGeneratorChain {
-    async fn call(
-        &self,
-        input_variables: &mut InputVariables,
-    ) -> Result<GenerateResult, ChainError> {
-        self.chain.call(input_variables).await
-    }
+impl<I> Chain for CondenseQuestionGeneratorChain<I>
+where
+    I: InputVariableCtor,
+{
+    type InputCtor = I;
+    type Output = String;
 
-    async fn stream(
+    async fn call<'i, 'i2>(
         &self,
-        input_variables: &mut InputVariables,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
+        input: &'i I::InputVariable<'i2>,
+    ) -> Result<WithUsage<Self::Output>, ChainError>
+    where
+        'i: 'i2,
     {
-        self.chain.stream(input_variables).await
+        self.chain.call(input).await
     }
 
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>> {
-        self.chain.get_prompt(inputs)
+    async fn stream<'i, 'i2>(
+        &self,
+        input: &'i I::InputVariable<'i2>,
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
+    where
+        'i: 'i2,
+    {
+        self.chain.stream(input).await
+    }
+
+    fn get_prompt<'i, 'i2>(
+        &self,
+        input: &'i I::InputVariable<'i2>,
+    ) -> Result<Prompt, Box<dyn Error + Send + Sync>>
+    where
+        'i: 'i2,
+    {
+        self.chain.get_prompt(input)
     }
 }
 
-pub struct StuffQABuilder {
+pub struct StuffQACtor;
+impl InputVariableCtor for StuffQACtor {
+    type InputVariable<'a> = StuffQA<'a>;
+}
+
+pub struct StuffQA<'a> {
     input_documents: Vec<Document>,
-    question: String,
+    question: Cow<'a, str>,
 }
 
-impl StuffQABuilder {
+impl<'a> StuffQA<'a> {
     pub fn new() -> Self {
         Self {
             input_documents: vec![],
-            question: "".to_string(),
+            question: "".into(),
         }
     }
 
@@ -123,47 +152,33 @@ impl StuffQABuilder {
         self
     }
 
-    pub fn question<S: Into<String>>(mut self, question: S) -> Self {
+    pub fn question(mut self, question: impl Into<Cow<'a, str>>) -> Self {
         self.question = question.into();
         self
     }
+}
 
-    pub fn build(self) -> TextReplacements {
-        text_replacements! {
-            "documents" => self.input_documents.iter().map(|doc| doc.page_content.clone()).collect::<Vec<String>>().join("\n"),
-            "question" => self.question
-        }
+impl InputVariable for StuffQA<'_> {
+    fn text_replacements(&self) -> TextReplacements {
+        HashMap::from([
+            ("question", self.question.as_ref().into()),
+            (
+                "context",
+                self.input_documents
+                    .iter()
+                    .map(|doc| doc.page_content.as_str())
+                    .collect::<Vec<_>>()
+                    .join("\n")
+                    .into(),
+            ),
+        ])
     }
 }
 
-impl Default for StuffQABuilder {
+impl<'a> Default for StuffQA<'a> {
     fn default() -> Self {
         Self::new()
     }
-}
-
-pub(crate) fn load_stuff_qa<L: Into<Box<dyn LLM>>>(llm: L) -> StuffDocument {
-    let default_qa_prompt_template = MessageTemplate::from_jinja2(
-        MessageType::SystemMessage,
-        r#"
-        Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
-
-        {{context}}
-        
-        Question:{{question}}
-        Helpful Answer:
-        "#,
-    );
-
-    let llm_chain_builder = LLMChain::builder()
-        .prompt(default_qa_prompt_template)
-        .llm(llm)
-        .build()
-        .unwrap();
-
-    let llm_chain = llm_chain_builder;
-
-    StuffDocument::new(llm_chain)
 }
 
 #[cfg(test)]
@@ -171,7 +186,7 @@ mod tests {
     use indoc::indoc;
 
     use crate::{
-        chain::{Chain, StuffDocument, StuffQABuilder},
+        chain::{Chain, StuffDocument, StuffQA},
         llm::openai::OpenAI,
         schemas::Document,
     };
@@ -181,7 +196,7 @@ mod tests {
     async fn test_qa() {
         let llm = OpenAI::default();
         let chain = StuffDocument::load_stuff_qa(llm);
-        let mut input = StuffQABuilder::new()
+        let input = StuffQA::new()
             .documents(&[
                 Document::new(indoc! {"
                     Question: Which is the favorite text editor of luis
@@ -193,10 +208,9 @@ mod tests {
                 }),
             ])
             .question("How old is luis and whats his favorite text editor")
-            .build()
             .into();
 
-        let ouput = chain.invoke(&mut input).await.unwrap();
+        let ouput = chain.call(&input).await.unwrap().content;
 
         println!("{}", ouput);
     }

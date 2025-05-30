@@ -100,10 +100,10 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
 
         let prompt = create_prompt(system_prompt, initial_prompt);
-        let chain = Box::new(LLMChain::builder().prompt(prompt).llm(llm).build()?);
+        let llm_chain = LLMChain::builder().prompt(prompt).llm(llm).build()?;
 
         Ok(ConversationalAgent {
-            chain,
+            llm_chain,
             tools,
             toolboxes,
             instructor,

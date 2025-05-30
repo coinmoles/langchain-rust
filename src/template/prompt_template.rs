@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use super::MessageTemplate;
-use crate::schemas::{InputVariables, Message, Prompt};
+use crate::schemas::{InputVariable, Message, Prompt};
 use crate::template::TemplateError;
 
 #[derive(Clone)]
@@ -11,8 +11,20 @@ pub enum MessageOrTemplate {
     Placeholder(String),
 }
 
+impl From<Message> for MessageOrTemplate {
+    fn from(message: Message) -> Self {
+        MessageOrTemplate::Message(message)
+    }
+}
+
+impl From<MessageTemplate> for MessageOrTemplate {
+    fn from(template: MessageTemplate) -> Self {
+        MessageOrTemplate::Template(template)
+    }
+}
+
 pub struct PromptTemplate {
-    messages: Vec<MessageOrTemplate>,
+    pub(crate) messages: Vec<MessageOrTemplate>,
 }
 
 impl PromptTemplate {
@@ -22,32 +34,22 @@ impl PromptTemplate {
         }
     }
 
-    pub fn insert_message(&mut self, message: Message) {
-        self.messages.push(MessageOrTemplate::Message(message));
-    }
-
-    pub fn insert_template(&mut self, template: MessageTemplate) {
-        self.messages.push(MessageOrTemplate::Template(template));
-    }
-
-    pub fn insert_placeholder(&mut self, placeholder: String) {
-        self.messages
-            .push(MessageOrTemplate::Placeholder(placeholder));
-    }
-
     /// Insert variables into a prompt template to create a full-fletched prompt.
     ///
     /// replace_placeholder() must be called before format().
-    pub fn format(&self, input_variables: &InputVariables) -> Result<Prompt, TemplateError> {
+    pub fn format<'a>(&self, input: &impl InputVariable) -> Result<Prompt, TemplateError> {
+        let text_replacements = input.text_replacements();
+        let placeholder_replacements = input.placeholder_replacements();
+
         let messages = self
             .messages
             .iter()
             .flat_map(|m| -> Result<Vec<Message>, TemplateError> {
                 match m {
                     MessageOrTemplate::Message(m) => Ok(vec![m.clone()]),
-                    MessageOrTemplate::Template(t) => Ok(vec![t.format(input_variables)?]),
+                    MessageOrTemplate::Template(t) => Ok(vec![t.format(&text_replacements)?]),
                     MessageOrTemplate::Placeholder(p) => {
-                        match input_variables.get_placeholder_replacement(p) {
+                        match placeholder_replacements.get(p.as_str()) {
                             Some(messages) => Ok(messages.clone()),
                             None => Ok(vec![]),
                         }
@@ -61,17 +63,15 @@ impl PromptTemplate {
     }
 
     /// Returns a list of required input variable names for the template.
-    pub fn variables(&self) -> HashSet<String> {
-        let variables = self
-            .messages
+    pub fn variables(&self) -> HashSet<&str> {
+        self.messages
             .iter()
-            .flat_map(|m| match m {
-                MessageOrTemplate::Template(t) => t.variables(),
-                _ => HashSet::new(),
+            .filter_map(|m| match m {
+                MessageOrTemplate::Template(t) => Some(t.variables()),
+                _ => None,
             })
-            .collect();
-
-        variables
+            .flatten()
+            .collect()
     }
 
     pub fn placeholders(&self) -> HashSet<String> {
@@ -91,18 +91,6 @@ impl PromptTemplate {
 impl From<MessageTemplate> for PromptTemplate {
     fn from(template: MessageTemplate) -> Self {
         Self::new(vec![MessageOrTemplate::Template(template)])
-    }
-}
-
-impl From<Message> for MessageOrTemplate {
-    fn from(message: Message) -> Self {
-        MessageOrTemplate::Message(message)
-    }
-}
-
-impl From<MessageTemplate> for MessageOrTemplate {
-    fn from(template: MessageTemplate) -> Self {
-        MessageOrTemplate::Template(template)
     }
 }
 
