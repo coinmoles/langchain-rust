@@ -3,13 +3,14 @@ use quote::{format_ident, quote};
 use syn::{DeriveInput, parse_macro_input};
 
 use crate::{
-    attr::is_text_input_attr,
+    attr::{extract_serde_rename_all, is_text_input_attr},
     field::{generate_text_replacement, get_fields},
 };
 
 mod attr;
 mod check_type;
 mod field;
+mod rename;
 
 #[proc_macro_derive(ChainInput, attributes(input, serde))]
 pub fn derive_chain_input(input: TokenStream) -> TokenStream {
@@ -17,11 +18,12 @@ pub fn derive_chain_input(input: TokenStream) -> TokenStream {
 
     let struct_name = &input.ident;
     let fields = &get_fields(&input).named;
+    let rename_all = extract_serde_rename_all(&input.attrs);
 
     let text_fields = fields
         .iter()
         .filter(|f| f.attrs.iter().any(is_text_input_attr));
-    let text_replacements = text_fields.map(generate_text_replacement);
+    let text_replacements = text_fields.map(|f| generate_text_replacement(f, &rename_all));
 
     let expanded = quote! {
         impl ChainInput for #struct_name<'_> {

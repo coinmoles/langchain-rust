@@ -1,7 +1,11 @@
 use quote::quote;
 use syn::{Data, DeriveInput, Field, Fields, FieldsNamed};
 
-use crate::check_type::{extract_option_inner_type, is_cow_str_type, is_str_type, is_string_type};
+use crate::{
+    attr::extract_serde_rename,
+    check_type::{extract_option_inner_type, is_cow_str_type, is_str_type, is_string_type},
+    rename::RenameAll,
+};
 
 pub fn get_fields(input: &DeriveInput) -> &FieldsNamed {
     match &input.data {
@@ -35,9 +39,20 @@ fn generate_text_replacement_conversion(field: &Field) -> proc_macro2::TokenStre
     }
 }
 
-pub fn generate_text_replacement(field: &Field) -> proc_macro2::TokenStream {
-    let ident = field.ident.as_ref().unwrap();
-    let key = ident.to_string();
+pub fn generate_text_replacement(
+    field: &Field,
+    rename_all: &Option<RenameAll>,
+) -> proc_macro2::TokenStream {
+    let key = match extract_serde_rename(&field.attrs) {
+        Some(rename) => rename,
+        None => {
+            let ident = field.ident.as_ref().unwrap();
+            match rename_all {
+                Some(rename_all) => rename_all.apply(ident.to_string()),
+                None => ident.to_string(),
+            }
+        }
+    };
     let value = generate_text_replacement_conversion(field);
 
     quote! {
