@@ -1,5 +1,23 @@
 use syn::{GenericArgument, PathArguments, Type};
 
+pub fn extract_option_inner_type(ty: &Type) -> Option<&Type> {
+    let Type::Path(p) = ty else {
+        return None;
+    };
+    let last = p.path.segments.last()?;
+    if last.ident != "Option" {
+        return None;
+    }
+    let PathArguments::AngleBracketed(args) = &last.arguments else {
+        return None;
+    };
+    let Some(GenericArgument::Type(inner)) = args.args.first() else {
+        return None;
+    };
+
+    Some(inner)
+}
+
 pub fn is_str_type(ty: &Type) -> bool {
     let Type::Reference(r) = ty else {
         return false;
