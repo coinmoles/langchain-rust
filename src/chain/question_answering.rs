@@ -12,14 +12,11 @@ use indoc::indoc;
 
 use super::{ChainError, ChainImpl, LLMChain};
 
-pub struct CondenseQuestionPromptConstructor;
-impl ChainInputCtor for CondenseQuestionPromptConstructor {
-    type Target<'a> = CondenseQuestionPrompt<'a>;
-}
-
-#[derive(Clone)]
+#[derive(Clone, ChainInput, ChainInputCtor)]
 pub struct CondenseQuestionPrompt<'a> {
+    #[input(text)]
     chat_history: Cow<'a, str>,
+    #[input(text)]
     question: Cow<'a, str>,
 }
 
@@ -42,29 +39,20 @@ impl<'a> CondenseQuestionPrompt<'a> {
     }
 }
 
-impl ChainInput for CondenseQuestionPrompt<'_> {
-    fn text_replacements(&self) -> TextReplacements {
-        HashMap::from([
-            ("chat_history", self.chat_history.as_ref().into()),
-            ("question", self.question.as_ref().into()),
-        ])
-    }
-}
-
 impl<'a> Default for CondenseQuestionPrompt<'a> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-pub struct CondenseQuestionGeneratorChain<I = CondenseQuestionPromptConstructor>
+pub struct CondenseQuestionGeneratorChain<I = CondenseQuestionPromptCtor>
 where
     I: ChainInputCtor,
 {
     chain: LLMChain<I>,
 }
 
-impl CondenseQuestionGeneratorChain<CondenseQuestionPromptConstructor> {
+impl CondenseQuestionGeneratorChain<CondenseQuestionPromptCtor> {
     pub fn new<L: Into<Box<dyn LLM>>>(llm: L) -> Self {
         let condense_question_prompt_template = MessageTemplate::from_jinja2(
             MessageType::SystemMessage,
@@ -119,12 +107,7 @@ where
     }
 }
 
-pub struct StuffQACtor;
-impl ChainInputCtor for StuffQACtor {
-    type Target<'a> = StuffQA<'a>;
-}
-
-#[derive(Clone)]
+#[derive(Clone, ChainInputCtor)]
 pub struct StuffQA<'a> {
     input_documents: Vec<Document>,
     question: Cow<'a, str>,

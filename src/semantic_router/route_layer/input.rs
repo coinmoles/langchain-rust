@@ -1,23 +1,11 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::borrow::Cow;
 
-use crate::schemas::{ChainInput, ChainInputCtor, TextReplacements};
+use crate::schemas::{ChainInput, ChainInputCtor};
 
-pub struct RouteLayerInputCtor;
-impl ChainInputCtor for RouteLayerInputCtor {
-    type Target<'a> = RouteLayerInput<'a>;
-}
-
-#[derive(Clone)]
+#[derive(Clone, ChainInput, ChainInputCtor)]
 pub struct RouteLayerInput<'a> {
+    #[input(text)]
     pub description: Cow<'a, str>,
+    #[input(text)]
     pub query: Cow<'a, str>,
-}
-
-impl ChainInput for RouteLayerInput<'_> {
-    fn text_replacements(&self) -> TextReplacements {
-        HashMap::from([
-            ("description", self.description.as_ref().into()),
-            ("query", self.query.as_ref().into()),
-        ])
-    }
 }

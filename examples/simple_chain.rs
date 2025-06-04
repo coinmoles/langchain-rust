@@ -4,29 +4,18 @@ use langchain_rust::{
         openai::{OpenAI, OpenAIModel},
         OpenAIConfig,
     },
-    schemas::{ChainInput, ChainInputCtor, MessageType, TextReplacements},
+    schemas::{ChainInput, ChainInputCtor, MessageType},
     template::MessageTemplate,
 };
 use std::{
     borrow::Cow,
-    collections::HashMap,
     io::{self, Write},
 }; // Include io Library for terminal input
 
-pub struct ProductoInputCtor;
-impl ChainInputCtor for ProductoInputCtor {
-    type Target<'a> = ProductoInput<'a>;
-}
-
-#[derive(Clone)]
+#[derive(Clone, ChainInput, ChainInputCtor)]
 pub struct ProductoInput<'a> {
+    #[input(text)]
     pub producto: Cow<'a, str>,
-}
-
-impl ChainInput for ProductoInput<'_> {
-    fn text_replacements(&self) -> TextReplacements {
-        HashMap::from([("producto", self.producto.clone())])
-    }
 }
 
 #[tokio::main]

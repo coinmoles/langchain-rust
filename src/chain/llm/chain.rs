@@ -9,7 +9,7 @@ use crate::{
     chain::{ChainError, ChainImpl},
     language_models::llm::LLM,
     output_parsers::OutputParser,
-    schemas::{ChainInputCtor, LLMOutput, ChainOutput, Prompt, StreamData, WithUsage},
+    schemas::{ChainInputCtor, ChainOutput, LLMOutput, Prompt, StreamData, WithUsage},
     template::PromptTemplate,
 };
 
@@ -109,14 +109,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use async_openai::config::OpenAIConfig;
 
     use crate::{
+        chain::Chain,
         llm::openai::{OpenAI, OpenAIModel},
         prompt_template,
-        schemas::{ChainInput, MessageType, TextReplacements},
+        schemas::{ChainInput, MessageType},
         template::MessageTemplate,
     };
 
@@ -125,19 +124,11 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_invoke_chain() {
-        pub struct NombreInputCtor;
-        impl ChainInputCtor for NombreInputCtor {
-            type Target<'a> = NombreInput<'a>;
-        }
-
-        #[derive(Clone)]
+        #[derive(Clone, ChainInput, ChainInputCtor)]
+        #[allow(dead_code)]
         pub struct NombreInput<'a> {
+            #[input(text)]
             pub nombre: &'a str,
-        }
-        impl ChainInput for NombreInput<'_> {
-            fn text_replacements(&self) -> TextReplacements {
-                HashMap::from([("nombre", self.nombre.into())])
-            }
         }
 
         let input = NombreInput { nombre: "Juan" };
@@ -157,7 +148,7 @@ mod tests {
             .expect("Failed to build LLMChain");
 
         // Execute `chain.invoke` and assert that it should succeed
-        let result = chain.call_impl(Cow::Owned(input)).await;
+        let result = chain.call(&input).await;
         assert!(
             result.is_ok(),
             "Error invoking LLMChain: {:?}",

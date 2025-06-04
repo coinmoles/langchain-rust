@@ -1,3 +1,4 @@
+pub use macros::{ChainInput, ChainInputCtor};
 use std::{borrow::Cow, collections::HashMap};
 
 use crate::schemas::Message;
@@ -30,20 +31,10 @@ impl ChainInput for HashMap<&str, &str> {
     }
 }
 
-pub struct DefaultChainInputCtor;
-impl ChainInputCtor for DefaultChainInputCtor {
-    type Target<'a> = DefaultChainInput<'a>;
-}
-
-#[derive(Clone, Default)]
+#[derive(Clone, Default, ChainInput, ChainInputCtor)]
 pub struct DefaultChainInput<'a> {
+    #[input(text)]
     input: &'a str,
-}
-
-impl ChainInput for DefaultChainInput<'_> {
-    fn text_replacements(&self) -> TextReplacements {
-        HashMap::from([("input", self.input.into())])
-    }
 }
 
 impl<'a> DefaultChainInput<'a> {
