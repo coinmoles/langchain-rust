@@ -1,36 +1,44 @@
-use std::sync::Arc;
+use std::{fmt::Display, sync::Arc};
 
 use tokio::sync::RwLock;
 
 use crate::{
-    chain::{ChainError, LLMChain, DEFAULT_OUTPUT_KEY},
+    chain::{ChainError, LLMChain},
     language_models::llm::LLM,
     memory::{Memory, SimpleMemory},
     output_parsers::OutputParser,
-    schemas::MessageType,
+    schemas::{ChainInputCtor, MessageType, ChainOutput},
     template::{MessageTemplate, PromptTemplate},
 };
 
-use super::{prompt::DEFAULT_TEMPLATE, ConversationalChain, DEFAULT_INPUT_VARIABLE};
+use super::{prompt::DEFAULT_TEMPLATE, ConversationalChain};
 
-pub struct ConversationalChainBuilder<'a, 'b> {
+pub struct ConversationalChainBuilder<I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'a> I::Target<'a>: Display,
+{
     llm: Option<Box<dyn LLM>>,
     memory: Option<Arc<RwLock<dyn Memory>>>,
-    input_key: Option<&'a str>,
-    output_key: Option<&'b str>,
     output_parser: Option<Box<dyn OutputParser>>,
     prompt: Option<PromptTemplate>,
+    _phantom: std::marker::PhantomData<(I, O)>,
 }
 
-impl<'a, 'b> ConversationalChainBuilder<'a, 'b> {
+impl<I, O> ConversationalChainBuilder<I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'a> I::Target<'a>: Display,
+{
     pub(super) fn new() -> Self {
         Self {
             llm: None,
             memory: None,
-            input_key: None,
-            output_key: None,
             output_parser: None,
             prompt: None,
+            _phantom: std::marker::PhantomData,
         }
     }
 
@@ -41,16 +49,6 @@ impl<'a, 'b> ConversationalChainBuilder<'a, 'b> {
 
     pub fn memory(mut self, memory: Arc<RwLock<dyn Memory>>) -> Self {
         self.memory = Some(memory);
-        self
-    }
-
-    pub fn input_key(mut self, input_key: &'a (impl AsRef<str> + ?Sized)) -> Self {
-        self.input_key = Some(input_key.as_ref());
-        self
-    }
-
-    pub fn output_key(mut self, output_key: &'b (impl AsRef<str> + ?Sized)) -> Self {
-        self.output_key = Some(output_key.as_ref());
         self
     }
 
@@ -65,7 +63,7 @@ impl<'a, 'b> ConversationalChainBuilder<'a, 'b> {
         self
     }
 
-    pub fn build(self) -> Result<ConversationalChain, ChainError> {
+    pub fn build(self) -> Result<ConversationalChain<I, O>, ChainError> {
         let llm = self
             .llm
             .ok_or_else(|| ChainError::MissingObject("LLM must be set".into()))?;
@@ -76,9 +74,7 @@ impl<'a, 'b> ConversationalChainBuilder<'a, 'b> {
             }
         };
         let llm_chain = {
-            let b = self.output_key.unwrap_or(DEFAULT_OUTPUT_KEY);
-
-            let mut builder = LLMChain::builder().prompt(prompt).llm(llm).output_key(b);
+            let mut builder = LLMChain::builder().prompt(prompt).llm(llm);
 
             if let Some(output_parser) = self.output_parser {
                 builder = builder.output_parser(output_parser);
@@ -91,10 +87,6 @@ impl<'a, 'b> ConversationalChainBuilder<'a, 'b> {
             .memory
             .unwrap_or_else(|| Arc::new(RwLock::new(SimpleMemory::new())));
 
-        Ok(ConversationalChain {
-            llm: llm_chain,
-            memory,
-            input_key: self.input_key.unwrap_or(DEFAULT_INPUT_VARIABLE).into(),
-        })
+        Ok(ConversationalChain { llm_chain, memory })
     }
 }

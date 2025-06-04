@@ -4,11 +4,30 @@ use langchain_rust::{
         openai::{OpenAI, OpenAIModel},
         OpenAIConfig,
     },
-    schemas::MessageType,
+    schemas::{ChainInput, ChainInputCtor, MessageType, TextReplacements},
     template::MessageTemplate,
-    text_replacements,
 };
-use std::io::{self, Write}; // Include io Library for terminal input
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    io::{self, Write},
+}; // Include io Library for terminal input
+
+pub struct ProductoInputCtor;
+impl ChainInputCtor for ProductoInputCtor {
+    type Target<'a> = ProductoInput<'a>;
+}
+
+#[derive(Clone)]
+pub struct ProductoInput<'a> {
+    pub producto: Cow<'a, str>,
+}
+
+impl ChainInput for ProductoInput<'_> {
+    fn text_replacements(&self) -> TextReplacements {
+        HashMap::from([("producto", self.producto.clone())])
+    }
+}
 
 #[tokio::main]
 async fn main() {
@@ -18,7 +37,8 @@ async fn main() {
     );
 
     let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt35).build();
-    let chain = LLMChain::builder().prompt(prompt).llm(llm).build().unwrap();
+    let chain: LLMChain<ProductoInputCtor> =
+        LLMChain::builder().prompt(prompt).llm(llm).build().unwrap();
 
     print!("Please enter a product: ");
     io::stdout().flush().unwrap(); // Display prompt to terminal
@@ -29,9 +49,11 @@ async fn main() {
     let product = product.trim();
 
     let output = chain
-        .invoke(&mut text_replacements! { "producto" => product }.into()) // Use product input here
+        .call(&ProductoInput {
+            producto: product.into(),
+        }) // Use product input here
         .await
         .unwrap();
 
-    println!("Output: {}", output);
+    println!("Output: {}", output.content);
 }

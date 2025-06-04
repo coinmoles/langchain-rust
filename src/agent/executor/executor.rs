@@ -1,35 +1,43 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
-use std::error::Error;
+use std::fmt::Display;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use indoc::formatdoc;
 use tokio::sync::RwLock;
 
-use crate::agent::AgentError;
-use crate::schemas::Prompt;
+use crate::agent::{AgentError, AgentInput};
+use crate::chain::ChainImpl;
+use crate::schemas::{ChainInputCtor, ChainOutput, Prompt, WithUsage};
+use crate::utils::helper::normalize_tool_name;
 use crate::{
     agent::Agent,
-    chain::{Chain, ChainError},
+    chain::ChainError,
     memory::Memory,
-    schemas::{
-        agent_plan::AgentEvent, AgentResult, AgentStep, GenerateResult, GenerateResultContent,
-        InputVariables, Message, TokenUsage,
-    },
+    schemas::{agent_plan::AgentEvent, AgentStep, TokenUsage},
 };
 
 use super::ExecutorOptions;
 
-const FORCE_FINAL_ANSWER: &str = "Now it's time you MUST give your absolute best final answer. You'll ignore all previous instructions, stop using any tools, and just return your absolute BEST Final answer.";
-
-pub struct AgentExecutor<'a> {
-    agent: Box<dyn Agent + 'a>,
+pub struct AgentExecutor<'a, I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'b> I::Target<'b>: Display,
+{
+    agent: Box<dyn Agent<InputCtor = I, Output = O> + 'a>,
     memory: Option<Arc<RwLock<dyn Memory>>>,
     options: ExecutorOptions,
 }
 
-impl<'a> AgentExecutor<'a> {
-    pub fn from_agent(agent: impl Agent + 'a) -> Self {
+impl<'a, I, O> AgentExecutor<'a, I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'b> I::Target<'b>: Display,
+{
+    pub fn from_agent(agent: impl Agent<InputCtor = I, Output = O> + 'a) -> Self {
         Self {
             agent: Box::new(agent),
             memory: None,
@@ -46,33 +54,47 @@ impl<'a> AgentExecutor<'a> {
         self.options = options;
         self
     }
+
+    fn too_many_fails(&self, consecutive_fails: usize) -> Result<(), ChainError> {
+        if self
+            .options
+            .max_consecutive_fails
+            .is_some_and(|max_consecutive_fails| consecutive_fails >= max_consecutive_fails)
+        {
+            log::error!("Too many consecutive fails ({consecutive_fails} in a row), aborting");
+            return Err(ChainError::AgentError("Too many consecutive fails".into()));
+        }
+
+        Ok(())
+    }
 }
 
 #[async_trait]
-impl Chain for AgentExecutor<'_> {
-    async fn call(
+impl<I, O> ChainImpl for AgentExecutor<'_, I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'b> I::Target<'b>: Display,
+{
+    type InputCtor = I;
+    type Output = O;
+
+    async fn call_impl<'i>(
         &self,
-        input_variables: &mut InputVariables,
-    ) -> Result<GenerateResult, ChainError> {
+        input: Cow<'i, I::Target<'i>>,
+    ) -> Result<WithUsage<O>, ChainError> {
+        let human_message = input.to_string();
+
         let options = &self.options;
 
         let mut steps: Vec<AgentStep> = Vec::new();
         let mut use_counts: HashMap<String, usize> = HashMap::new();
         let mut consecutive_fails: usize = 0;
         let mut total_usage: Option<TokenUsage> = None;
-
-        if let Some(memory) = &self.memory {
-            let memory = memory.read().await;
-            input_variables.insert_placeholder_replacement("chat_history", memory.messages());
-        // TODO: Possibly implement messages parsing
-        } else {
-            input_variables.insert_placeholder_replacement("chat_history", vec![]);
-        }
+        let mut input = AgentInput::new(input);
 
         {
-            let mut input_variables_demo = input_variables.clone();
-            input_variables_demo.insert_placeholder_replacement("agent_scratchpad", vec![]);
-            let prompt = self.get_prompt(&input_variables_demo).map_err(|e| {
+            let prompt = self.agent.get_prompt(input.clone()).map_err(|e| {
                 ChainError::AgentError(format!("Error formatting initial messages: {e}"))
             })?;
             for message in prompt.to_messages() {
@@ -84,53 +106,43 @@ impl Chain for AgentExecutor<'_> {
             }
         }
 
+        if let Some(memory) = &self.memory {
+            input.set_chat_history(memory.read().await.messages());
+            // TODO: Possibly implement messages parsing
+        }
+
         'step: loop {
-            if options
-                .max_consecutive_fails
-                .is_some_and(|max_consecutive_fails| consecutive_fails >= max_consecutive_fails)
-            {
-                log::error!(
-                    "Too many consecutive fails ({} in a row), aborting",
-                    consecutive_fails
-                );
-                return Err(ChainError::AgentError("Too many consecutive fails".into()));
-            }
+            self.too_many_fails(consecutive_fails)?;
 
-            let AgentResult { content, usage } =
-                match self.agent.plan(&steps, input_variables).await {
-                    Ok(agent_event) => agent_event,
-                    Err(e) => {
-                        consecutive_fails += 1;
-                        log::warn!("Error: {} ({} consecutive fails)", e, consecutive_fails);
-                        continue 'step;
-                    }
-                };
+            let WithUsage { content, usage } = match self.agent.plan(&steps, &mut input).await {
+                Ok(agent_event) => agent_event,
+                Err(e) => {
+                    consecutive_fails += 1;
+                    log::warn!("Error: {} ({} consecutive fails)", e, consecutive_fails);
+                    continue 'step;
+                }
+            };
 
-            total_usage = TokenUsage::merge_options(total_usage, usage);
+            total_usage = TokenUsage::merge_options([&total_usage, &usage]);
 
             match content {
                 AgentEvent::Action(tool_calls) => {
-                    if let Some(max_iterations) = options.max_iterations {
-                        if steps.len() >= max_iterations {
-                            log::warn!(
-                                "Max iteration ({}) reached, forcing final answer",
-                                max_iterations
-                            );
-                            input_variables.insert_placeholder_replacement(
-                                "ultimatum",
-                                vec![
-                                    Message::new_ai_message(""),
-                                    Message::new_human_message(FORCE_FINAL_ANSWER),
-                                ],
-                            );
-                            continue 'step;
-                        }
+                    if options
+                        .max_iterations
+                        .is_some_and(|max_iterations| steps.len() >= max_iterations)
+                    {
+                        log::warn!(
+                            "Max iteration ({}) reached, forcing final answer",
+                            steps.len()
+                        );
+                        input.enable_ultimatum();
+                        continue 'step;
                     }
 
                     for tool_call in tool_calls {
-                        log::debug!("\nTool call:\n{}", tool_call);
+                        log::debug!("\nTool call:\n{tool_call}");
 
-                        let tool_name = tool_call.name.to_lowercase().replace(" ", "_");
+                        let tool_name = normalize_tool_name(&tool_call.name);
                         let Some(tool) = self.agent.get_tool(&tool_name) else {
                             consecutive_fails += 1;
                             log::warn!(
@@ -177,7 +189,7 @@ impl Chain for AgentExecutor<'_> {
                             }
                         };
 
-                        log::debug!("\nTool {} result:\n{result}", &tool_call.name);
+                        log::debug!("\nTool {} result:\n{}", &tool_call.name, result);
 
                         let agent_step = AgentStep::new(tool_call, result);
 
@@ -200,12 +212,7 @@ impl Chain for AgentExecutor<'_> {
                     if let Some(memory) = &self.memory {
                         let mut memory = memory.write().await;
 
-                        memory.add_human_message(
-                            input_variables
-                                .get_text_replacement("input")
-                                .cloned()
-                                .unwrap_or_default(),
-                        );
+                        memory.add_human_message(human_message);
 
                         for step in steps {
                             memory.add_tool_call_message(vec![step.tool_call.clone()]);
@@ -220,16 +227,17 @@ impl Chain for AgentExecutor<'_> {
 
                     log::debug!("\nAgent finished with result:\n{}", &final_answer);
 
-                    return Ok(GenerateResult {
-                        content: GenerateResultContent::Text(final_answer),
-                        usage: total_usage,
-                    });
+                    todo!();
+
+                    // let final_answer: O = O::new();
+
+                    // return Ok(final_answer.with_usage(total_usage));
                 }
             }
         }
     }
 
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>> {
-        self.agent.get_prompt(inputs)
+    fn get_prompt_impl<'i>(&self, input: Cow<'i, I::Target<'i>>) -> Result<Prompt, ChainError> {
+        self.agent.get_prompt(AgentInput::new(input))
     }
 }

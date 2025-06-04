@@ -3,9 +3,8 @@ use std::process::{Command, Stdio};
 
 use indoc::indoc;
 use langchain_rust::chain::{Chain, LLMChain};
-use langchain_rust::{
-    llm::openai::OpenAI, schemas::MessageType, template::MessageTemplate, text_replacements,
-};
+use langchain_rust::schemas::{DefaultChainInput, DefaultChainInputCtor};
+use langchain_rust::{llm::openai::OpenAI, schemas::MessageType, template::MessageTemplate};
 
 //to try this in action , add something to this file stage it an run it
 #[tokio::main]
@@ -23,7 +22,7 @@ async fn main() -> io::Result<()> {
     );
 
     let llm = OpenAI::default();
-    let chain = LLMChain::builder()
+    let chain: LLMChain<DefaultChainInputCtor> = LLMChain::builder()
         .prompt(prompt)
         .llm(llm)
         .build()
@@ -50,15 +49,10 @@ git diff --cached --name-only --diff-filter=ACM | while read -r file; do echo "\
         .join("\n");
 
     let res = chain
-        .invoke(
-            &mut text_replacements! {
-                "input" => complete_changes,
-            }
-            .into(),
-        )
+        .call(&DefaultChainInput::new(&complete_changes))
         .await
         .expect("Failed to invoke chain");
 
-    println!("{}", res);
+    println!("{}", res.content);
     Ok(())
 }

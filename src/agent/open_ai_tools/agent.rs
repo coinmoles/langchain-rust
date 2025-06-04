@@ -1,14 +1,20 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, error::Error};
+use std::collections::HashMap;
+use std::fmt::Display;
 
-use crate::schemas::{AgentResult, AgentStep, GenerateResultContent, Prompt};
+use crate::agent::{AgentInput, AgentInputCtor};
+use crate::chain::{ChainError, LLMChain};
+use crate::schemas::{
+    AgentStep, DefaultChainInputCtor, ChainInputCtor, IntoWithUsage, LLMOutput, ChainOutput,
+    Prompt, WithUsage,
+};
 use crate::tools::Toolbox;
 use crate::{
     agent::{Agent, AgentError},
     chain::Chain,
     language_models::LLMError,
-    schemas::{agent_plan::AgentEvent, InputVariables, Message},
+    schemas::{agent_plan::AgentEvent, Message},
     tools::Tool,
 };
 
@@ -21,14 +27,24 @@ pub struct LogTools {
     pub tools: String,
 }
 
-pub struct OpenAiToolAgent {
-    pub(super) chain: Box<dyn Chain>,
+pub struct OpenAiToolAgent<I = DefaultChainInputCtor, O = String>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'a> I::Target<'a>: Display,
+{
+    pub(super) llm_chain: LLMChain<AgentInputCtor<I>, O>,
     pub(super) tools: HashMap<String, Box<dyn Tool>>,
     pub(super) toolboxes: Vec<Box<dyn Toolbox>>,
 }
 
-impl OpenAiToolAgent {
-    pub fn builder<'a, 'b>() -> OpenAiToolAgentBuilder<'a, 'b> {
+impl<I, O> OpenAiToolAgent<I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'a> I::Target<'a>: Display,
+{
+    pub fn builder<'a, 'b>() -> OpenAiToolAgentBuilder<'a, 'b, I, O> {
         OpenAiToolAgentBuilder::new()
     }
 
@@ -46,20 +62,28 @@ impl OpenAiToolAgent {
 }
 
 #[async_trait]
-impl Agent for OpenAiToolAgent {
-    async fn plan(
+impl<I, O> Agent for OpenAiToolAgent<I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'a> I::Target<'a>: Display,
+{
+    type InputCtor = I;
+    type Output = O;
+
+    async fn plan<'i>(
         &self,
         steps: &[AgentStep],
-        inputs: &mut InputVariables,
-    ) -> Result<AgentResult, AgentError> {
+        input: &mut AgentInput<'i, I::Target<'i>>,
+    ) -> Result<WithUsage<AgentEvent>, AgentError> {
         let scratchpad = self.construct_scratchpad(steps);
-        inputs.insert_placeholder_replacement("agent_scratchpad", scratchpad);
-        let output = self.chain.call(inputs).await?;
+        input.set_agent_scratchpad(scratchpad);
+        let output = self.llm_chain.call_llm(input).await?;
 
         let content = match output.content {
-            GenerateResultContent::Text(text) => AgentEvent::Finish(text),
-            GenerateResultContent::ToolCall(tool_calls) => AgentEvent::Action(tool_calls),
-            GenerateResultContent::Refusal(refusal) => {
+            LLMOutput::Text(text) => AgentEvent::Finish(text),
+            LLMOutput::ToolCall(tool_calls) => AgentEvent::Action(tool_calls),
+            LLMOutput::Refusal(refusal) => {
                 return Err(AgentError::LLMError(LLMError::OtherError(format!(
                     "LLM refused to answer: {refusal}"
                 ))));
@@ -67,7 +91,7 @@ impl Agent for OpenAiToolAgent {
         };
         let usage = output.usage;
 
-        Ok(AgentResult { content, usage })
+        Ok(content.with_usage(usage))
     }
 
     fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool> {
@@ -84,7 +108,10 @@ impl Agent for OpenAiToolAgent {
         None
     }
 
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>> {
-        self.chain.get_prompt(inputs)
+    fn get_prompt<'i>(
+        &self,
+        input: AgentInput<'i, <Self::InputCtor as ChainInputCtor>::Target<'i>>,
+    ) -> Result<Prompt, ChainError> {
+        self.llm_chain.get_prompt_owned(input)
     }
 }

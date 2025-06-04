@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::schemas::{InputVariables, Message, MessageType};
+use crate::schemas::{Message, MessageType, TextReplacements};
 use crate::template::TemplateError;
 
 #[derive(Clone)]
@@ -56,17 +56,12 @@ impl MessageTemplate {
         Self::new(message_type, content, variables, TemplateFormat::Jinja2)
     }
 
-    pub fn format(&self, input_variables: &InputVariables) -> Result<Message, TemplateError> {
+    pub fn format(&self, input: &TextReplacements) -> Result<Message, TemplateError> {
+        self.validate_input(input)?;
+
         let mut content = self.template.clone();
 
-        // check if all variables are in the input variables
-        for key in &self.variables {
-            if !input_variables.contains_text_key(key.as_str()) {
-                return Err(TemplateError::MissingVariable(key.clone()));
-            }
-        }
-
-        for (key, value) in input_variables.iter_test_replacements() {
+        for (key, value) in input {
             let key = match self.format {
                 TemplateFormat::FString => format!("{{{key}}}"),
                 TemplateFormat::Jinja2 => format!("{{{{{key}}}}}"),
@@ -78,14 +73,28 @@ impl MessageTemplate {
     }
 
     /// Returns a list of required input variable names for the template.
-    pub fn variables(&self) -> HashSet<String> {
-        self.variables.clone()
+    pub fn variables(&self) -> HashSet<&str> {
+        self.variables.iter().map(String::as_str).collect()
+    }
+
+    pub fn validate_input(&self, input: &TextReplacements) -> Result<(), TemplateError> {
+        let missing_variables = self
+            .variables()
+            .difference(&input.keys().cloned().collect())
+            .cloned()
+            .collect::<Vec<_>>();
+
+        if !missing_variables.is_empty() {
+            return Err(TemplateError::MissingVariable(missing_variables.join(", ")));
+        }
+
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::text_replacements;
+    use std::collections::HashMap;
 
     use super::*;
 
@@ -94,12 +103,9 @@ mod tests {
         let template =
             MessageTemplate::from_fstring(MessageType::AIMessage, "Hello {name}, how are you?");
 
-        let input_variables = text_replacements! {
-            "name" => "Alice"
-        }
-        .into();
+        let input = HashMap::from([("name", "Alice".into())]);
 
-        let message = template.format(&input_variables).unwrap();
+        let message = template.format(&input).unwrap();
         assert_eq!(message.content, "Hello Alice, how are you?");
     }
 
@@ -108,10 +114,7 @@ mod tests {
         let template =
             MessageTemplate::from_jinja2(MessageType::AIMessage, "Hello {{name}}, how are you?");
 
-        let input_variables = text_replacements! {
-            "name" => "Alice"
-        }
-        .into();
+        let input_variables = HashMap::from([("name", "Alice".into())]);
 
         let message = template.format(&input_variables).unwrap();
         assert_eq!(message.content, "Hello Alice, how are you?");
@@ -124,10 +127,7 @@ mod tests {
             "Hello {{name}}, how are you? Nice to meet you {{name}}!",
         );
 
-        let input_variables = text_replacements! {
-            "name" => "Alice"
-        }
-        .into();
+        let input_variables = HashMap::from([("name", "Alice".into())]);
 
         let message = template.format(&input_variables).unwrap();
         assert_eq!(

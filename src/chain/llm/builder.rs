@@ -2,25 +2,34 @@ use crate::{
     chain::ChainError,
     language_models::llm::LLM,
     output_parsers::{OutputParser, SimpleParser},
+    schemas::{ChainInputCtor, ChainOutput},
     template::PromptTemplate,
 };
 
 use super::LLMChain;
 
-pub struct LLMChainBuilder<'b> {
+pub struct LLMChainBuilder<I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+{
     prompt: Option<PromptTemplate>,
     llm: Option<Box<dyn LLM>>,
-    output_key: Option<&'b str>,
     output_parser: Option<Box<dyn OutputParser>>,
+    _phantom: std::marker::PhantomData<(I, O)>,
 }
 
-impl<'b> LLMChainBuilder<'b> {
+impl<I, O> LLMChainBuilder<I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+{
     pub(super) fn new() -> Self {
         Self {
             prompt: None,
             llm: None,
-            output_key: None,
             output_parser: None,
+            _phantom: std::marker::PhantomData,
         }
     }
 
@@ -34,17 +43,12 @@ impl<'b> LLMChainBuilder<'b> {
         self
     }
 
-    pub fn output_key(mut self, output_key: &'b (impl AsRef<str> + ?Sized)) -> Self {
-        self.output_key = Some(output_key.as_ref());
-        self
-    }
-
     pub fn output_parser<P: Into<Box<dyn OutputParser>>>(mut self, output_parser: P) -> Self {
         self.output_parser = Some(output_parser.into());
         self
     }
 
-    pub fn build(self) -> Result<LLMChain, ChainError> {
+    pub fn build(self) -> Result<LLMChain<I, O>, ChainError> {
         let prompt = self
             .prompt
             .ok_or_else(|| ChainError::MissingObject("Prompt must be set".into()))?;
@@ -59,6 +63,7 @@ impl<'b> LLMChainBuilder<'b> {
             output_parser: self
                 .output_parser
                 .unwrap_or_else(|| Box::new(SimpleParser::default())),
+            _phantom: std::marker::PhantomData,
         };
 
         Ok(chain)

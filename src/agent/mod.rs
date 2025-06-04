@@ -5,6 +5,9 @@ pub use agent::*;
 mod executor;
 pub use executor::*;
 
+mod agent_input;
+pub use agent_input::*;
+
 mod chat;
 pub use chat::*;
 

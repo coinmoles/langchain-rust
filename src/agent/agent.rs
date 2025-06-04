@@ -1,29 +1,37 @@
-use std::error::Error;
+use std::fmt::Display;
 
 use async_trait::async_trait;
 
 use crate::{
-    schemas::{AgentResult, AgentStep, InputVariables, Prompt},
+    chain::ChainError,
+    schemas::{AgentEvent, AgentStep, ChainInputCtor, ChainOutput, Prompt, WithUsage},
     tools::Tool,
 };
 
-use super::{AgentError, AgentExecutor};
+use super::{AgentError, AgentExecutor, AgentInput};
 
 #[async_trait]
 pub trait Agent: Send + Sync {
-    async fn plan(
+    type InputCtor: ChainInputCtor;
+    type Output: ChainOutput;
+
+    async fn plan<'i>(
         &self,
         steps: &[AgentStep],
-        inputs: &mut InputVariables,
-    ) -> Result<AgentResult, AgentError>;
+        input: &mut AgentInput<'i, <Self::InputCtor as ChainInputCtor>::Target<'i>>,
+    ) -> Result<WithUsage<AgentEvent>, AgentError>;
 
     fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool>;
 
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>>;
+    fn get_prompt<'i>(
+        &self,
+        input: AgentInput<'i, <Self::InputCtor as ChainInputCtor>::Target<'i>>,
+    ) -> Result<Prompt, ChainError>;
 
-    fn executor<'a>(self) -> AgentExecutor<'a>
+    fn executor<'a>(self) -> AgentExecutor<'a, Self::InputCtor, Self::Output>
     where
         Self: Sized + 'a,
+        for<'b> <Self::InputCtor as ChainInputCtor>::Target<'b>: Display,
     {
         AgentExecutor::from_agent(self)
     }

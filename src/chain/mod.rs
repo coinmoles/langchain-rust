@@ -8,8 +8,8 @@ pub use conversational::*;
 pub use llm::*;
 pub mod llm;
 
-// mod sequential;
-// pub use sequential::*;
+mod sequential;
+pub use sequential::*;
 
 pub mod sql_database;
 pub use sql_database::*;

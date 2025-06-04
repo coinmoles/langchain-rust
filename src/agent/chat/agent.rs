@@ -1,25 +1,52 @@
-use std::{collections::HashMap, error::Error, sync::Arc};
+use std::{collections::HashMap, fmt::Display, sync::Arc};
 
 use async_trait::async_trait;
 
 use crate::{
-    agent::{instructor::Instructor, Agent, AgentError},
-    chain::Chain,
-    schemas::{AgentResult, AgentStep, InputVariables, Message, Prompt},
+    agent::{instructor::Instructor, Agent, AgentError, AgentInput, AgentInputCtor},
+    chain::{Chain, ChainError, LLMChain},
+    schemas::{
+        AgentEvent, AgentStep, DefaultChainInputCtor, ChainInputCtor, IntoWithUsage, Message,
+        ChainOutput, Prompt, WithUsage,
+    },
     tools::{Tool, Toolbox},
 };
 
 use super::ConversationalAgentBuilder;
 
-pub struct ConversationalAgent {
-    pub(super) chain: Box<dyn Chain>,
+pub struct ConversationalAgent<I = DefaultChainInputCtor, O = String>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'a> I::Target<'a>: Display,
+{
+    pub(super) llm_chain: LLMChain<AgentInputCtor<I>, O>,
     pub(super) tools: HashMap<String, Box<dyn Tool>>,
     pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
     pub(super) instructor: Box<dyn Instructor>,
 }
 
-impl ConversationalAgent {
-    pub fn builder<'a, 'b>() -> ConversationalAgentBuilder<'a, 'b> {
+impl<I, O> ConversationalAgent<I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'a> I::Target<'a>: Display,
+{
+    pub fn new(
+        llm_chain: LLMChain<AgentInputCtor<I>, O>,
+        tools: HashMap<String, Box<dyn Tool>>,
+        toolboxes: Vec<Arc<dyn Toolbox>>,
+        instructor: Box<dyn Instructor>,
+    ) -> Self {
+        Self {
+            llm_chain,
+            tools,
+            toolboxes,
+            instructor,
+        }
+    }
+
+    pub fn builder<'a, 'b>() -> ConversationalAgentBuilder<'a, 'b, I, O> {
         ConversationalAgentBuilder::new()
     }
 
@@ -37,20 +64,27 @@ impl ConversationalAgent {
 }
 
 #[async_trait]
-impl Agent for ConversationalAgent {
-    async fn plan(
-        &self,
-        intermediate_steps: &[AgentStep],
-        inputs: &mut InputVariables,
-    ) -> Result<AgentResult, AgentError> {
-        let scratchpad = self.construct_scratchpad(intermediate_steps);
-        inputs.insert_placeholder_replacement("agent_scratchpad", scratchpad);
-        let output = self.chain.call(inputs).await?;
+impl<I, O> Agent for ConversationalAgent<I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'a> I::Target<'a>: Display,
+{
+    type InputCtor = I;
+    type Output = O;
 
-        let content = self.instructor.parse_output(output.content.text())?;
+    async fn plan<'i>(
+        &self,
+        steps: &[AgentStep],
+        input: &mut AgentInput<'i, I::Target<'i>>,
+    ) -> Result<WithUsage<AgentEvent>, AgentError> {
+        input.set_agent_scratchpad(self.construct_scratchpad(steps));
+        let output = self.llm_chain.call_llm(input).await?;
+
+        let content = self.instructor.parse_output(&output.content.into_text()?)?;
         let usage = output.usage;
 
-        Ok(AgentResult { content, usage })
+        Ok(content.with_usage(usage))
     }
 
     fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool> {
@@ -67,8 +101,11 @@ impl Agent for ConversationalAgent {
         None
     }
 
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>> {
-        self.chain.get_prompt(inputs)
+    fn get_prompt<'i>(
+        &self,
+        input: AgentInput<'i, <Self::InputCtor as ChainInputCtor>::Target<'i>>,
+    ) -> Result<Prompt, ChainError> {
+        self.llm_chain.get_prompt_owned(input)
     }
 }
 
@@ -81,12 +118,11 @@ mod tests {
     use serde_json::Value;
 
     use crate::{
-        agent::{chat::builder::ConversationalAgentBuilder, Agent},
+        agent::{Agent, ConversationalAgent},
         chain::Chain,
         llm::openai::{OpenAI, OpenAIModel},
         memory::SimpleMemory,
-        schemas::InputVariables,
-        text_replacements,
+        schemas::DefaultChainInput,
         tools::ToolFunction,
     };
 
@@ -120,29 +156,26 @@ mod tests {
             .build();
         let memory = SimpleMemory::new();
         let tool_calc = Calc::default();
-        let agent = ConversationalAgentBuilder::new()
+        let agent: ConversationalAgent = ConversationalAgent::builder()
             .tools([tool_calc])
             .build(llm)
             .await
             .unwrap();
-        let mut input_variables: InputVariables = text_replacements! {
-            "input" => "hola,Me llamo luis, y tengo 10 anos, y estudio Computer scinence",
-        }
-        .into();
+        let input = DefaultChainInput::new(
+            "hola,Me llamo luis, y tengo 10 anos, y estudio Computer scinence",
+        );
         let executor = agent.executor().with_memory(memory.into());
-        match executor.invoke(&mut input_variables).await {
+        match executor.call(&input).await {
             Ok(result) => {
-                println!("Result: {:?}", result);
+                println!("Result: {:?}", result.content);
             }
             Err(e) => panic!("Error invoking LLMChain: {:?}", e),
         }
-        let mut input_variables: InputVariables = text_replacements! {
-            "input" => "cuanta es la edad de luis +10 y que estudia",
-        }
-        .into();
-        match executor.invoke(&mut input_variables).await {
+
+        let input = DefaultChainInput::new("cuanta es la edad de luis +10 y que estudia");
+        match executor.call(&input).await {
             Ok(result) => {
-                println!("Result: {:?}", result);
+                println!("Result: {:?}", result.content);
             }
             Err(e) => panic!("Error invoking LLMChain: {:?}", e),
         }

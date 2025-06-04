@@ -1,157 +1,139 @@
-use std::{
-    collections::{HashMap, HashSet},
-    error::Error,
-};
+use std::borrow::Cow;
 
 use async_trait::async_trait;
-use serde_json::{json, Value};
 
 use crate::{
-    chain::{Chain, ChainError, DEFAULT_OUTPUT_KEY, DEFAULT_RESULT_KEY},
+    chain::{Chain, ChainError, ChainImpl},
     schemas::{
-        InputVariables, {GenerateResult, TokenUsage},
+        ChainInputCtor, ChainOutput, IntoWithUsage, OutputTrace, Prompt, TokenUsage, WithUsage,
     },
 };
 
-//THIS IS EXPERIMENTAL
-pub struct SequentialChain {
-    pub(crate) chains: Vec<Box<dyn Chain>>,
-    pub(crate) input_keys: HashSet<String>,
-    pub(crate) outputs: HashSet<String>,
+pub struct SequentialChain<'a, I, M1, M2, O>
+where
+    I: ChainInputCtor,
+    M1: ChainOutput,
+    for<'b> M2: ChainInputCtor<Target<'b> = M1>,
+    O: ChainOutput,
+{
+    pub first: Box<dyn Chain<InputCtor = I, Output = M1> + 'a>,
+    pub second: Box<dyn Chain<InputCtor = M2, Output = O> + 'a>,
 }
 
 #[async_trait]
-impl Chain for SequentialChain {
-    async fn call(
+impl<I, M1, M2, O> ChainImpl for SequentialChain<'_, I, M1, M2, O>
+where
+    I: ChainInputCtor,
+    M1: ChainOutput,
+    for<'a> M2: ChainInputCtor<Target<'a> = M1>,
+    O: ChainOutput,
+{
+    type InputCtor = I;
+    type Output = O;
+
+    async fn call_impl<'i>(
         &self,
-        input_variables: &mut InputVariables,
-    ) -> Result<GenerateResult, ChainError> {
-        let output = self.execute(input_variables).await?;
-        let result = output
-            .get(DEFAULT_RESULT_KEY)
-            .ok_or_else(|| ChainError::MissingInputVariable(DEFAULT_RESULT_KEY.to_string()))?
-            .clone();
-        let result: GenerateResult = serde_json::from_value(result)?;
+        input: Cow<'i, I::Target<'i>>,
+    ) -> Result<WithUsage<Self::Output>, ChainError> {
+        let result1 = self.first.call_impl(input).await?;
+        let result2 = self.second.call(&result1.content).await?;
+
+        let usage = TokenUsage::merge_options([&result1.usage, &result2.usage]);
+        Ok(result2.content.with_usage(usage))
+    }
+
+    async fn call_with_trace_impl<'i>(
+        &self,
+        input: Cow<'i, I::Target<'i>>,
+    ) -> Result<OutputTrace<Self::Output>, ChainError> {
+        let result1 = self.first.call_with_trace_impl(input).await?;
+        let result2 = self
+            .second
+            .call_with_trace(&result1.final_step.content)
+            .await?;
+
+        let result = result1.extend(result2)?;
+
         Ok(result)
     }
 
-    async fn invoke(&self, input_variables: &mut InputVariables) -> Result<String, ChainError> {
-        self.call(input_variables)
-            .await
-            .map(|result| result.content.text().into())
+    fn get_prompt_impl<'i>(&self, input: Cow<'i, I::Target<'i>>) -> Result<Prompt, ChainError> {
+        self.first.get_prompt_impl(input)
     }
+}
 
-    fn get_input_keys(&self) -> HashSet<String> {
-        self.outputs.iter().cloned().collect()
-    }
-
-    async fn execute(
-        &self,
-        input_variables: &mut InputVariables,
-    ) -> Result<HashMap<String, Value>, ChainError> {
-        let mut final_token_usage: Option<TokenUsage> = None;
-        let mut output_result = HashMap::new();
-        let mut final_result = GenerateResult::default();
-        for chain in self.chains.iter() {
-            let output = chain.execute(input_variables).await?;
-            //Get the oput key for the chain result
-            let output_key = chain
-                .get_output_keys()
-                .first()
-                .unwrap_or(&DEFAULT_OUTPUT_KEY.to_string())
-                .clone();
-            //Get the ouput complete result
-            let result = output
-                .get(DEFAULT_RESULT_KEY)
-                .unwrap_or(&json!(GenerateResult::default()))
-                .clone();
-            let result: GenerateResult = serde_json::from_value(result)?;
-            //Insert the output chain to the final output
-            output_result.insert(output_key.clone(), json!(result.generation.clone()));
-            input_variables.insert_text_replacement(&output_key, result.generation.clone());
-
-            //add the generation to keep track of the final generation
-            final_result.generation = result.generation;
-            //Add to the token if it exist
-            if let Some(token) = &result.usage {
-                match final_token_usage {
-                    Some(token_usage) => {
-                        final_token_usage = Some(token_usage.sum(token));
-                    }
-                    None => {
-                        final_token_usage = Some(token.clone());
-                    }
-                }
-            }
+#[macro_export]
+macro_rules! sequential_chain {
+    ( $( $chain:expr ),* $(,)? ) => {
+        {
+            let chain = $crate::chain::SequentialChainBuilder::new();
+            $(
+                let chain = $crate::chain::AddChain::add_chain(chain, $chain);
+            )*
+            chain
         }
-
-        //add the filan token count to the result
-        final_result.usage = final_token_usage;
-        output_result.insert(DEFAULT_RESULT_KEY.to_string(), json!(final_result));
-        Ok(output_result)
-    }
-
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>> {
-        self.chains
-            .iter()
-            .map(|chain| chain.get_prompt(inputs))
-            .collect::<Result<Vec<_>, _>>()
-    }
+    };
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        chain::{Chain, LLMChainBuilder},
-        llm::openai::OpenAI,
-        schemas::MessageType,
-        sequential_chain,
-        template::MessageTemplate,
-        text_replacements,
-    };
+    // use crate::{
+    //     chain::{LLMChain, LLMChainBuilder},
+    //     llm::openai::OpenAI,
+    //     schemas::{ChainInput, MessageType, TextReplacements},
+    //     sequential_chain,
+    //     template::MessageTemplate,
+    // };
 
-    #[tokio::test]
-    #[ignore]
-    async fn test_sequential() {
-        let llm = OpenAI::default();
-        let chain1 = LLMChainBuilder::new()
-            .prompt(MessageTemplate::from_fstring(
-                MessageType::HumanMessage,
-                "dame un nombre para una tienda de {input}",
-            ))
-            .llm(llm.clone())
-            .output_key("nombre")
-            .build()
-            .expect("Failed to build LLMChain");
+    // #[tokio::test]
+    // #[ignore]
+    // async fn test_sequential() {
+    //     struct FirstInput<'a> {
+    //         input: &'a str,
+    //     }
+    //     impl InputVariable for FirstInput<'_> {
+    //         fn text_replacements(&self) -> TextReplacements {
+    //             std::collections::HashMap::from([("input", self.input.into())])
+    //         }
+    //     }
 
-        let chain2 = LLMChainBuilder::new()
-            .prompt(MessageTemplate::from_fstring(
-                MessageType::HumanMessage,
-                "dame un slogan para una tienda llamada {nombre},tiene que incluir la palabra {palabra}",
-            ))
-            .llm(llm.clone())
-            .output_key("slogan")
-            .build()
-            .expect("Failed to build LLMChain");
+    //     let llm = OpenAI::default();
+    //     let chain1 = LLMChain::builder()
+    //         .prompt(MessageTemplate::from_fstring(
+    //             MessageType::HumanMessage,
+    //             "dame un nombre para una tienda de {input}",
+    //         ))
+    //         .llm(llm.clone())
+    //         .build()
+    //         .expect("Failed to build LLMChain");
 
-        let chain = sequential_chain!(chain1, chain2);
-        let result = chain
-            .execute(
-                &mut text_replacements! {
-                    "input" => "medias",
-                    "palabra" => "arroz"
-                }
-                .into(),
-            )
-            .await;
-        assert!(
-            result.is_ok(),
-            "Expected `chain.call` to succeed, but it failed with error: {:?}",
-            result.err()
-        );
+    //     let chain2 = LLMChain::builder()
+    //         .prompt(MessageTemplate::from_fstring(
+    //             MessageType::HumanMessage,
+    //             "dame un slogan para una tienda llamada {nombre},tiene que incluir la palabra {palabra}",
+    //         ))
+    //         .llm(llm.clone())
+    //         .build()
+    //         .expect("Failed to build LLMChain");
 
-        if let Ok(output) = result {
-            println!("{:?}", output);
-        }
-    }
+    //     let chain = sequential_chain!(chain1, chain2);
+    //     let result = chain
+    //         .execute(
+    //             &mut text_replacements! {
+    //                 "input" => "medias",
+    //                 "palabra" => "arroz"
+    //             }
+    //             .into(),
+    //         )
+    //         .await;
+    //     assert!(
+    //         result.is_ok(),
+    //         "Expected `chain.call` to succeed, but it failed with error: {:?}",
+    //         result.err()
+    //     );
+
+    //     if let Ok(output) = result {
+    //         println!("{:?}", output);
+    //     }
+    // }
 }

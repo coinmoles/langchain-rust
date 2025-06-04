@@ -1,7 +1,10 @@
+use std::fmt::Display;
+
 use crate::{
     agent::{create_prompt, AgentError},
     chain::LLMChain,
     language_models::{llm::LLM, options::CallOptions, LLMError},
+    schemas::{ChainInputCtor, ChainOutput},
     tools::{Tool, Toolbox},
     utils::helper::normalize_tool_name,
 };
@@ -11,20 +14,32 @@ use super::{
     OpenAiToolAgent,
 };
 
-pub struct OpenAiToolAgentBuilder<'a, 'b> {
+pub struct OpenAiToolAgentBuilder<'a, 'b, I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'c> I::Target<'c>: Display,
+{
     tools: Option<Vec<Box<dyn Tool>>>,
     toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     system_prompt: Option<&'a str>,
     initial_prompt: Option<&'b str>,
+    _phantom: std::marker::PhantomData<(I, O)>,
 }
 
-impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
+impl<'a, 'b, I, O> OpenAiToolAgentBuilder<'a, 'b, I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'c> I::Target<'c>: Display,
+{
     pub(super) fn new() -> Self {
         Self {
             tools: None,
             toolboxes: None,
             system_prompt: None,
             initial_prompt: None,
+            _phantom: std::marker::PhantomData,
         }
     }
 
@@ -48,7 +63,10 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
         self
     }
 
-    pub async fn build<L: LLM + 'static>(self, llm: L) -> Result<OpenAiToolAgent, AgentError> {
+    pub async fn build<L: LLM + 'static>(
+        self,
+        llm: L,
+    ) -> Result<OpenAiToolAgent<I, O>, AgentError> {
         let system_prompt = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
 
@@ -81,7 +99,7 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
         let prompt = create_prompt(system_prompt, initial_prompt);
         let mut llm = llm;
         llm.add_call_options(CallOptions::new().with_tools(tools_openai));
-        let chain = Box::new(LLMChain::builder().prompt(prompt).llm(llm).build()?);
+        let llm_chain = LLMChain::builder().prompt(prompt).llm(llm).build()?;
 
         let tools_map = tools
             .into_iter()
@@ -89,7 +107,7 @@ impl<'a, 'b> OpenAiToolAgentBuilder<'a, 'b> {
             .collect();
 
         Ok(OpenAiToolAgent {
-            chain,
+            llm_chain,
             tools: tools_map,
             toolboxes,
         })

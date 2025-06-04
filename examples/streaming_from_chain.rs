@@ -3,9 +3,8 @@ use langchain_rust::{
     chain::{Chain, LLMChain},
     llm::openai::OpenAI,
     prompt_template,
-    schemas::{Message, MessageType},
+    schemas::{DefaultChainInput, DefaultChainInputCtor, Message, MessageType},
     template::MessageTemplate,
-    text_replacements,
 };
 
 #[tokio::main]
@@ -17,19 +16,16 @@ async fn main() {
         MessageTemplate::from_fstring(MessageType::HumanMessage, "{input}")
     ];
 
-    let chain = LLMChain::builder()
+    let chain: LLMChain<DefaultChainInputCtor> = LLMChain::builder()
         .prompt(prompt)
         .llm(open_ai.clone())
         .build()
         .unwrap();
 
     let mut stream = chain
-        .stream(
-            &mut text_replacements! {
-                "input" => "Who is the writer of 20,000 Leagues Under the Sea?",
-            }
-            .into(),
-        )
+        .stream(&DefaultChainInput::new(
+            "Who is the writer of 20,000 Leagues Under the Sea?",
+        ))
         .await
         .unwrap();
 

@@ -2,10 +2,9 @@ use langchain_rust::{
     chain::{Chain, LLMChain},
     language_models::llm::LLM,
     llm::{openai::OpenAI, OpenAIConfig},
-    placeholder_replacements, prompt_template,
-    schemas::{messages::Message, InputVariables, MessageType},
-    template::{MessageOrTemplate, MessageTemplate},
-    text_replacements,
+    prompt_template,
+    schemas::{messages::Message, DefaultChainInput, DefaultChainInputCtor, MessageType},
+    template::MessageTemplate,
 };
 
 #[tokio::main]
@@ -29,7 +28,7 @@ async fn main() {
 
     //We can now combine these into a simple LLM chain:
 
-    let chain = LLMChain::builder()
+    let chain: LLMChain<DefaultChainInputCtor> = LLMChain::builder()
         .prompt(prompt)
         .llm(open_ai.clone())
         .build()
@@ -38,12 +37,9 @@ async fn main() {
     //We can now invoke it and ask the same question. It still won't know the answer, but it should respond in a more proper tone for a technical writer!
 
     match chain
-        .invoke(
-            &mut text_replacements! {
-                "input" => "Quien es el escritor de 20000 millas de viaje submarino",
-            }
-            .into(),
-        )
+        .call(&DefaultChainInput::new(
+            "Quien es el escritor de 20000 millas de viaje submarino",
+        ))
         .await
     {
         Ok(result) => {
@@ -54,34 +50,34 @@ async fn main() {
 
     //If you want to prompt to have a list of messages you could use the `fmt_placeholder` macro
 
-    let prompt = prompt_template![
-        Message::new_system_message("You are world class technical documentation writer."),
-        MessageOrTemplate::Placeholder("history".into()),
-        MessageTemplate::from_fstring(MessageType::HumanMessage, "{input}",)
-    ];
+    // let prompt = prompt_template![
+    //     Message::new_system_message("You are world class technical documentation writer."),
+    //     MessageOrTemplate::Placeholder("history".into()),
+    //     MessageTemplate::from_fstring(MessageType::HumanMessage, "{input}",)
+    // ];
 
-    let chain = LLMChain::builder()
-        .prompt(prompt)
-        .llm(open_ai)
-        .build()
-        .unwrap();
-    match chain
-        .invoke(&mut InputVariables::new(
-            text_replacements! {
-                "input" => "Who is the writer of 20,000 Leagues Under the Sea, and what is my name?",
-            },
-            placeholder_replacements! {
-                "history" => vec![
-                    Message::new_human_message("My name is: luis"),
-                    Message::new_ai_message("Hi luis"),
-                ],
-            },
-        ))
-        .await
-    {
-        Ok(result) => {
-            println!("Result: {:?}", result);
-        }
-        Err(e) => panic!("Error invoking LLMChain: {:?}", e),
-    }
+    // let chain = LLMChain::builder()
+    //     .prompt(prompt)
+    //     .llm(open_ai)
+    //     .build()
+    //     .unwrap();
+    // match chain
+    //     .invoke(&mut InputVariables::new(
+    //         text_replacements! {
+    //             "input" => "Who is the writer of 20,000 Leagues Under the Sea, and what is my name?",
+    //         },
+    //         placeholder_replacements! {
+    //             "history" => vec![
+    //                 Message::new_human_message("My name is: luis"),
+    //                 Message::new_ai_message("Hi luis"),
+    //             ],
+    //         },
+    //     ))
+    //     .await
+    // {
+    //     Ok(result) => {
+    //         println!("Result: {:?}", result);
+    //     }
+    //     Err(e) => panic!("Error invoking LLMChain: {:?}", e),
+    // }
 }

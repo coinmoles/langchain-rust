@@ -1,11 +1,8 @@
-pub mod generate_result;
-pub use generate_result::*;
+pub mod io_model;
+pub use io_model::*;
 
 pub mod agent_plan;
 pub use agent_plan::*;
-
-mod input_variable;
-pub use input_variable::*;
 
 mod message_type;
 pub use message_type::*;

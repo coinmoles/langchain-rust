@@ -1,4 +1,4 @@
-use std::{collections::HashSet, error::Error, pin::Pin, sync::Arc};
+use std::{borrow::Cow, fmt::Display, pin::Pin, sync::Arc};
 
 use async_stream::stream;
 use async_trait::async_trait;
@@ -7,90 +7,94 @@ use futures_util::{pin_mut, StreamExt};
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{
-    chain::{Chain, ChainError, LLMChain},
+    chain::{Chain, ChainError, ChainImpl, LLMChain},
     language_models::LLMError,
     memory::Memory,
     schemas::{
-        messages::Message, GenerateResult, GenerateResultContent, InputVariables, Prompt,
-        StreamData,
+        messages::Message, ChainInputCtor, DefaultChainInputCtor, IntoWithUsage, LLMOutput,
+        ChainOutput, Prompt, StreamData, WithUsage,
     },
 };
 
-use super::{ConversationalChainBuilder, ConversationalChainPromptBuilder};
+use super::{ConversationalChainBuilder, ConversationalChainInput, ConversationalChainInputCtor};
 
-pub struct ConversationalChain {
-    pub(super) llm: LLMChain,
-    pub(super) input_key: String,
+pub struct ConversationalChain<I = DefaultChainInputCtor, O = String>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'a> I::Target<'a>: Display,
+{
+    pub(super) llm_chain: LLMChain<ConversationalChainInputCtor<I>, O>,
     pub memory: Arc<RwLock<dyn Memory>>,
 }
 
 //Conversational Chain is a simple chain to interact with ai as a string of messages
-impl ConversationalChain {
-    pub fn builder<'a, 'b>() -> ConversationalChainBuilder<'a, 'b> {
+impl<I, O> ConversationalChain<I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'a> I::Target<'a>: Display,
+{
+    pub fn builder() -> ConversationalChainBuilder<I, O> {
         ConversationalChainBuilder::new()
-    }
-
-    pub fn prompt_builder(&self) -> ConversationalChainPromptBuilder {
-        ConversationalChainPromptBuilder::new()
     }
 }
 
 #[async_trait]
-impl Chain for ConversationalChain {
-    async fn call(
+impl<I, O> ChainImpl for ConversationalChain<I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'a> I::Target<'a>: Display,
+{
+    type InputCtor = I;
+    type Output = O;
+
+    async fn call_impl<'i>(
         &self,
-        input_variables: &mut InputVariables,
-    ) -> Result<GenerateResult, ChainError> {
-        let input_variable = &input_variables
-            .get_text_replacement(&self.input_key)
-            .ok_or(ChainError::MissingInputVariable(self.input_key.clone()))?;
-        let human_message = Message::new_human_message(input_variable);
+        input: Cow<'i, I::Target<'i>>,
+    ) -> Result<WithUsage<Self::Output>, ChainError> {
+        let human_message = Message::new_human_message(input.to_string());
 
         let history = {
             let memory = self.memory.read().await;
             memory.to_string()
         };
-        input_variables.insert_text_replacement("history", history);
-        let result = self.llm.call(input_variables).await?;
+        let input = ConversationalChainInput::new(input).with_history(history);
+        let result = self.llm_chain.call_llm(&input).await?;
 
         let mut memory = self.memory.write().await;
         memory.add_message(human_message);
 
         match &result.content {
-            GenerateResultContent::Text(text) => memory.add_ai_message(text.clone()),
-            GenerateResultContent::ToolCall(tool_calls) => {
-                memory.add_tool_call_message(tool_calls.clone())
-            }
-            GenerateResultContent::Refusal(refusal) => {
-                return Err(LLMError::OtherError(refusal.into()).into())
-            }
+            LLMOutput::Text(text) => memory.add_ai_message(text.clone()),
+            LLMOutput::ToolCall(tool_calls) => memory.add_tool_call_message(tool_calls.clone()),
+            LLMOutput::Refusal(refusal) => return Err(LLMError::OtherError(refusal.into()).into()),
         }
-        Ok(result)
+
+        Ok(O::try_from_string(result.content.into_text()?)?.with_usage(result.usage))
     }
 
-    async fn stream(
+    async fn stream_impl<'i>(
         &self,
-        input_variables: &mut InputVariables,
+        input: Cow<'i, I::Target<'i>>,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
     {
-        let input_variable = input_variables
-            .get_text_replacement(&self.input_key)
-            .ok_or(ChainError::MissingInputVariable(self.input_key.clone()))?;
-        let human_message = Message::new_human_message(input_variable);
+        let human_message = Message::new_human_message(input.to_string());
 
         let history = {
             let memory = self.memory.read().await;
             memory.to_string()
         };
-
-        input_variables.insert_text_replacement("history", history);
+        let input = ConversationalChainInput::new(input).with_history(history);
 
         let complete_ai_message = Arc::new(Mutex::new(String::new()));
         let complete_ai_message_clone = complete_ai_message.clone();
 
         let memory = self.memory.clone();
 
-        let stream = self.llm.stream(input_variables).await?;
+        let stream = self.llm_chain.stream_owned(input).await?;
+
         let output_stream = stream! {
             pin_mut!(stream);
             while let Some(result) = stream.next().await {
@@ -116,12 +120,9 @@ impl Chain for ConversationalChain {
         Ok(Box::pin(output_stream))
     }
 
-    fn get_input_keys(&self) -> HashSet<String> {
-        [self.input_key.clone()].into_iter().collect()
-    }
-
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>> {
-        self.llm.get_prompt(inputs)
+    fn get_prompt_impl<'i>(&self, input: Cow<'i, I::Target<'i>>) -> Result<Prompt, ChainError> {
+        let input = ConversationalChainInput::new(input);
+        self.llm_chain.get_prompt_owned(input)
     }
 }
 
@@ -130,9 +131,8 @@ mod tests {
     use async_openai::config::OpenAIConfig;
 
     use crate::{
-        chain::conversational::builder::ConversationalChainBuilder,
         llm::openai::{OpenAI, OpenAIModel},
-        text_replacements,
+        schemas::DefaultChainInput,
     };
 
     use super::*;
@@ -143,17 +143,14 @@ mod tests {
         let llm: OpenAI<OpenAIConfig> = OpenAI::builder()
             .with_model(OpenAIModel::Gpt35.to_string())
             .build();
-        let chain = ConversationalChainBuilder::new()
+        let chain: ConversationalChain = ConversationalChain::builder()
             .llm(llm)
             .build()
             .expect("Error building ConversationalChain");
 
-        let mut input_variables_first: InputVariables = text_replacements! {
-            "input" => "Soy de peru",
-        }
-        .into();
+        let input = DefaultChainInput::new("Soy de peru");
         // Execute the first `chain.invoke` and assert that it should succeed
-        let result_first = chain.invoke(&mut input_variables_first).await;
+        let result_first = chain.call(&input).await;
         assert!(
             result_first.is_ok(),
             "Error invoking LLMChain: {:?}",
@@ -165,12 +162,9 @@ mod tests {
             println!("Result: {:?}", result);
         }
 
-        let mut input_variables_second = text_replacements! {
-            "input" => "Cuales son platos tipicos de mi pais",
-        }
-        .into();
+        let input = DefaultChainInput::new("Cuales son platos tipicos de mi pais");
         // Execute the second `chain.invoke` and assert that it should succeed
-        let result_second = chain.invoke(&mut input_variables_second).await;
+        let result_second = chain.call(&input).await;
         assert!(
             result_second.is_ok(),
             "Error invoking LLMChain: {:?}",

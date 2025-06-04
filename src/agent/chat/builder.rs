@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, fmt::Display, sync::Arc};
 
 use crate::{
     agent::{
@@ -8,6 +8,7 @@ use crate::{
     },
     chain::LLMChain,
     language_models::llm::LLM,
+    schemas::{DefaultChainInputCtor, ChainInputCtor, ChainOutput},
     tools::{ListTools, Tool, Toolbox},
     utils::helper::normalize_tool_name,
 };
@@ -17,15 +18,26 @@ use super::{
     ConversationalAgent,
 };
 
-pub struct ConversationalAgentBuilder<'a, 'b> {
+pub struct ConversationalAgentBuilder<'a, 'b, I = DefaultChainInputCtor, O = String>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'c> I::Target<'c>: Display,
+{
     tools: Option<Vec<Box<dyn Tool>>>,
     toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     system_prompt: Option<&'a str>,
     initial_prompt: Option<&'b str>,
     instructor: Option<Box<dyn Instructor>>,
+    _phantom: std::marker::PhantomData<(I, O)>,
 }
 
-impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
+impl<'a, 'b, I, O> ConversationalAgentBuilder<'a, 'b, I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+    for<'c> I::Target<'c>: Display,
+{
     pub(super) fn new() -> Self {
         Self {
             tools: None,
@@ -33,6 +45,7 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
             system_prompt: None,
             initial_prompt: None,
             instructor: None,
+            _phantom: std::marker::PhantomData,
         }
     }
 
@@ -64,7 +77,7 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
     pub async fn build<L: Into<Box<dyn LLM>>>(
         self,
         llm: L,
-    ) -> Result<ConversationalAgent, AgentError> {
+    ) -> Result<ConversationalAgent<I, O>, AgentError> {
         let toolboxes = self
             .toolboxes
             .unwrap_or_default()
@@ -100,10 +113,10 @@ impl<'a, 'b> ConversationalAgentBuilder<'a, 'b> {
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
 
         let prompt = create_prompt(system_prompt, initial_prompt);
-        let chain = Box::new(LLMChain::builder().prompt(prompt).llm(llm).build()?);
+        let llm_chain = LLMChain::builder().prompt(prompt).llm(llm).build()?;
 
         Ok(ConversationalAgent {
-            chain,
+            llm_chain,
             tools,
             toolboxes,
             instructor,

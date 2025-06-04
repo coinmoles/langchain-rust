@@ -15,6 +15,9 @@ pub enum ChainError {
     #[error("OutputParser error: {0}")]
     OutputParser(#[from] OutputParserError),
 
+    #[error("Failed to deserialize final output into desired type, original:\n{0}")]
+    OutputFormatError(String),
+
     #[error("Prompt error: {0}")]
     PromptError(#[from] TemplateError),
 

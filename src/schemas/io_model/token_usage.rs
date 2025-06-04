@@ -31,16 +31,17 @@ impl TokenUsage {
         }
     }
 
-    pub fn merge_options(
-        usage1: Option<TokenUsage>,
-        usage2: Option<TokenUsage>,
+    pub fn merge_options<'a>(
+        usages: impl IntoIterator<Item = &'a Option<TokenUsage>>,
     ) -> Option<TokenUsage> {
-        match (usage1, usage2) {
-            (Some(usage1), Some(usage2)) => Some(usage1.merge(&usage2)),
-            (Some(usage), None) => Some(usage),
-            (None, Some(usage)) => Some(usage),
-            (None, None) => None,
-        }
+        usages
+            .into_iter()
+            .fold(None, |acc, usage| match (acc, usage) {
+                (Some(acc), Some(usage)) => Some(acc.merge(usage)),
+                (Some(acc), None) => Some(acc),
+                (None, Some(usage)) => Some(usage.clone()),
+                (None, None) => None,
+            })
     }
 }
 

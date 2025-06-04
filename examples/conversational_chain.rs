@@ -5,8 +5,7 @@ use langchain_rust::{
     chain::{Chain, ConversationalChain},
     llm::{openai::OpenAI, OpenAIConfig, OpenAIModel},
     memory::SimpleMemory,
-    text_replacements, // schemas::Message,
-                       // template_fstring,
+    schemas::{DefaultChainInput, DefaultChainInputCtor},
 };
 
 #[tokio::main]
@@ -16,7 +15,7 @@ async fn main() {
     //initialise it as an example, if you dont want to have memory use DummyMemory
     let memory = SimpleMemory::new();
 
-    let chain = ConversationalChain::builder()
+    let chain: ConversationalChain<DefaultChainInputCtor> = ConversationalChain::builder()
         .llm(llm)
         //IF YOU WANT TO ADD A CUSTOM PROMPT YOU CAN UN COMMENT THIS:
         //         .prompt(message_formatter![
@@ -37,12 +36,9 @@ async fn main() {
         .build()
         .expect("Error building ConversationalChain");
 
-    let mut input_variables = text_replacements! {
-        "input" => "Im from Peru",
-    }
-    .into();
+    let input = DefaultChainInput::new("I'm from Peru");
 
-    let mut stream = chain.stream(&mut input_variables).await.unwrap();
+    let mut stream = chain.stream(&input).await.unwrap();
     while let Some(result) = stream.next().await {
         match result {
             Ok(data) => {
@@ -56,14 +52,11 @@ async fn main() {
         }
     }
 
-    let mut input_variables = text_replacements! {
-        "input" => "Which are the typical dish",
-    }
-    .into();
-    match chain.invoke(&mut input_variables).await {
+    let input = DefaultChainInput::new("Which are the typical dish");
+    match chain.call(&input).await {
         Ok(result) => {
             println!("\n");
-            println!("Result: {:?}", result);
+            println!("Result: {}", result.content);
         }
         Err(e) => panic!("Error invoking LLMChain: {:?}", e),
     }

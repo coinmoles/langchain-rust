@@ -3,9 +3,8 @@ use langchain_rust::{
     chain::{Chain, LLMChain},
     llm::OpenAI,
     prompt_template,
-    schemas::{Message, MessageType},
+    schemas::{DefaultChainInput, DefaultChainInputCtor, Message, MessageType},
     template::MessageTemplate,
-    text_replacements,
 };
 
 #[tokio::main]
@@ -23,18 +22,18 @@ async fn main() {
     // let open_ai = OpenAI::new(langchain_rust::llm::ollama::openai::OllamaConfig::default())
     //     .with_model("llava");
     let open_ai = OpenAI::default();
-    let chain = LLMChain::builder()
+    let chain: LLMChain<DefaultChainInputCtor> = LLMChain::builder()
         .prompt(prompt)
         .llm(open_ai)
         .build()
         .unwrap();
 
     match chain
-        .invoke(&mut text_replacements! { "input" => "Describe this image" }.into())
+        .call(&DefaultChainInput::new("Describe this image"))
         .await
     {
         Ok(result) => {
-            println!("Result: {:?}", result);
+            println!("Result: {:?}", result.content);
         }
         Err(e) => panic!("Error invoking LLMChain: {:?}", e),
     }

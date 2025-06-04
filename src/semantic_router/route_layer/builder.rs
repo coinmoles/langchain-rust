@@ -12,7 +12,7 @@ use crate::{
     template::MessageTemplate,
 };
 
-use super::{AggregationMethod, RouteLayer};
+use super::{AggregationMethod, RouteLayer, RouteLayerInputCtor};
 
 /// A builder for creating a `RouteLayer`.
 ///```rust,ignore
@@ -46,10 +46,11 @@ pub struct RouteLayerBuilder {
     routes: Vec<Router>,
     threshold: Option<f64>,
     index: Option<Box<dyn Index>>,
-    llm: Option<LLMChain>,
+    llm: Option<LLMChain<RouteLayerInputCtor>>,
     top_k: usize,
     aggregation_method: AggregationMethod,
 }
+
 impl Default for RouteLayerBuilder {
     fn default() -> Self {
         Self::new()

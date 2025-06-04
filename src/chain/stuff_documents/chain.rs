@@ -1,15 +1,17 @@
 #![allow(dead_code)]
 // I have no idea how to remove dead codes here.
 
-use std::{collections::HashSet, error::Error, pin::Pin};
+use std::{borrow::Cow, pin::Pin};
 
 use async_trait::async_trait;
 use futures::Stream;
+use indoc::indoc;
 
 use crate::{
-    chain::{load_stuff_qa, Chain, ChainError, LLMChain},
+    chain::{ChainError, ChainImpl, LLMChain, StuffQACtor},
     language_models::llm::LLM,
-    schemas::{GenerateResult, InputVariables, Prompt, StreamData},
+    schemas::{ChainInputCtor, MessageType, ChainOutput, Prompt, StreamData, WithUsage},
+    template::MessageTemplate,
 };
 
 use super::{
@@ -17,19 +19,27 @@ use super::{
     COMBINE_DOCUMENTS_DEFAULT_INPUT_KEY, STUFF_DOCUMENTS_DEFAULT_SEPARATOR,
 };
 
-pub struct StuffDocument {
-    llm_chain: LLMChain,
+pub struct StuffDocument<I, O = String>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+{
+    llm_chain: LLMChain<I, O>,
     input_key: String,
     document_variable_name: String,
     separator: String,
 }
 
-impl StuffDocument {
-    pub fn builder<'b>() -> StuffDocumentBuilder<'b> {
+impl<I, O> StuffDocument<I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+{
+    pub fn builder<'b>() -> StuffDocumentBuilder<'b, I, O> {
         StuffDocumentBuilder::new()
     }
 
-    pub fn new(llm_chain: LLMChain) -> Self {
+    pub fn new(llm_chain: LLMChain<I, O>) -> Self {
         Self {
             llm_chain,
             input_key: COMBINE_DOCUMENTS_DEFAULT_INPUT_KEY.into(),
@@ -37,7 +47,9 @@ impl StuffDocument {
             separator: STUFF_DOCUMENTS_DEFAULT_SEPARATOR.into(),
         }
     }
+}
 
+impl StuffDocument<StuffQACtor, String> {
     /// load_stuff_qa return an instance of StuffDocument
     /// with a prompt desiged for question ansering
     ///
@@ -68,32 +80,54 @@ impl StuffDocument {
     /// ```
     ///
     pub fn load_stuff_qa<L: Into<Box<dyn LLM>>>(llm: L) -> Self {
-        load_stuff_qa(llm)
+        let default_qa_prompt_template = MessageTemplate::from_jinja2(
+            MessageType::SystemMessage,
+            indoc! {"
+            Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+            
+            {{context}}
+            
+            Question:{{question}}
+            Helpful Answer:"},
+        );
+
+        let llm_chain_builder = LLMChain::builder()
+            .prompt(default_qa_prompt_template)
+            .llm(llm)
+            .build()
+            .unwrap();
+
+        let llm_chain = llm_chain_builder;
+
+        StuffDocument::new(llm_chain)
     }
 }
 
 #[async_trait]
-impl Chain for StuffDocument {
-    async fn call(
+impl<I, O> ChainImpl for StuffDocument<I, O>
+where
+    I: ChainInputCtor,
+    O: ChainOutput,
+{
+    type InputCtor = I;
+    type Output = O;
+
+    async fn call_impl<'i>(
         &self,
-        input_variables: &mut InputVariables,
-    ) -> Result<GenerateResult, ChainError> {
-        self.llm_chain.call(input_variables).await
+        input: Cow<'i, I::Target<'i>>,
+    ) -> Result<WithUsage<O>, ChainError> {
+        self.llm_chain.call_impl(input).await
     }
 
-    async fn stream(
+    async fn stream_impl<'i>(
         &self,
-        input_variables: &mut InputVariables,
+        input: Cow<'i, I::Target<'i>>,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
     {
-        self.llm_chain.stream(input_variables).await
+        self.llm_chain.stream_impl(input).await
     }
 
-    fn get_input_keys(&self) -> HashSet<String> {
-        [self.input_key.clone()].into_iter().collect()
-    }
-
-    fn get_prompt(&self, inputs: &InputVariables) -> Result<Prompt, Box<dyn Error + Send + Sync>> {
-        self.llm_chain.get_prompt(inputs)
+    fn get_prompt_impl<'i>(&self, input: Cow<'i, I::Target<'i>>) -> Result<Prompt, ChainError> {
+        self.llm_chain.get_prompt_impl(input)
     }
 }

@@ -91,7 +91,7 @@ impl<'b> SQLDatabaseChainBuilder<'b> {
         };
 
         Ok(SQLDatabaseChain {
-            llmchain: llm_chain,
+            llm_chain,
             top_k,
             database,
         })
