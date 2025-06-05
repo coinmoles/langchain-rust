@@ -14,7 +14,7 @@ mod field;
 mod rename;
 
 #[proc_macro_error]
-#[proc_macro_derive(ChainInput, attributes(input, serde))]
+#[proc_macro_derive(ChainInput, attributes(chain_input, serde))]
 pub fn derive_chain_input(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -64,7 +64,7 @@ pub fn derive_chain_input(input: TokenStream) -> TokenStream {
     expanded.into()
 }
 
-#[proc_macro_derive(ChainInputCtor, attributes(input, serde))]
+#[proc_macro_derive(ChainInputCtor, attributes(chain_input, serde))]
 pub fn derive_chain_input_ctor(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 

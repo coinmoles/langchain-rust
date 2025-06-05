@@ -127,7 +127,7 @@ mod tests {
         #[derive(Clone, ChainInput, ChainInputCtor)]
         #[allow(dead_code)]
         pub struct NombreInput<'a> {
-            #[input(text)]
+            #[chain_input(text)]
             pub nombre: &'a str,
         }
 

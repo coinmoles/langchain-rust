@@ -26,12 +26,12 @@ impl<'a> SqlChainInput<'a> {
 
 #[derive(Clone, ChainInput, ChainInputCtor)]
 pub struct SqlChainLLMChainInput<'a> {
-    #[input(text)]
+    #[chain_input(text)]
     pub input: Cow<'a, str>,
-    #[input(text)]
+    #[chain_input(text)]
     pub top_k: usize,
-    #[input(text)]
+    #[chain_input(text)]
     pub dialect: Cow<'a, str>,
-    #[input(text)]
+    #[chain_input(text)]
     pub tables_info: Cow<'a, str>,
 }

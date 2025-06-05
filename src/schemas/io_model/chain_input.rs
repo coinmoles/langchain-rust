@@ -33,7 +33,7 @@ impl ChainInput for HashMap<&str, &str> {
 
 #[derive(Clone, Default, ChainInput, ChainInputCtor)]
 pub struct DefaultChainInput<'a> {
-    #[input(text)]
+    #[chain_input(text)]
     input: &'a str,
 }
 

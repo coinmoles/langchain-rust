@@ -1,24 +1,17 @@
 use std::{borrow::Cow, marker::PhantomData};
 
-use crate::schemas::{DefaultChainInput, ChainInput, ChainInputCtor, TextReplacements};
+use crate::schemas::{ChainInput, ChainInputCtor, DefaultChainInput, DefaultChainInputCtor};
 
-pub struct ConversationalChainInputCtor<I>(PhantomData<I>)
-where
-    I: ChainInputCtor;
-
-impl<I> ChainInputCtor for ConversationalChainInputCtor<I>
-where
-    I: ChainInputCtor,
-{
+pub struct ConversationalChainInputCtor<I: ChainInputCtor = DefaultChainInputCtor>(PhantomData<I>);
+impl<I: ChainInputCtor> ChainInputCtor for ConversationalChainInputCtor<I> {
     type Target<'a> = ConversationalChainInput<'a, I::Target<'a>>;
 }
 
-#[derive(Clone)]
-pub struct ConversationalChainInput<'a, I = DefaultChainInput<'a>>
-where
-    I: ChainInput,
-{
+#[derive(Clone, ChainInput)]
+pub struct ConversationalChainInput<'a, I: ChainInput = DefaultChainInput<'a>> {
+    #[chain_input(inner)]
     pub inner: Cow<'a, I>,
+    #[chain_input(text)]
     pub chat_history: Option<Cow<'a, str>>,
 }
 
@@ -36,16 +29,5 @@ where
     pub fn with_history(mut self, chat_history: impl Into<Cow<'a, str>>) -> Self {
         self.chat_history = Some(chat_history.into());
         self
-    }
-}
-
-impl<'a, I> ChainInput for ConversationalChainInput<'a, I>
-where
-    I: ChainInput,
-{
-    fn text_replacements(&self) -> TextReplacements {
-        let mut replacements = self.inner.text_replacements();
-        replacements.insert("history", self.chat_history.as_deref().unwrap_or("").into());
-        replacements
     }
 }

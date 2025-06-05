@@ -14,7 +14,7 @@ use std::{
 
 #[derive(Clone, ChainInput, ChainInputCtor)]
 pub struct ProductoInput<'a> {
-    #[input(text)]
+    #[chain_input(text)]
     pub producto: Cow<'a, str>,
 }
 
