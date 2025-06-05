@@ -38,6 +38,18 @@ pub fn is_string_type(ty: &Type) -> bool {
     p.path.is_ident("String")
 }
 
+pub fn is_cow_type(ty: &Type) -> bool {
+    let Type::Path(p) = ty else {
+        return false;
+    };
+
+    let Some(seg) = p.path.segments.last() else {
+        return false;
+    };
+
+    seg.ident == "Cow"
+}
+
 pub fn is_cow_str_type(ty: &Type) -> bool {
     let Type::Path(p) = ty else {
         return false;

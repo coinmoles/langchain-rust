@@ -100,7 +100,7 @@ mod tests {
             #[chain_input(text)]
             input: Cow<'a, str>,
         }
-        #[derive(Debug, Clone, Serialize, ChainInput, ChainInputCtor)]
+        #[derive(Debug, Clone, Serialize, ChainInput, ChainInputCtor, AsInput)]
         pub struct SecondInput<'a> {
             #[chain_input(text)]
             nombre: Cow<'a, str>,
@@ -111,18 +111,6 @@ mod tests {
                 Ok(Self {
                     nombre: original.into(),
                 })
-            }
-        }
-        impl AsInput for SecondInput<'_> {
-            type AsInput<'a>
-                = SecondInput<'a>
-            where
-                Self: 'a;
-
-            fn as_input(&self) -> Self::AsInput<'_> {
-                SecondInput {
-                    nombre: self.nombre.as_ref().into(),
-                }
             }
         }
 
