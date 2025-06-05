@@ -2,6 +2,7 @@ use heck::{
     ToKebabCase, ToLowerCamelCase, ToPascalCase, ToShoutyKebabCase, ToShoutySnakeCase, ToSnakeCase,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RenameAll {
     Lowercase,
     Uppercase,

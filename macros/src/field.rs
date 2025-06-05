@@ -1,19 +1,25 @@
+use proc_macro_error::{Diagnostic, Level};
 use quote::quote;
 use syn::{Data, DeriveInput, Field, Fields, FieldsNamed};
 
 use crate::{
-    attr::extract_serde_rename,
+    attr::{FieldAttrs, StructAttrs},
     check_type::{extract_option_inner_type, is_cow_str_type, is_str_type, is_string_type},
-    rename::RenameAll,
 };
 
-pub fn get_fields(input: &DeriveInput) -> &FieldsNamed {
+pub fn get_fields(input: &DeriveInput) -> Result<&FieldsNamed, Diagnostic> {
     match &input.data {
         Data::Struct(data_struct) => match &data_struct.fields {
-            Fields::Named(fields_named) => fields_named,
-            _ => panic!("ChainInput can only be derived for structs with named fields"),
+            Fields::Named(fields_named) => Ok(fields_named),
+            _ => Err(Diagnostic::new(
+                Level::Error,
+                "ChainInput can only be derived for structs with named fields".into(),
+            )),
         },
-        _ => panic!("ChainInput can only be derived for structs"),
+        _ => Err(Diagnostic::new(
+            Level::Error,
+            "ChainInput can only be derived for structs".into(),
+        )),
     }
 }
 
@@ -41,13 +47,14 @@ fn generate_text_replacement_conversion(field: &Field) -> proc_macro2::TokenStre
 
 pub fn generate_text_replacement(
     field: &Field,
-    rename_all: &Option<RenameAll>,
+    attrs: &FieldAttrs,
+    struct_attrs: &StructAttrs,
 ) -> proc_macro2::TokenStream {
-    let key = match extract_serde_rename(&field.attrs) {
+    let key = match attrs.serde_rename.clone() {
         Some(rename) => rename,
         None => {
             let ident = field.ident.as_ref().unwrap();
-            match rename_all {
+            match &struct_attrs.serde_rename_all {
                 Some(rename_all) => rename_all.apply(ident.to_string()),
                 None => ident.to_string(),
             }
