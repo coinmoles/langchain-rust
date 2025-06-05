@@ -60,3 +60,45 @@ pub fn is_cow_str_type(ty: &Type) -> bool {
         _ => false,
     })
 }
+
+pub fn is_vec_message_type(ty: &Type) -> bool {
+    let Type::Path(p) = ty else {
+        return false;
+    };
+
+    let Some(seg) = p.path.segments.last() else {
+        return false;
+    };
+
+    if seg.ident != "Vec" {
+        return false;
+    }
+
+    let PathArguments::AngleBracketed(args) = &seg.arguments else {
+        return false;
+    };
+
+    let Some(GenericArgument::Type(Type::Path(p))) = args.args.first() else {
+        return false;
+    };
+
+    p.path
+        .segments
+        .last()
+        .is_some_and(|seg| seg.ident == "Message")
+}
+
+pub fn is_message_slice_type(ty: &Type) -> bool {
+    let Type::Slice(s) = ty else {
+        return false;
+    };
+
+    let Type::Path(p) = &*s.elem else {
+        return false;
+    };
+
+    p.path
+        .segments
+        .last()
+        .is_some_and(|seg| seg.ident == "Message")
+}

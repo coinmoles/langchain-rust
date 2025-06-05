@@ -39,7 +39,7 @@ impl PromptTemplate {
     /// replace_placeholder() must be called before format().
     pub fn format(&self, input: &impl ChainInput) -> Result<Prompt, TemplateError> {
         let text_replacements = input.text_replacements();
-        let placeholder_replacements = input.placeholder_replacements();
+        let mut placeholder_replacements = input.placeholder_replacements();
 
         let messages = self
             .messages
@@ -49,8 +49,8 @@ impl PromptTemplate {
                     MessageOrTemplate::Message(m) => Ok(vec![m.clone()]),
                     MessageOrTemplate::Template(t) => Ok(vec![t.format(&text_replacements)?]),
                     MessageOrTemplate::Placeholder(p) => {
-                        match placeholder_replacements.get(p.as_str()) {
-                            Some(messages) => Ok(messages.clone()),
+                        match placeholder_replacements.remove(p.as_str()) {
+                            Some(messages) => Ok(messages.into_owned()),
                             None => Ok(vec![]),
                         }
                     }

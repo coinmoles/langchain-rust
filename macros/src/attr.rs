@@ -1,5 +1,6 @@
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro_error::{Diagnostic, Level};
-use syn::{Attribute, Ident, LitStr, Meta, spanned::Spanned};
+use syn::{Attribute, Ident, LitStr, Meta, Path, parse_str, spanned::Spanned};
 
 use crate::rename::RenameAll;
 
@@ -9,6 +10,7 @@ pub struct FieldAttrs {
 }
 
 pub struct StructAttrs {
+    pub crate_path: syn::Path,
     pub serde_rename_all: Option<RenameAll>,
 }
 
@@ -17,6 +19,11 @@ pub enum ChainInputFieldAttr {
     Inner,
     Text,
     Placeholder,
+}
+
+#[derive(Default)]
+pub struct ChainInputStructAttr {
+    crate_path: Option<syn::Path>,
 }
 
 pub fn extract_field_attrs(attrs: &[Attribute]) -> Result<Option<FieldAttrs>, Diagnostic> {
@@ -39,12 +46,31 @@ pub fn extract_field_attrs(attrs: &[Attribute]) -> Result<Option<FieldAttrs>, Di
 }
 
 pub fn extract_struct_attrs(attrs: &[Attribute]) -> Result<StructAttrs, Diagnostic> {
+    let chain_input_attrs = attrs
+        .iter()
+        .find_map(|attr| get_chain_input_struct_attrs(attr).transpose())
+        .transpose()?
+        .unwrap_or_default();
     let serde_rename_all = attrs
         .iter()
         .find_map(|attr| get_serde_struct_attrs(attr).transpose())
         .transpose()?;
 
-    Ok(StructAttrs { serde_rename_all })
+    let crate_path = chain_input_attrs.crate_path.unwrap_or_else(|| {
+        match (
+            crate_name("langchain-rust"),
+            std::env::var("CARGO_CRATE_NAME").as_deref(),
+        ) {
+            (Ok(FoundCrate::Itself), Ok("langchain_rust")) => parse_str("crate").unwrap(),
+            (Ok(FoundCrate::Name(name)), _) => parse_str(&name).unwrap(),
+            _ => parse_str("::langchain_rust").unwrap(),
+        }
+    });
+
+    Ok(StructAttrs {
+        crate_path,
+        serde_rename_all,
+    })
 }
 
 fn get_chain_input_field_attrs(
@@ -105,6 +131,36 @@ fn get_serde_field_attrs(attr: &Attribute) -> Result<Option<String>, Diagnostic>
     })?;
 
     Ok(serde_rename)
+}
+
+fn get_chain_input_struct_attrs(
+    attr: &Attribute,
+) -> Result<Option<ChainInputStructAttr>, Diagnostic> {
+    if !attr.path().is_ident("chain_input") {
+        return Ok(None);
+    }
+    let mut crate_path: Option<Path> = None;
+
+    attr.parse_nested_meta(|meta| {
+        if meta.path.is_ident("crate") {
+            let value = meta.value()?;
+            let lit: LitStr = value.parse()?;
+            crate_path = Some(parse_str(&lit.value()).expect("Invalid crate path"));
+        } else {
+            return Err(syn::Error::new(meta.path.span(), "Unknown attribute"));
+        }
+
+        Ok(())
+    })
+    .map_err(|e| {
+        Diagnostic::spanned(
+            e.span(),
+            Level::Error,
+            format!("Failed to parse serde attribute: {}", e),
+        )
+    })?;
+
+    Ok(Some(ChainInputStructAttr { crate_path }))
 }
 
 fn get_serde_struct_attrs(attr: &Attribute) -> Result<Option<RenameAll>, Diagnostic> {

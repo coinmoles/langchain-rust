@@ -1,40 +1,33 @@
 use std::borrow::Cow;
 
-use crate::schemas::{
-    ChainInput, ChainInputCtor, Message, PlaceholderReplacements, TextReplacements,
-};
+use crate::schemas::{ChainInput, ChainInputCtor, Message};
 
 const FORCE_FINAL_ANSWER: &str = "Now it's time you MUST give your absolute best final answer. You'll ignore all previous instructions, stop using any tools, and just return your absolute BEST Final answer.";
 
-pub struct AgentInputCtor<I>(std::marker::PhantomData<I>);
-impl<I> ChainInputCtor for AgentInputCtor<I>
-where
-    I: ChainInputCtor,
-{
+pub struct AgentInputCtor<I: ChainInputCtor>(std::marker::PhantomData<I>);
+impl<I: ChainInputCtor> ChainInputCtor for AgentInputCtor<I> {
     type Target<'a> = AgentInput<'a, I::Target<'a>>;
 }
 
-#[derive(Debug, Clone)]
-pub struct AgentInput<'a, I>
-where
-    I: ChainInput,
-{
+#[derive(Debug, Clone, ChainInput)]
+pub struct AgentInput<'a, I: ChainInput> {
+    #[chain_input(inner)]
     pub inner: Cow<'a, I>,
+    #[chain_input(placeholder)]
     pub agent_scratchpad: Option<Vec<Message>>,
+    #[chain_input(placeholder)]
     pub chat_history: Option<Vec<Message>>,
-    pub ultimatum: bool,
+    #[chain_input(placeholder)]
+    pub ultimatum: Option<Vec<Message>>,
 }
 
-impl<'a, I> AgentInput<'a, I>
-where
-    I: ChainInput,
-{
+impl<'a, I: ChainInput> AgentInput<'a, I> {
     pub fn new(input: impl Into<Cow<'a, I>>) -> Self {
         Self {
             inner: input.into(),
             agent_scratchpad: None,
             chat_history: None,
-            ultimatum: false,
+            ultimatum: None,
         }
     }
 
@@ -47,38 +40,9 @@ where
     }
 
     pub fn enable_ultimatum(&mut self) {
-        self.ultimatum = true;
-    }
-}
-
-impl<I> ChainInput for AgentInput<'_, I>
-where
-    I: ChainInput,
-{
-    fn text_replacements(&self) -> TextReplacements {
-        self.inner.text_replacements()
-    }
-
-    fn placeholder_replacements(&self) -> PlaceholderReplacements {
-        self.inner
-            .placeholder_replacements()
-            .into_iter()
-            .chain([
-                (
-                    "agent_scratchpad",
-                    self.agent_scratchpad.as_ref().unwrap().clone(),
-                ),
-                ("chat_history", self.chat_history.as_ref().unwrap().clone()),
-                (
-                    "ultimatum",
-                    self.ultimatum
-                        .then_some(vec![
-                            Message::new_ai_message(""),
-                            Message::new_human_message(FORCE_FINAL_ANSWER),
-                        ])
-                        .unwrap_or_default(),
-                ),
-            ])
-            .collect()
+        self.ultimatum = Some(vec![
+            Message::new_ai_message(""),
+            Message::new_human_message(FORCE_FINAL_ANSWER),
+        ]);
     }
 }

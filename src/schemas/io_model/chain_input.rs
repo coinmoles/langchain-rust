@@ -4,7 +4,7 @@ use std::{borrow::Cow, collections::HashMap};
 use crate::schemas::Message;
 
 pub type TextReplacements<'a> = HashMap<&'a str, Cow<'a, str>>;
-pub type PlaceholderReplacements<'a> = HashMap<&'a str, Vec<Message>>;
+pub type PlaceholderReplacements<'a> = HashMap<&'a str, Cow<'a, [Message]>>;
 
 pub trait ChainInputCtor: Send + Sync {
     type Target<'a>: ChainInput + 'a;
