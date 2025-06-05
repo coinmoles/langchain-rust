@@ -1,7 +1,8 @@
 use thiserror::Error;
 
 use crate::{
-    language_models::LLMError, output_parsers::OutputParserError, template::TemplateError,
+    language_models::LLMError, output_parsers::OutputParserError, schemas::TryFromStringError,
+    template::TemplateError,
 };
 
 #[derive(Error, Debug)]
@@ -15,8 +16,8 @@ pub enum ChainError {
     #[error("OutputParser error: {0}")]
     OutputParser(#[from] OutputParserError),
 
-    #[error("Failed to deserialize final output into desired type, original:\n{0}")]
-    OutputFormatError(String),
+    #[error("Output parse error: {0}")]
+    OutputParseError(#[from] TryFromStringError),
 
     #[error("Prompt error: {0}")]
     PromptError(#[from] TemplateError),

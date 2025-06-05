@@ -1,4 +1,7 @@
-use crate::{chain::Chain, schemas::ChainInputCtor};
+use crate::{
+    chain::Chain,
+    schemas::{AsInput, ChainInputCtor},
+};
 
 use super::SequentialChain;
 
@@ -40,7 +43,8 @@ impl<'a, Op1, Op2> AddChain<'a, Op1::InputCtor, Op2> for Op1
 where
     Op1: Chain + 'a,
     Op2: Chain + 'a,
-    for<'b> Op2::InputCtor: ChainInputCtor<Target<'b> = Op1::Output>,
+    Op1::Output: AsInput,
+    for<'b> Op2::InputCtor: ChainInputCtor<Target<'b> = <Op1::Output as AsInput>::AsInput<'b>>,
 {
     fn add_chain(
         self,

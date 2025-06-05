@@ -5,15 +5,16 @@ use async_trait::async_trait;
 use crate::{
     chain::{Chain, ChainError, ChainImpl},
     schemas::{
-        ChainInputCtor, ChainOutput, IntoWithUsage, OutputTrace, Prompt, TokenUsage, WithUsage,
+        AsInput, ChainInputCtor, ChainOutput, IntoWithUsage, OutputTrace, Prompt, TokenUsage,
+        WithUsage,
     },
 };
 
 pub struct SequentialChain<'a, I, M1, M2, O>
 where
     I: ChainInputCtor,
-    M1: ChainOutput,
-    for<'b> M2: ChainInputCtor<Target<'b> = M1>,
+    M1: ChainOutput + AsInput,
+    for<'b> M2: ChainInputCtor<Target<'b> = M1::AsInput<'b>>,
     O: ChainOutput,
 {
     pub first: Box<dyn Chain<InputCtor = I, Output = M1> + 'a>,
@@ -24,8 +25,8 @@ where
 impl<I, M1, M2, O> ChainImpl for SequentialChain<'_, I, M1, M2, O>
 where
     I: ChainInputCtor,
-    M1: ChainOutput,
-    for<'a> M2: ChainInputCtor<Target<'a> = M1>,
+    M1: ChainOutput + AsInput,
+    for<'a> M2: ChainInputCtor<Target<'a> = M1::AsInput<'a>>,
     O: ChainOutput,
 {
     type InputCtor = I;
@@ -36,7 +37,7 @@ where
         input: Cow<'i, I::Target<'i>>,
     ) -> Result<WithUsage<Self::Output>, ChainError> {
         let result1 = self.first.call_impl(input).await?;
-        let result2 = self.second.call(&result1.content).await?;
+        let result2 = self.second.call_owned(result1.content.as_input()).await?;
 
         let usage = TokenUsage::merge_options([&result1.usage, &result2.usage]);
         Ok(result2.content.with_usage(usage))
@@ -49,7 +50,7 @@ where
         let result1 = self.first.call_with_trace_impl(input).await?;
         let result2 = self
             .second
-            .call_with_trace(&result1.final_step.content)
+            .call_with_trace_owned(result1.final_step.content.as_input())
             .await?;
 
         let result = result1.extend(result2)?;
@@ -77,63 +78,87 @@ macro_rules! sequential_chain {
 
 #[cfg(test)]
 mod tests {
-    // use crate::{
-    //     chain::{LLMChain, LLMChainBuilder},
-    //     llm::openai::OpenAI,
-    //     schemas::{ChainInput, MessageType, TextReplacements},
-    //     sequential_chain,
-    //     template::MessageTemplate,
-    // };
+    use std::borrow::Cow;
 
-    // #[tokio::test]
-    // #[ignore]
-    // async fn test_sequential() {
-    //     struct FirstInput<'a> {
-    //         input: &'a str,
-    //     }
-    //     impl InputVariable for FirstInput<'_> {
-    //         fn text_replacements(&self) -> TextReplacements {
-    //             std::collections::HashMap::from([("input", self.input.into())])
-    //         }
-    //     }
+    use serde::Serialize;
 
-    //     let llm = OpenAI::default();
-    //     let chain1 = LLMChain::builder()
-    //         .prompt(MessageTemplate::from_fstring(
-    //             MessageType::HumanMessage,
-    //             "dame un nombre para una tienda de {input}",
-    //         ))
-    //         .llm(llm.clone())
-    //         .build()
-    //         .expect("Failed to build LLMChain");
+    use crate::{
+        chain::{Chain, LLMChain},
+        llm::openai::OpenAI,
+        schemas::{
+            AsInput, ChainInput, ChainInputCtor, ChainOutput, MessageType, TryFromStringError,
+        },
+        sequential_chain,
+        template::MessageTemplate,
+    };
 
-    //     let chain2 = LLMChain::builder()
-    //         .prompt(MessageTemplate::from_fstring(
-    //             MessageType::HumanMessage,
-    //             "dame un slogan para una tienda llamada {nombre},tiene que incluir la palabra {palabra}",
-    //         ))
-    //         .llm(llm.clone())
-    //         .build()
-    //         .expect("Failed to build LLMChain");
+    #[tokio::test]
+    #[ignore]
+    async fn test_sequential() {
+        #[derive(Debug, Clone, ChainInput, ChainInputCtor)]
+        pub struct FirstInput<'a> {
+            #[chain_input(text)]
+            input: Cow<'a, str>,
+        }
+        #[derive(Debug, Clone, Serialize, ChainInput, ChainInputCtor)]
+        pub struct SecondInput<'a> {
+            #[chain_input(text)]
+            nombre: Cow<'a, str>,
+        }
+        impl ChainOutput for SecondInput<'_> {
+            fn try_from_string(s: impl Into<String>) -> Result<Self, TryFromStringError> {
+                let original: String = s.into();
+                Ok(Self {
+                    nombre: original.into(),
+                })
+            }
+        }
+        impl AsInput for SecondInput<'_> {
+            type AsInput<'a>
+                = SecondInput<'a>
+            where
+                Self: 'a;
 
-    //     let chain = sequential_chain!(chain1, chain2);
-    //     let result = chain
-    //         .execute(
-    //             &mut text_replacements! {
-    //                 "input" => "medias",
-    //                 "palabra" => "arroz"
-    //             }
-    //             .into(),
-    //         )
-    //         .await;
-    //     assert!(
-    //         result.is_ok(),
-    //         "Expected `chain.call` to succeed, but it failed with error: {:?}",
-    //         result.err()
-    //     );
+            fn as_input(&self) -> Self::AsInput<'_> {
+                SecondInput {
+                    nombre: self.nombre.as_ref().into(),
+                }
+            }
+        }
 
-    //     if let Ok(output) = result {
-    //         println!("{:?}", output);
-    //     }
-    // }
+        let llm = OpenAI::default();
+        let chain1: LLMChain<FirstInputCtor, SecondInput> = LLMChain::builder()
+            .prompt(MessageTemplate::from_fstring(
+                MessageType::HumanMessage,
+                "dame un nombre para una tienda de {input}",
+            ))
+            .llm(llm.clone())
+            .build()
+            .expect("Failed to build LLMChain");
+
+        let chain2: LLMChain<SecondInputCtor> = LLMChain::builder()
+            .prompt(MessageTemplate::from_fstring(
+                MessageType::HumanMessage,
+                "dame un slogan para una tienda llamada {nombre}",
+            ))
+            .llm(llm.clone())
+            .build()
+            .expect("Failed to build LLMChain");
+
+        let chain = sequential_chain!(chain1, chain2);
+        let result = chain
+            .call(&FirstInput {
+                input: "zapatos".into(),
+            })
+            .await;
+        assert!(
+            result.is_ok(),
+            "Expected `chain.call` to succeed, but it failed with error: {:?}",
+            result.err()
+        );
+
+        if let Ok(output) = result {
+            println!("{:?}", output);
+        }
+    }
 }
