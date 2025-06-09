@@ -6,8 +6,8 @@ use std::fmt::Display;
 use crate::agent::{AgentInput, AgentInputCtor};
 use crate::chain::{ChainError, LLMChain};
 use crate::schemas::{
-    AgentStep, DefaultChainInputCtor, ChainInputCtor, IntoWithUsage, LLMOutput, ChainOutput,
-    Prompt, WithUsage,
+    AgentStep, ChainOutput, Ctor, DefaultChainInputCtor, InputCtor, IntoWithUsage, LLMOutput,
+    Prompt, StringCtor, WithUsage,
 };
 use crate::tools::Toolbox;
 use crate::{
@@ -27,11 +27,12 @@ pub struct LogTools {
     pub tools: String,
 }
 
-pub struct OpenAiToolAgent<I = DefaultChainInputCtor, O = String>
+pub struct OpenAiToolAgent<I = DefaultChainInputCtor, O = StringCtor>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
-    for<'a> I::Target<'a>: Display,
+    I: InputCtor,
+    O: Ctor,
+    for<'c> I::Target<'c>: Display,
+    for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {
     pub(super) llm_chain: LLMChain<AgentInputCtor<I>, O>,
     pub(super) tools: HashMap<String, Box<dyn Tool>>,
@@ -40,9 +41,10 @@ where
 
 impl<I, O> OpenAiToolAgent<I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
-    for<'a> I::Target<'a>: Display,
+    I: InputCtor,
+    O: Ctor,
+    for<'c> I::Target<'c>: Display,
+    for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {
     pub fn builder<'a, 'b>() -> OpenAiToolAgentBuilder<'a, 'b, I, O> {
         OpenAiToolAgentBuilder::new()
@@ -64,17 +66,18 @@ where
 #[async_trait]
 impl<I, O> Agent for OpenAiToolAgent<I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
-    for<'a> I::Target<'a>: Display,
+    I: InputCtor,
+    O: Ctor,
+    for<'c> I::Target<'c>: Display,
+    for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {
     type InputCtor = I;
-    type Output = O;
+    type OutputCtor = O;
 
     async fn plan<'i>(
         &self,
         steps: &[AgentStep],
-        input: &mut AgentInput<'i, I::Target<'i>>,
+        input: &mut AgentInput<I::Target<'i>>,
     ) -> Result<WithUsage<AgentEvent>, AgentError> {
         let scratchpad = self.construct_scratchpad(steps);
         input.set_agent_scratchpad(scratchpad);
@@ -110,8 +113,8 @@ where
 
     fn get_prompt<'i>(
         &self,
-        input: AgentInput<'i, <Self::InputCtor as ChainInputCtor>::Target<'i>>,
+        input: AgentInput<<Self::InputCtor as InputCtor>::Target<'i>>,
     ) -> Result<Prompt, ChainError> {
-        self.llm_chain.get_prompt_owned(input)
+        self.llm_chain.get_prompt(input)
     }
 }

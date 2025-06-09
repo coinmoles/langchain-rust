@@ -195,7 +195,7 @@ impl RouteLayer {
     ) -> Result<Value, RouteLayerError> {
         let output = self
             .llm
-            .call(&RouteLayerInput { query, description })
+            .call(RouteLayerInput { query, description })
             .await?
             .content;
         match serde_json::from_str::<Value>(&output) {

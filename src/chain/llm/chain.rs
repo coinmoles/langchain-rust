@@ -1,24 +1,23 @@
-use std::borrow::Cow;
-
 use {std::borrow::Borrow, std::pin::Pin};
 
 use async_trait::async_trait;
 use futures::{Stream, TryStreamExt};
 
 use crate::{
-    chain::{ChainError, ChainImpl},
+    chain::{Chain, ChainError},
     language_models::llm::LLM,
     output_parsers::OutputParser,
-    schemas::{ChainInputCtor, ChainOutput, LLMOutput, Prompt, StreamData, WithUsage},
+    schemas::{ChainOutput, Ctor, InputCtor, LLMOutput, Prompt, StreamData, StringCtor, WithUsage},
     template::PromptTemplate,
 };
 
 use super::LLMChainBuilder;
 
-pub struct LLMChain<I, O = String>
+pub struct LLMChain<I, O = StringCtor>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
+    I: InputCtor,
+    O: Ctor,
+    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     pub(super) prompt: PromptTemplate,
     pub(super) llm: Box<dyn LLM>,
@@ -28,8 +27,9 @@ where
 
 impl<I, O> LLMChain<I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
+    I: InputCtor,
+    O: Ctor,
+    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     pub fn builder() -> LLMChainBuilder<I, O> {
         LLMChainBuilder::new()
@@ -70,21 +70,19 @@ where
 }
 
 #[async_trait]
-impl<I, O> ChainImpl for LLMChain<I, O>
+impl<I, O> Chain for LLMChain<I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
+    I: InputCtor,
+    O: Ctor,
+    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     type InputCtor = I;
-    type Output = O;
+    type OutputCtor = O;
 
-    async fn call_impl<'i>(
-        &self,
-        input: Cow<'i, I::Target<'i>>,
-    ) -> Result<WithUsage<O>, ChainError> {
-        let llm_output = self.call_llm(input.as_ref()).await?;
+    async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
+        let llm_output = self.call_llm(&input).await?;
         let content = llm_output.content.into_text()?;
-        let content = O::try_from_string(content)?;
+        let content = O::Target::try_from_string(input, content)?;
 
         Ok(WithUsage {
             content,
@@ -92,16 +90,16 @@ where
         })
     }
 
-    async fn stream_impl<'i>(
+    async fn stream(
         &self,
-        input: Cow<'i, I::Target<'i>>,
+        input: I::Target<'_>,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
     {
-        self.stream_llm(input.as_ref()).await
+        self.stream_llm(&input).await
     }
 
-    fn get_prompt_impl<'i>(&self, input: Cow<'i, I::Target<'i>>) -> Result<Prompt, ChainError> {
-        let prompt = self.prompt.format(input.as_ref())?;
+    fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, ChainError> {
+        let prompt = self.prompt.format(&input)?;
 
         Ok(prompt)
     }
@@ -124,7 +122,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_invoke_chain() {
-        #[derive(Clone, ChainInput, ChainInputCtor)]
+        #[derive(Clone, ChainInput, Ctor)]
         #[allow(dead_code)]
         pub struct NombreInput<'a> {
             #[chain_input(text)]
@@ -141,14 +139,14 @@ mod tests {
         let prompt = prompt_template!(human_message_prompt);
 
         let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt35).build();
-        let chain: LLMChain<NombreInputCtor, String> = LLMChain::builder()
+        let chain: LLMChain<NombreInputCtor> = LLMChain::builder()
             .prompt(prompt)
             .llm(llm)
             .build()
             .expect("Failed to build LLMChain");
 
         // Execute `chain.invoke` and assert that it should succeed
-        let result = chain.call(&input).await;
+        let result = chain.call(input).await;
         assert!(
             result.is_ok(),
             "Error invoking LLMChain: {:?}",

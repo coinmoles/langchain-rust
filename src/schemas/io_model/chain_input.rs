@@ -1,14 +1,10 @@
-pub use macros::{ChainInput, ChainInputCtor};
+pub use macros::ChainInput;
 use std::{borrow::Cow, collections::HashMap};
 
-use crate::schemas::Message;
+use crate::schemas::{Ctor, Message};
 
 pub type TextReplacements<'a> = HashMap<&'a str, Cow<'a, str>>;
 pub type PlaceholderReplacements<'a> = HashMap<&'a str, Cow<'a, [Message]>>;
-
-pub trait ChainInputCtor: Send + Sync {
-    type Target<'a>: ChainInput + 'a;
-}
 
 pub trait ChainInput: Clone + Send + Sync {
     fn text_replacements(&self) -> TextReplacements;
@@ -31,7 +27,7 @@ impl ChainInput for HashMap<&str, &str> {
     }
 }
 
-#[derive(Clone, Default, ChainInput, ChainInputCtor)]
+#[derive(Clone, Default, ChainInput, Ctor)]
 pub struct DefaultChainInput<'a> {
     #[chain_input(text)]
     input: &'a str,

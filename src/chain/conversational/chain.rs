@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt::Display, pin::Pin, sync::Arc};
+use std::{fmt::Display, pin::Pin, sync::Arc};
 
 use async_stream::stream;
 use async_trait::async_trait;
@@ -7,22 +7,23 @@ use futures_util::{pin_mut, StreamExt};
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{
-    chain::{Chain, ChainError, ChainImpl, LLMChain},
+    chain::{Chain, ChainError, LLMChain},
     language_models::LLMError,
     memory::Memory,
     schemas::{
-        messages::Message, ChainInputCtor, DefaultChainInputCtor, IntoWithUsage, LLMOutput,
-        ChainOutput, Prompt, StreamData, WithUsage,
+        messages::Message, ChainOutput, Ctor, DefaultChainInputCtor, InputCtor, IntoWithUsage,
+        LLMOutput, Prompt, StreamData, StringCtor, WithUsage,
     },
 };
 
 use super::{ConversationalChainBuilder, ConversationalChainInput, ConversationalChainInputCtor};
 
-pub struct ConversationalChain<I = DefaultChainInputCtor, O = String>
+pub struct ConversationalChain<I = DefaultChainInputCtor, O = StringCtor>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
-    for<'a> I::Target<'a>: Display,
+    I: InputCtor,
+    O: Ctor,
+    for<'b> I::Target<'b>: Display,
+    for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
 {
     pub(super) llm_chain: LLMChain<ConversationalChainInputCtor<I>, O>,
     pub memory: Arc<RwLock<dyn Memory>>,
@@ -31,9 +32,10 @@ where
 //Conversational Chain is a simple chain to interact with ai as a string of messages
 impl<I, O> ConversationalChain<I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
-    for<'a> I::Target<'a>: Display,
+    I: InputCtor,
+    O: Ctor,
+    for<'b> I::Target<'b>: Display,
+    for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
 {
     pub fn builder() -> ConversationalChainBuilder<I, O> {
         ConversationalChainBuilder::new()
@@ -41,19 +43,17 @@ where
 }
 
 #[async_trait]
-impl<I, O> ChainImpl for ConversationalChain<I, O>
+impl<I, O> Chain for ConversationalChain<I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
-    for<'a> I::Target<'a>: Display,
+    I: InputCtor,
+    O: Ctor,
+    for<'b> I::Target<'b>: Display,
+    for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
 {
     type InputCtor = I;
-    type Output = O;
+    type OutputCtor = O;
 
-    async fn call_impl<'i>(
-        &self,
-        input: Cow<'i, I::Target<'i>>,
-    ) -> Result<WithUsage<Self::Output>, ChainError> {
+    async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
         let human_message = Message::new_human_message(input.to_string());
 
         let history = {
@@ -72,12 +72,15 @@ where
             LLMOutput::Refusal(refusal) => return Err(LLMError::OtherError(refusal.into()).into()),
         }
 
-        Ok(O::try_from_string(result.content.into_text()?)?.with_usage(result.usage))
+        Ok(
+            O::Target::try_from_string(input, result.content.into_text()?)?
+                .with_usage(result.usage),
+        )
     }
 
-    async fn stream_impl<'i>(
+    async fn stream(
         &self,
-        input: Cow<'i, I::Target<'i>>,
+        input: I::Target<'_>,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
     {
         let human_message = Message::new_human_message(input.to_string());
@@ -93,7 +96,7 @@ where
 
         let memory = self.memory.clone();
 
-        let stream = self.llm_chain.stream_owned(input).await?;
+        let stream = self.llm_chain.stream(input).await?;
 
         let output_stream = stream! {
             pin_mut!(stream);
@@ -120,9 +123,9 @@ where
         Ok(Box::pin(output_stream))
     }
 
-    fn get_prompt_impl<'i>(&self, input: Cow<'i, I::Target<'i>>) -> Result<Prompt, ChainError> {
+    fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, ChainError> {
         let input = ConversationalChainInput::new(input);
-        self.llm_chain.get_prompt_owned(input)
+        self.llm_chain.get_prompt(input)
     }
 }
 
@@ -150,7 +153,7 @@ mod tests {
 
         let input = DefaultChainInput::new("Soy de peru");
         // Execute the first `chain.invoke` and assert that it should succeed
-        let result_first = chain.call(&input).await;
+        let result_first = chain.call(input).await;
         assert!(
             result_first.is_ok(),
             "Error invoking LLMChain: {:?}",
@@ -164,7 +167,7 @@ mod tests {
 
         let input = DefaultChainInput::new("Cuales son platos tipicos de mi pais");
         // Execute the second `chain.invoke` and assert that it should succeed
-        let result_second = chain.call(&input).await;
+        let result_second = chain.call(input).await;
         assert!(
             result_second.is_ok(),
             "Error invoking LLMChain: {:?}",

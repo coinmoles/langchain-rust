@@ -58,7 +58,7 @@ async fn main() {
     let input_variables =
         DefaultChainInput::new("What the name of the current dir, And what date is today");
 
-    match executor.call(&input_variables).await {
+    match executor.call(input_variables).await {
         Ok(result) => {
             println!("Result: {:?}", result.content.replace("\n", " "));
         }

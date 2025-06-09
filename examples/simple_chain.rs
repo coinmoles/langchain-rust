@@ -4,7 +4,7 @@ use langchain_rust::{
         openai::{OpenAI, OpenAIModel},
         OpenAIConfig,
     },
-    schemas::{ChainInput, ChainInputCtor, MessageType},
+    schemas::{ChainInput, Ctor, MessageType},
     template::MessageTemplate,
 };
 use std::{
@@ -12,7 +12,7 @@ use std::{
     io::{self, Write},
 }; // Include io Library for terminal input
 
-#[derive(Clone, ChainInput, ChainInputCtor)]
+#[derive(Clone, ChainInput, Ctor)]
 pub struct ProductoInput<'a> {
     #[chain_input(text)]
     pub producto: Cow<'a, str>,
@@ -38,7 +38,7 @@ async fn main() {
     let product = product.trim();
 
     let output = chain
-        .call(&ProductoInput {
+        .call(ProductoInput {
             producto: product.into(),
         }) // Use product input here
         .await

@@ -29,7 +29,7 @@ async fn main() {
         .unwrap();
 
     match chain
-        .call(&DefaultChainInput::new("Describe this image"))
+        .call(DefaultChainInput::new("Describe this image"))
         .await
     {
         Ok(result) => {

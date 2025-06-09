@@ -2,7 +2,7 @@ use crate::{
     chain::ChainError,
     language_models::llm::LLM,
     output_parsers::{OutputParser, SimpleParser},
-    schemas::{ChainInputCtor, ChainOutput},
+    schemas::{ChainOutput, Ctor, InputCtor},
     template::PromptTemplate,
 };
 
@@ -10,8 +10,9 @@ use super::LLMChain;
 
 pub struct LLMChainBuilder<I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
+    I: InputCtor,
+    O: Ctor,
+    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     prompt: Option<PromptTemplate>,
     llm: Option<Box<dyn LLM>>,
@@ -21,8 +22,9 @@ where
 
 impl<I, O> LLMChainBuilder<I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
+    I: InputCtor,
+    O: Ctor,
+    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     pub(super) fn new() -> Self {
         Self {

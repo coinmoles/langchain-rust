@@ -1,56 +1,53 @@
-use std::borrow::Cow;
-
 use async_trait::async_trait;
+use serde::Serialize;
 
 use crate::{
-    chain::{Chain, ChainError, ChainImpl},
-    schemas::{
-        AsInput, ChainInputCtor, ChainOutput, IntoWithUsage, OutputTrace, Prompt, TokenUsage,
-        WithUsage,
-    },
+    chain::{Chain, ChainError},
+    schemas::{Ctor, InputCtor, IntoWithUsage, OutputTrace, Prompt, TokenUsage, WithUsage},
 };
 
 pub struct SequentialChain<'a, I, M1, M2, O>
 where
-    I: ChainInputCtor,
-    M1: ChainOutput + AsInput,
-    for<'b> M2: ChainInputCtor<Target<'b> = M1::AsInput<'b>>,
-    O: ChainOutput,
+    I: InputCtor,
+    M1: Ctor,
+    M2: InputCtor,
+    O: Ctor,
+    for<'b> M1::Target<'b>: Serialize + Clone + Into<M2::Target<'b>>,
+    for<'b> O::Target<'b>: Serialize,
 {
-    pub first: Box<dyn Chain<InputCtor = I, Output = M1> + 'a>,
-    pub second: Box<dyn Chain<InputCtor = M2, Output = O> + 'a>,
+    pub first: Box<dyn Chain<InputCtor = I, OutputCtor = M1> + 'a>,
+    pub second: Box<dyn Chain<InputCtor = M2, OutputCtor = O> + 'a>,
 }
 
 #[async_trait]
-impl<I, M1, M2, O> ChainImpl for SequentialChain<'_, I, M1, M2, O>
+impl<I, M1, M2, O> Chain for SequentialChain<'_, I, M1, M2, O>
 where
-    I: ChainInputCtor,
-    M1: ChainOutput + AsInput,
-    for<'a> M2: ChainInputCtor<Target<'a> = M1::AsInput<'a>>,
-    O: ChainOutput,
+    I: InputCtor,
+    M1: Ctor,
+    M2: InputCtor,
+    O: Ctor,
+    for<'b> M1::Target<'b>: Serialize + Clone + Into<M2::Target<'b>>,
+    for<'b> O::Target<'b>: Serialize,
 {
     type InputCtor = I;
-    type Output = O;
+    type OutputCtor = O;
 
-    async fn call_impl<'i>(
-        &self,
-        input: Cow<'i, I::Target<'i>>,
-    ) -> Result<WithUsage<Self::Output>, ChainError> {
-        let result1 = self.first.call_impl(input).await?;
-        let result2 = self.second.call_owned(result1.content.as_input()).await?;
+    async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
+        let result1 = self.first.call(input).await?;
+        let result2 = self.second.call(result1.content.into()).await?;
 
         let usage = TokenUsage::merge_options([&result1.usage, &result2.usage]);
         Ok(result2.content.with_usage(usage))
     }
 
-    async fn call_with_trace_impl<'i>(
+    async fn call_with_trace<'a>(
         &self,
-        input: Cow<'i, I::Target<'i>>,
-    ) -> Result<OutputTrace<Self::Output>, ChainError> {
-        let result1 = self.first.call_with_trace_impl(input).await?;
+        input: I::Target<'a>,
+    ) -> Result<OutputTrace<O::Target<'a>>, ChainError> {
+        let result1 = self.first.call_with_trace(input).await?;
         let result2 = self
             .second
-            .call_with_trace_owned(result1.final_step.content.as_input())
+            .call_with_trace(result1.final_step.content.clone().into())
             .await?;
 
         let result = result1.extend(result2)?;
@@ -58,8 +55,8 @@ where
         Ok(result)
     }
 
-    fn get_prompt_impl<'i>(&self, input: Cow<'i, I::Target<'i>>) -> Result<Prompt, ChainError> {
-        self.first.get_prompt_impl(input)
+    fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, ChainError> {
+        self.first.get_prompt(input)
     }
 }
 
@@ -85,37 +82,45 @@ mod tests {
     use crate::{
         chain::{Chain, LLMChain},
         llm::openai::OpenAI,
-        schemas::{
-            AsInput, ChainInput, ChainInputCtor, ChainOutput, MessageType, TryFromStringError,
-        },
+        schemas::{ChainInput, ChainOutput, MessageType, TryFromStringError},
         sequential_chain,
         template::MessageTemplate,
     };
 
+    use super::*;
+
     #[tokio::test]
     #[ignore]
     async fn test_sequential() {
-        #[derive(Debug, Clone, ChainInput, ChainInputCtor)]
+        #[derive(Debug, Clone, ChainInput, Ctor)]
         pub struct FirstInput<'a> {
             #[chain_input(text)]
             input: Cow<'a, str>,
+            #[chain_input(text)]
+            other: Cow<'a, str>,
         }
-        #[derive(Debug, Clone, Serialize, ChainInput, ChainInputCtor, AsInput)]
+        #[derive(Debug, Clone, Serialize, ChainInput, Ctor)]
         pub struct SecondInput<'a> {
             #[chain_input(text)]
             nombre: Cow<'a, str>,
+            #[chain_input(text)]
+            other: Cow<'a, str>,
         }
-        impl ChainOutput for SecondInput<'_> {
-            fn try_from_string(s: impl Into<String>) -> Result<Self, TryFromStringError> {
+        impl<'a> ChainOutput<FirstInput<'a>> for SecondInput<'a> {
+            fn try_from_string(
+                input: FirstInput<'a>,
+                s: impl Into<String>,
+            ) -> Result<Self, TryFromStringError> {
                 let original: String = s.into();
                 Ok(Self {
                     nombre: original.into(),
+                    other: input.other,
                 })
             }
         }
 
         let llm = OpenAI::default();
-        let chain1: LLMChain<FirstInputCtor, SecondInput> = LLMChain::builder()
+        let chain1: LLMChain<FirstInputCtor, SecondInputCtor> = LLMChain::builder()
             .prompt(MessageTemplate::from_fstring(
                 MessageType::HumanMessage,
                 "dame un nombre para una tienda de {input}",
@@ -135,8 +140,9 @@ mod tests {
 
         let chain = sequential_chain!(chain1, chain2);
         let result = chain
-            .call(&FirstInput {
+            .call(FirstInput {
                 input: "zapatos".into(),
+                other: "algo".into(),
             })
             .await;
         assert!(

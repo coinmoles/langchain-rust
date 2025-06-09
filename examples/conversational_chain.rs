@@ -38,7 +38,7 @@ async fn main() {
 
     let input = DefaultChainInput::new("I'm from Peru");
 
-    let mut stream = chain.stream(&input).await.unwrap();
+    let mut stream = chain.stream(input).await.unwrap();
     while let Some(result) = stream.next().await {
         match result {
             Ok(data) => {
@@ -53,7 +53,7 @@ async fn main() {
     }
 
     let input = DefaultChainInput::new("Which are the typical dish");
-    match chain.call(&input).await {
+    match chain.call(input).await {
         Ok(result) => {
             println!("\n");
             println!("Result: {}", result.content);

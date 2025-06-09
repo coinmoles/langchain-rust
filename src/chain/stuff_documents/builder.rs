@@ -2,29 +2,30 @@ use crate::{
     chain::{ChainError, LLMChain},
     language_models::llm::LLM,
     output_parsers::OutputParser,
-    schemas::MessageType,
-    schemas::{ChainOutput, ChainInputCtor},
+    schemas::{ChainOutput, Ctor, InputCtor, MessageType},
     template::{MessageTemplate, PromptTemplate},
 };
 
 use super::{prompt::DEFAULT_STUFF_QA_TEMPLATE, StuffDocument};
 
-pub struct StuffDocumentBuilder<'b, I, O>
+pub struct StuffDocumentBuilder<'a, I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
+    I: InputCtor,
+    O: Ctor,
+    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     llm: Option<Box<dyn LLM>>,
-    output_key: Option<&'b str>,
+    output_key: Option<&'a str>,
     output_parser: Option<Box<dyn OutputParser>>,
     prompt: Option<PromptTemplate>,
     _phantom: std::marker::PhantomData<(I, O)>,
 }
 
-impl<'b, I, O> StuffDocumentBuilder<'b, I, O>
+impl<'a, I, O> StuffDocumentBuilder<'a, I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
+    I: InputCtor,
+    O: Ctor,
+    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     pub(super) fn new() -> Self {
         Self {
@@ -41,7 +42,7 @@ where
         self
     }
 
-    pub fn output_key(mut self, output_key: &'b (impl AsRef<str> + ?Sized)) -> Self {
+    pub fn output_key(mut self, output_key: &'a (impl AsRef<str> + ?Sized)) -> Self {
         self.output_key = Some(output_key.as_ref());
         self
     }

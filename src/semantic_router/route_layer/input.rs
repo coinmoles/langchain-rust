@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
-use crate::schemas::{ChainInput, ChainInputCtor};
+use crate::schemas::{ChainInput, Ctor};
 
-#[derive(Clone, ChainInput, ChainInputCtor)]
+#[derive(Clone, ChainInput, Ctor)]
 pub struct RouteLayerInput<'a> {
     #[chain_input(text)]
     pub description: Cow<'a, str>,

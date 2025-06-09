@@ -49,7 +49,7 @@ git diff --cached --name-only --diff-filter=ACM | while read -r file; do echo "\
         .join("\n");
 
     let res = chain
-        .call(&DefaultChainInput::new(&complete_changes))
+        .call(DefaultChainInput::new(&complete_changes))
         .await
         .expect("Failed to invoke chain");
 

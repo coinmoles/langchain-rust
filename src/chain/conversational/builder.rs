@@ -3,11 +3,11 @@ use std::{fmt::Display, sync::Arc};
 use tokio::sync::RwLock;
 
 use crate::{
-    chain::{ChainError, LLMChain},
+    chain::{ChainError, ConversationalChainInput, LLMChain},
     language_models::llm::LLM,
     memory::{Memory, SimpleMemory},
     output_parsers::OutputParser,
-    schemas::{ChainInputCtor, MessageType, ChainOutput},
+    schemas::{ChainOutput, Ctor, InputCtor, MessageType},
     template::{MessageTemplate, PromptTemplate},
 };
 
@@ -15,9 +15,10 @@ use super::{prompt::DEFAULT_TEMPLATE, ConversationalChain};
 
 pub struct ConversationalChainBuilder<I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
-    for<'a> I::Target<'a>: Display,
+    I: InputCtor,
+    O: Ctor,
+    for<'b> I::Target<'b>: Display,
+    for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
 {
     llm: Option<Box<dyn LLM>>,
     memory: Option<Arc<RwLock<dyn Memory>>>,
@@ -28,9 +29,10 @@ where
 
 impl<I, O> ConversationalChainBuilder<I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
-    for<'a> I::Target<'a>: Display,
+    I: InputCtor,
+    O: Ctor,
+    for<'b> I::Target<'b>: Display,
+    for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
 {
     pub(super) fn new() -> Self {
         Self {

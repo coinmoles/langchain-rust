@@ -1,13 +1,13 @@
 use proc_macro_error::{Diagnostic, Level, abort};
 use quote::{ToTokens, quote};
-use syn::{Data, DeriveInput, Field, Fields, FieldsNamed, spanned::Spanned};
+use syn::{Data, DeriveInput, Field, Fields, FieldsNamed, LitStr, spanned::Spanned};
 
 use crate::{
-    attr::{FieldAttrs, StructAttrs},
     check_type::{
         extract_option_inner_type, is_cow_str_type, is_message_slice_type, is_str_type,
         is_string_type, is_vec_message_type,
     },
+    rename::RenameAll,
 };
 
 pub fn get_fields(input: &DeriveInput) -> Result<&FieldsNamed, Diagnostic> {
@@ -50,14 +50,14 @@ fn generate_text_replacement_conversion(field: &Field) -> proc_macro2::TokenStre
 
 pub fn generate_text_replacement(
     field: &Field,
-    attrs: &FieldAttrs,
-    struct_attrs: &StructAttrs,
+    rename: &Option<LitStr>,
+    rename_all: &Option<RenameAll>,
 ) -> proc_macro2::TokenStream {
-    let key = match attrs.serde_rename.clone() {
-        Some(rename) => rename,
+    let key = match rename {
+        Some(rename) => rename.value(),
         None => {
             let ident = field.ident.as_ref().unwrap();
-            match &struct_attrs.serde_rename_all {
+            match rename_all {
                 Some(rename_all) => rename_all.apply(ident.to_string()),
                 None => ident.to_string(),
             }
@@ -102,14 +102,14 @@ fn generate_placeholder_replacement_conversion(field: &Field) -> proc_macro2::To
 
 pub fn generate_placeholder_replacement(
     field: &Field,
-    attrs: &FieldAttrs,
-    struct_attrs: &StructAttrs,
+    rename: &Option<LitStr>,
+    rename_all: &Option<RenameAll>,
 ) -> proc_macro2::TokenStream {
-    let key = match attrs.serde_rename.clone() {
-        Some(rename) => rename,
+    let key = match rename {
+        Some(rename) => rename.value(),
         None => {
             let ident = field.ident.as_ref().unwrap();
-            match &struct_attrs.serde_rename_all {
+            match rename_all {
                 Some(rename_all) => rename_all.apply(ident.to_string()),
                 None => ident.to_string(),
             }

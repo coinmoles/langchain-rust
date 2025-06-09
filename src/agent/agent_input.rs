@@ -1,18 +1,21 @@
-use std::borrow::Cow;
-
-use crate::schemas::{ChainInput, ChainInputCtor, Message};
+use crate::schemas::{ChainInput, Ctor, InputCtor, Message};
 
 const FORCE_FINAL_ANSWER: &str = "Now it's time you MUST give your absolute best final answer. You'll ignore all previous instructions, stop using any tools, and just return your absolute BEST Final answer.";
 
-pub struct AgentInputCtor<I: ChainInputCtor>(std::marker::PhantomData<I>);
-impl<I: ChainInputCtor> ChainInputCtor for AgentInputCtor<I> {
-    type Target<'a> = AgentInput<'a, I::Target<'a>>;
+pub struct AgentInputCtor<I>(std::marker::PhantomData<I>)
+where
+    I: InputCtor;
+impl<I> Ctor for AgentInputCtor<I>
+where
+    I: InputCtor,
+{
+    type Target<'a> = AgentInput<I::Target<'a>>;
 }
 
 #[derive(Debug, Clone, ChainInput)]
-pub struct AgentInput<'a, I: ChainInput> {
+pub struct AgentInput<I: ChainInput> {
     #[chain_input(inner)]
-    pub inner: Cow<'a, I>,
+    pub inner: I,
     #[chain_input(placeholder)]
     pub agent_scratchpad: Option<Vec<Message>>,
     #[chain_input(placeholder)]
@@ -21,10 +24,10 @@ pub struct AgentInput<'a, I: ChainInput> {
     pub ultimatum: Option<Vec<Message>>,
 }
 
-impl<'a, I: ChainInput> AgentInput<'a, I> {
-    pub fn new(input: impl Into<Cow<'a, I>>) -> Self {
+impl<I: ChainInput> AgentInput<I> {
+    pub fn new(input: I) -> Self {
         Self {
-            inner: input.into(),
+            inner: input,
             agent_scratchpad: None,
             chat_history: None,
             ultimatum: None,

@@ -1,16 +1,16 @@
 #![allow(dead_code)]
 // I have no idea how to remove dead codes here.
 
-use std::{borrow::Cow, pin::Pin};
+use std::pin::Pin;
 
 use async_trait::async_trait;
 use futures::Stream;
 use indoc::indoc;
 
 use crate::{
-    chain::{ChainError, ChainImpl, LLMChain, StuffQACtor},
+    chain::{Chain, ChainError, LLMChain, StuffQACtor},
     language_models::llm::LLM,
-    schemas::{ChainInputCtor, MessageType, ChainOutput, Prompt, StreamData, WithUsage},
+    schemas::{ChainOutput, Ctor, InputCtor, MessageType, Prompt, StreamData, StringCtor, WithUsage},
     template::MessageTemplate,
 };
 
@@ -19,10 +19,11 @@ use super::{
     COMBINE_DOCUMENTS_DEFAULT_INPUT_KEY, STUFF_DOCUMENTS_DEFAULT_SEPARATOR,
 };
 
-pub struct StuffDocument<I, O = String>
+pub struct StuffDocument<I = StuffQACtor, O = StringCtor>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
+    I: InputCtor,
+    O: Ctor,
+    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     llm_chain: LLMChain<I, O>,
     input_key: String,
@@ -32,8 +33,9 @@ where
 
 impl<I, O> StuffDocument<I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
+    I: InputCtor,
+    O: Ctor,
+    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     pub fn builder<'b>() -> StuffDocumentBuilder<'b, I, O> {
         StuffDocumentBuilder::new()
@@ -49,7 +51,7 @@ where
     }
 }
 
-impl StuffDocument<StuffQACtor, String> {
+impl StuffDocument<StuffQACtor, StringCtor> {
     /// load_stuff_qa return an instance of StuffDocument
     /// with a prompt desiged for question ansering
     ///
@@ -104,30 +106,28 @@ impl StuffDocument<StuffQACtor, String> {
 }
 
 #[async_trait]
-impl<I, O> ChainImpl for StuffDocument<I, O>
+impl<I, O> Chain for StuffDocument<I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
+    I: InputCtor,
+    O: Ctor,
+    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     type InputCtor = I;
-    type Output = O;
+    type OutputCtor = O;
 
-    async fn call_impl<'i>(
-        &self,
-        input: Cow<'i, I::Target<'i>>,
-    ) -> Result<WithUsage<O>, ChainError> {
-        self.llm_chain.call_impl(input).await
+    async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
+        self.llm_chain.call(input).await
     }
 
-    async fn stream_impl<'i>(
+    async fn stream(
         &self,
-        input: Cow<'i, I::Target<'i>>,
+        input: I::Target<'_>,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
     {
-        self.llm_chain.stream_impl(input).await
+        self.llm_chain.stream(input).await
     }
 
-    fn get_prompt_impl<'i>(&self, input: Cow<'i, I::Target<'i>>) -> Result<Prompt, ChainError> {
-        self.llm_chain.get_prompt_impl(input)
+    fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, ChainError> {
+        self.llm_chain.get_prompt(input)
     }
 }

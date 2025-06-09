@@ -23,7 +23,7 @@ async fn main() {
         .unwrap();
 
     let mut stream = chain
-        .stream(&DefaultChainInput::new(
+        .stream(DefaultChainInput::new(
             "Who is the writer of 20,000 Leagues Under the Sea?",
         ))
         .await

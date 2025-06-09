@@ -1,16 +1,21 @@
 use std::{borrow::Cow, marker::PhantomData};
 
-use crate::schemas::{ChainInput, ChainInputCtor, DefaultChainInput, DefaultChainInputCtor};
+use crate::schemas::{ChainInput, Ctor, DefaultChainInput, DefaultChainInputCtor, InputCtor};
 
-pub struct ConversationalChainInputCtor<I: ChainInputCtor = DefaultChainInputCtor>(PhantomData<I>);
-impl<I: ChainInputCtor> ChainInputCtor for ConversationalChainInputCtor<I> {
+pub struct ConversationalChainInputCtor<I = DefaultChainInputCtor>(PhantomData<I>)
+where
+    I: InputCtor;
+impl<I> Ctor for ConversationalChainInputCtor<I>
+where
+    I: InputCtor,
+{
     type Target<'a> = ConversationalChainInput<'a, I::Target<'a>>;
 }
 
 #[derive(Clone, ChainInput)]
 pub struct ConversationalChainInput<'a, I: ChainInput = DefaultChainInput<'a>> {
     #[chain_input(inner)]
-    pub inner: Cow<'a, I>,
+    pub inner: I,
     #[chain_input(text)]
     pub chat_history: Option<Cow<'a, str>>,
 }
@@ -19,9 +24,9 @@ impl<'a, I> ConversationalChainInput<'a, I>
 where
     I: ChainInput,
 {
-    pub fn new(input: impl Into<Cow<'a, I>>) -> Self {
+    pub fn new(input: I) -> Self {
         Self {
-            inner: input.into(),
+            inner: input,
             chat_history: None,
         }
     }

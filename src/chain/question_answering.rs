@@ -1,21 +1,23 @@
 use std::{borrow::Cow, collections::HashMap, pin::Pin};
 
 use crate::{
+    chain::Chain,
     language_models::llm::LLM,
-    schemas::{messages::Message, Document, MessageType, Prompt, StreamData, WithUsage},
-    schemas::{ChainInput, ChainInputCtor, TextReplacements},
+    schemas::{
+        messages::Message, ChainInput, Ctor, Document, InputCtor, MessageType, Prompt, StreamData,
+        StringCtor, TextReplacements, WithUsage,
+    },
     template::MessageTemplate,
 };
 use async_trait::async_trait;
 use futures::Stream;
 use indoc::indoc;
 
-use super::{ChainError, ChainImpl, LLMChain};
+use super::{ChainError, LLMChain};
 
-#[derive(Clone, ChainInput, ChainInputCtor)]
+#[derive(Clone, ChainInput, Ctor)]
 pub struct CondenseQuestionPrompt<'a> {
     #[chain_input(text)]
-    #[serde(rename = "lalala")]
     chat_history: Cow<'a, str>,
     #[chain_input(text)]
     question: Cow<'a, str>,
@@ -48,7 +50,7 @@ impl<'a> Default for CondenseQuestionPrompt<'a> {
 
 pub struct CondenseQuestionGeneratorChain<I = CondenseQuestionPromptCtor>
 where
-    I: ChainInputCtor,
+    I: InputCtor,
 {
     chain: LLMChain<I>,
 }
@@ -81,34 +83,31 @@ impl CondenseQuestionGeneratorChain<CondenseQuestionPromptCtor> {
 }
 
 #[async_trait]
-impl<I> ChainImpl for CondenseQuestionGeneratorChain<I>
+impl<I> Chain for CondenseQuestionGeneratorChain<I>
 where
-    I: ChainInputCtor,
+    I: InputCtor,
 {
     type InputCtor = I;
-    type Output = String;
+    type OutputCtor = StringCtor;
 
-    async fn call_impl<'i>(
-        &self,
-        input: Cow<'i, I::Target<'i>>,
-    ) -> Result<WithUsage<Self::Output>, ChainError> {
-        self.chain.call_impl(input).await
+    async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<String>, ChainError> {
+        self.chain.call(input).await
     }
 
-    async fn stream_impl<'i>(
+    async fn stream(
         &self,
-        input: Cow<'i, I::Target<'i>>,
+        input: I::Target<'_>,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
     {
-        self.chain.stream_impl(input).await
+        self.chain.stream(input).await
     }
 
-    fn get_prompt_impl<'i>(&self, input: Cow<'i, I::Target<'i>>) -> Result<Prompt, ChainError> {
-        self.chain.get_prompt_impl(input)
+    fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, ChainError> {
+        self.chain.get_prompt(input)
     }
 }
 
-#[derive(Clone, ChainInputCtor)]
+#[derive(Clone, Ctor)]
 pub struct StuffQA<'a> {
     input_documents: Vec<Document>,
     question: Cow<'a, str>,
@@ -184,8 +183,8 @@ mod tests {
             ])
             .question("How old is luis and whats his favorite text editor");
 
-        let ouput = chain.call(&input).await.unwrap().content;
+        let output = chain.call(input).await.unwrap().content;
 
-        println!("{}", ouput);
+        println!("{}", output);
     }
 }

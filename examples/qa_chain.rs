@@ -27,7 +27,7 @@ async fn main() {
             }),
         ]);
 
-    let output = chain.call(&input).await.unwrap();
+    let output = chain.call(input).await.unwrap();
 
     println!("{}", output.content);
 }

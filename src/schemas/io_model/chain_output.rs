@@ -1,23 +1,14 @@
-pub use macros::AsInput;
 use serde::Serialize;
 
-use crate::schemas::ChainInput;
-
-pub trait ChainOutput: Serialize + Clone + Send + Sync {
-    fn try_from_string(s: impl Into<String>) -> Result<Self, TryFromStringError>;
+pub trait ChainOutput<I>: Serialize + Clone + Send + Sync {
+    fn try_from_string(input: I, s: impl Into<String>) -> Result<Self, TryFromStringError>;
 }
 
-impl ChainOutput for String {
-    fn try_from_string(s: impl Into<String>) -> Result<Self, TryFromStringError> {
-        Ok(s.into())
+impl<T> ChainOutput<T> for String {
+    fn try_from_string(_input: T, s: impl Into<String>) -> Result<Self, TryFromStringError> {
+        let original: String = s.into();
+        Ok(original)
     }
-}
-pub trait AsInput {
-    type AsInput<'a>: ChainInput
-    where
-        Self: 'a;
-
-    fn as_input(&self) -> Self::AsInput<'_>;
 }
 
 #[derive(Debug)]

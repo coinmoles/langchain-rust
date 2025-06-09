@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::sync::Arc;
@@ -8,8 +7,8 @@ use indoc::formatdoc;
 use tokio::sync::RwLock;
 
 use crate::agent::{AgentError, AgentInput};
-use crate::chain::ChainImpl;
-use crate::schemas::{ChainInputCtor, ChainOutput, Prompt, WithUsage};
+use crate::chain::Chain;
+use crate::schemas::{ChainOutput, Ctor, InputCtor, IntoWithUsage, Prompt, WithUsage};
 use crate::utils::helper::normalize_tool_name;
 use crate::{
     agent::Agent,
@@ -22,22 +21,22 @@ use super::ExecutorOptions;
 
 pub struct AgentExecutor<'a, I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
+    I: InputCtor,
+    O: Ctor,
     for<'b> I::Target<'b>: Display,
 {
-    agent: Box<dyn Agent<InputCtor = I, Output = O> + 'a>,
+    agent: Box<dyn Agent<InputCtor = I, OutputCtor = O> + 'a>,
     memory: Option<Arc<RwLock<dyn Memory>>>,
     options: ExecutorOptions,
 }
 
 impl<'a, I, O> AgentExecutor<'a, I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
+    I: InputCtor,
+    O: Ctor,
     for<'b> I::Target<'b>: Display,
 {
-    pub fn from_agent(agent: impl Agent<InputCtor = I, Output = O> + 'a) -> Self {
+    pub fn from_agent(agent: impl Agent<InputCtor = I, OutputCtor = O> + 'a) -> Self {
         Self {
             agent: Box::new(agent),
             memory: None,
@@ -70,31 +69,19 @@ where
 }
 
 #[async_trait]
-impl<I, O> ChainImpl for AgentExecutor<'_, I, O>
+impl<I, O> Chain for AgentExecutor<'_, I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
+    I: InputCtor,
+    O: Ctor,
     for<'b> I::Target<'b>: Display,
+    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     type InputCtor = I;
-    type Output = O;
+    type OutputCtor = O;
 
-    async fn call_impl<'i>(
-        &self,
-        input: Cow<'i, I::Target<'i>>,
-    ) -> Result<WithUsage<O>, ChainError> {
-        let human_message = input.to_string();
-
-        let options = &self.options;
-
-        let mut steps: Vec<AgentStep> = Vec::new();
-        let mut use_counts: HashMap<String, usize> = HashMap::new();
-        let mut consecutive_fails: usize = 0;
-        let mut total_usage: Option<TokenUsage> = None;
-        let mut input = AgentInput::new(input);
-
+    async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
         {
-            let prompt = self.agent.get_prompt(input.clone()).map_err(|e| {
+            let prompt = self.get_prompt(input.clone()).map_err(|e| {
                 ChainError::AgentError(format!("Error formatting initial messages: {e}"))
             })?;
             for message in prompt.to_messages() {
@@ -105,6 +92,15 @@ where
                 );
             }
         }
+
+        let human_message = input.to_string();
+        let options = &self.options;
+
+        let mut steps: Vec<AgentStep> = Vec::new();
+        let mut use_counts: HashMap<String, usize> = HashMap::new();
+        let mut consecutive_fails: usize = 0;
+        let mut total_usage: Option<TokenUsage> = None;
+        let mut input = AgentInput::new(input);
 
         if let Some(memory) = &self.memory {
             input.set_chat_history(memory.read().await.messages());
@@ -227,17 +223,14 @@ where
 
                     log::debug!("\nAgent finished with result:\n{}", &final_answer);
 
-                    todo!();
-
-                    // let final_answer: O = O::new();
-
-                    // return Ok(final_answer.with_usage(total_usage));
+                    let final_answer = O::Target::try_from_string(input.inner, final_answer)?;
+                    return Ok(final_answer.with_usage(total_usage));
                 }
             }
         }
     }
 
-    fn get_prompt_impl<'i>(&self, input: Cow<'i, I::Target<'i>>) -> Result<Prompt, ChainError> {
+    fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, ChainError> {
         self.agent.get_prompt(AgentInput::new(input))
     }
 }

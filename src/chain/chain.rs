@@ -1,73 +1,30 @@
-use std::{borrow::Cow, pin::Pin};
+use std::pin::Pin;
 
 use async_trait::async_trait;
 use futures::Stream;
 
-use crate::schemas::{
-    ChainInputCtor, OutputTrace, ChainOutput, Prompt, StreamData, WithUsage,
-};
+use crate::schemas::{Ctor, InputCtor, OutputTrace, Prompt, StreamData, WithUsage};
 
 use super::ChainError;
 
-mod sealed {
-    pub trait Sealed {}
-}
-
 #[async_trait]
-pub trait ChainImpl: Send + Sync {
-    type InputCtor: ChainInputCtor;
-    type Output: ChainOutput;
+pub trait Chain: Sync + Send {
+    type InputCtor: InputCtor;
+    type OutputCtor: Ctor;
 
-    async fn call_impl<'i>(
+    async fn call<'a>(
         &self,
-        input: Cow<'i, <Self::InputCtor as ChainInputCtor>::Target<'i>>,
-    ) -> Result<WithUsage<Self::Output>, ChainError>;
+        input: <Self::InputCtor as InputCtor>::Target<'a>,
+    ) -> Result<WithUsage<<Self::OutputCtor as Ctor>::Target<'a>>, ChainError>;
 
-    async fn call_with_trace_impl<'i>(
+    async fn call_with_trace<'a>(
         &self,
-        input: Cow<'i, <Self::InputCtor as ChainInputCtor>::Target<'i>>,
-    ) -> Result<OutputTrace<Self::Output>, ChainError> {
-        let output = self.call_impl(input).await?;
+        input: <Self::InputCtor as InputCtor>::Target<'a>,
+    ) -> Result<OutputTrace<<Self::OutputCtor as Ctor>::Target<'a>>, ChainError> {
+        let output = self.call(input).await?;
 
         Ok(OutputTrace::single(output))
     }
-
-    async fn stream_impl<'i>(
-        &self,
-        _input: Cow<'i, <Self::InputCtor as ChainInputCtor>::Target<'i>>,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
-    {
-        log::warn!("stream not implemented for this chain");
-        unimplemented!()
-    }
-
-    fn get_prompt_impl<'i>(
-        &self,
-        input: Cow<'i, <Self::InputCtor as ChainInputCtor>::Target<'i>>,
-    ) -> Result<Prompt, ChainError>;
-}
-
-#[async_trait]
-pub trait Chain: ChainImpl + sealed::Sealed + Sync + Send {
-    async fn call<'i>(
-        &self,
-        input: &'i <Self::InputCtor as ChainInputCtor>::Target<'i>,
-    ) -> Result<WithUsage<Self::Output>, ChainError>;
-
-    async fn call_owned<'i>(
-        &self,
-        input: <Self::InputCtor as ChainInputCtor>::Target<'i>,
-    ) -> Result<WithUsage<Self::Output>, ChainError>;
-
-    async fn call_with_trace<'i>(
-        &self,
-        input: &'i <Self::InputCtor as ChainInputCtor>::Target<'i>,
-    ) -> Result<OutputTrace<Self::Output>, ChainError>;
-
-    async fn call_with_trace_owned<'i>(
-        &self,
-        input: <Self::InputCtor as ChainInputCtor>::Target<'i>,
-    ) -> Result<OutputTrace<Self::Output>, ChainError>;
 
     /// Stream the `Chain` and get an asynchronous stream of chain generations.
     /// The input is a set of variables passed as a `PromptArgs` hashmap.
@@ -114,117 +71,16 @@ pub trait Chain: ChainImpl + sealed::Sealed + Sync + Send {
     /// # };
     /// ```
     ///
-    async fn stream<'i>(
+    async fn stream(
         &self,
-        input: &'i <Self::InputCtor as ChainInputCtor>::Target<'i>,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>;
-
-    async fn stream_owned<'i>(
-        &self,
-        input: <Self::InputCtor as ChainInputCtor>::Target<'i>,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>;
-
-    fn get_prompt<'i>(
-        &self,
-        input: &'i <Self::InputCtor as ChainInputCtor>::Target<'i>,
-    ) -> Result<Prompt, ChainError>;
-
-    fn get_prompt_owned<'i>(
-        &self,
-        input: <Self::InputCtor as ChainInputCtor>::Target<'i>,
-    ) -> Result<Prompt, ChainError>;
-}
-
-impl<T> sealed::Sealed for T where T: ChainImpl {}
-
-#[async_trait]
-impl<T> Chain for T
-where
-    T: ChainImpl + sealed::Sealed,
-{
-    /// Call the `Chain` and receive as output the result of the generation process along with
-    /// additional information like token consumption.
-    ///
-    /// # Example
-    ///
-    /// ```rust,ignore
-    /// # use crate::my_crate::{Chain, ConversationalChainBuilder, OpenAI, OpenAIModel, SimpleMemory, PromptArgs, prompt_args};
-    /// # async {
-    /// let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt35).builder();
-    /// let memory = SimpleMemory::new();
-    ///
-    /// let chain = ConversationalChainBuilder::new()
-    ///     .llm(llm)
-    ///     .memory(memory.into())
-    ///     .build().expect("Error building ConversationalChain");
-    ///
-    /// let input_variables = prompt_args! {
-    ///     "input" => "Im from Peru",
-    /// };
-    ///
-    /// match chain.call(input_variables).await {
-    ///     Ok(result) => {
-    ///         println!("Result: {:?}", result);
-    ///     },
-    ///     Err(e) => panic!("Error calling Chain: {:?}", e),
-    /// };
-    /// # };
-    /// ```
-    async fn call<'i>(
-        &self,
-        input: &'i <Self::InputCtor as ChainInputCtor>::Target<'i>,
-    ) -> Result<WithUsage<Self::Output>, ChainError> {
-        self.call_impl(Cow::Borrowed(input)).await
-    }
-
-    async fn call_owned<'i>(
-        &self,
-        input: <Self::InputCtor as ChainInputCtor>::Target<'i>,
-    ) -> Result<WithUsage<Self::Output>, ChainError> {
-        self.call_impl(Cow::Owned(input)).await
-    }
-
-    async fn call_with_trace<'i>(
-        &self,
-        input: &'i <Self::InputCtor as ChainInputCtor>::Target<'i>,
-    ) -> Result<OutputTrace<Self::Output>, ChainError> {
-        self.call_with_trace_impl(Cow::Borrowed(input)).await
-    }
-
-    async fn call_with_trace_owned<'i>(
-        &self,
-        input: <Self::InputCtor as ChainInputCtor>::Target<'i>,
-    ) -> Result<OutputTrace<Self::Output>, ChainError> {
-        self.call_with_trace_impl(Cow::Owned(input)).await
-    }
-
-    async fn stream<'i>(
-        &self,
-        input: &'i <Self::InputCtor as ChainInputCtor>::Target<'i>,
+        _input: <Self::InputCtor as InputCtor>::Target<'_>,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
     {
-        self.stream_impl(Cow::Borrowed(input)).await
+        unimplemented!("Streaming is not implemented for this chain")
     }
 
-    async fn stream_owned<'i>(
+    fn get_prompt(
         &self,
-        input: <Self::InputCtor as ChainInputCtor>::Target<'i>,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
-    {
-        self.stream_impl(Cow::Owned(input)).await
-    }
-
-    fn get_prompt<'i>(
-        &self,
-        input: &'i <Self::InputCtor as ChainInputCtor>::Target<'i>,
-    ) -> Result<Prompt, ChainError> {
-        self.get_prompt_impl(Cow::Borrowed(input))
-    }
-
-    fn get_prompt_owned<'i>(
-        &self,
-        input: <Self::InputCtor as ChainInputCtor>::Target<'i>,
-    ) -> Result<Prompt, ChainError> {
-        self.get_prompt_impl(Cow::Owned(input))
-    }
+        input: <Self::InputCtor as InputCtor>::Target<'_>,
+    ) -> Result<Prompt, ChainError>;
 }

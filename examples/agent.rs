@@ -25,7 +25,7 @@ async fn main() {
 
     let input = DefaultChainInput::new("What is the name of the current dir");
 
-    match executor.call(&input).await {
+    match executor.call(input).await {
         Ok(result) => {
             println!("Result: {:?}", result);
         }

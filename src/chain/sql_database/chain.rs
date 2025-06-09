@@ -1,11 +1,11 @@
-use std::{borrow::Cow, pin::Pin};
+use std::pin::Pin;
 
 use async_trait::async_trait;
 use futures::Stream;
 
 use crate::{
-    chain::{Chain, ChainError, ChainImpl, LLMChain},
-    schemas::{IntoWithUsage, Prompt, StreamData, TokenUsage, WithUsage},
+    chain::{Chain, ChainError, LLMChain},
+    schemas::{IntoWithUsage, Prompt, StreamData, StringCtor, TokenUsage, WithUsage},
     tools::SQLDatabase,
 };
 
@@ -86,15 +86,16 @@ impl SQLDatabaseChain {
         Ok(llm_inputs)
     }
 
+    // TODO: Remove clone
     async fn call_builder_chains(
         &self,
         input: &SqlChainInput<'_>,
     ) -> Result<(SqlChainLLMChainInput, Option<TokenUsage>), ChainError> {
         let mut token_usage: Option<TokenUsage> = None;
 
-        let mut llm_inputs = self.build_input(input).await?;
-
-        let output = self.llm_chain.call(&llm_inputs).await?;
+        let builder_input = self.build_input(input).await?;
+        let mut llm_input = builder_input.clone();
+        let output = self.llm_chain.call(builder_input).await?;
 
         if let Some(tokens) = output.usage {
             token_usage = Some(tokens);
@@ -106,27 +107,24 @@ impl SQLDatabaseChain {
             .await
             .map_err(|e| ChainError::DatabaseError(e.to_string()))?;
 
-        llm_inputs.input = format!(
+        llm_input.input = format!(
             "{}{}{}{}",
-            llm_inputs.input, output.content, STOP_WORD, query_result,
+            llm_input.input, output.content, STOP_WORD, query_result,
         )
         .into();
 
-        Ok((llm_inputs, token_usage))
+        Ok((llm_input, token_usage))
     }
 }
 
 #[async_trait]
-impl ChainImpl for SQLDatabaseChain {
+impl Chain for SQLDatabaseChain {
     type InputCtor = SqlChainInputCtor;
-    type Output = String;
+    type OutputCtor = StringCtor;
 
-    async fn call_impl<'i>(
-        &self,
-        input: Cow<'i, SqlChainInput<'i>>,
-    ) -> Result<WithUsage<Self::Output>, ChainError> {
-        let (llm_inputs, token_usage) = self.call_builder_chains(input.as_ref()).await?;
-        let output = self.llm_chain.call(&llm_inputs).await?;
+    async fn call<'a>(&self, input: SqlChainInput<'a>) -> Result<WithUsage<String>, ChainError> {
+        let (llm_inputs, token_usage) = self.call_builder_chains(&input).await?;
+        let output = self.llm_chain.call(llm_inputs).await?;
 
         let total_usage = TokenUsage::merge_options([&output.usage, &token_usage]);
 
@@ -142,20 +140,17 @@ impl ChainImpl for SQLDatabaseChain {
         Ok(output.with_usage(total_usage))
     }
 
-    async fn stream_impl<'i>(
+    async fn stream(
         &self,
-        input: Cow<'i, SqlChainInput<'i>>,
+        input: SqlChainInput<'_>,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
     {
-        let (llm_inputs, _) = self.call_builder_chains(input.as_ref()).await?;
+        let (llm_inputs, _) = self.call_builder_chains(&input).await?;
 
-        self.llm_chain.stream(&llm_inputs).await
+        self.llm_chain.stream(llm_inputs).await
     }
 
-    fn get_prompt_impl<'i>(
-        &self,
-        _input: Cow<'i, SqlChainInput<'i>>,
-    ) -> Result<Prompt, ChainError> {
+    fn get_prompt(&self, _input: SqlChainInput<'_>) -> Result<Prompt, ChainError> {
         log::warn!("SQLDatabaseChain does not support get_prompt, returning an empty prompt.");
         Ok(Prompt::new(vec![]))
     }

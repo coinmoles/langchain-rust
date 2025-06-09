@@ -6,19 +6,20 @@ use crate::{
     agent::{instructor::Instructor, Agent, AgentError, AgentInput, AgentInputCtor},
     chain::{Chain, ChainError, LLMChain},
     schemas::{
-        AgentEvent, AgentStep, DefaultChainInputCtor, ChainInputCtor, IntoWithUsage, Message,
-        ChainOutput, Prompt, WithUsage,
+        AgentEvent, AgentStep, ChainOutput, Ctor, DefaultChainInputCtor, InputCtor, IntoWithUsage,
+        Message, Prompt, StringCtor, WithUsage,
     },
     tools::{Tool, Toolbox},
 };
 
 use super::ConversationalAgentBuilder;
 
-pub struct ConversationalAgent<I = DefaultChainInputCtor, O = String>
+pub struct ConversationalAgent<I = DefaultChainInputCtor, O = StringCtor>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
-    for<'a> I::Target<'a>: Display,
+    I: InputCtor,
+    O: Ctor,
+    for<'c> I::Target<'c>: Display,
+    for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {
     pub(super) llm_chain: LLMChain<AgentInputCtor<I>, O>,
     pub(super) tools: HashMap<String, Box<dyn Tool>>,
@@ -28,9 +29,10 @@ where
 
 impl<I, O> ConversationalAgent<I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
-    for<'a> I::Target<'a>: Display,
+    I: InputCtor,
+    O: Ctor,
+    for<'c> I::Target<'c>: Display,
+    for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {
     pub fn new(
         llm_chain: LLMChain<AgentInputCtor<I>, O>,
@@ -66,17 +68,18 @@ where
 #[async_trait]
 impl<I, O> Agent for ConversationalAgent<I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
-    for<'a> I::Target<'a>: Display,
+    I: InputCtor,
+    O: Ctor,
+    for<'c> I::Target<'c>: Display,
+    for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {
     type InputCtor = I;
-    type Output = O;
+    type OutputCtor = O;
 
     async fn plan<'i>(
         &self,
         steps: &[AgentStep],
-        input: &mut AgentInput<'i, I::Target<'i>>,
+        input: &mut AgentInput<I::Target<'i>>,
     ) -> Result<WithUsage<AgentEvent>, AgentError> {
         input.set_agent_scratchpad(self.construct_scratchpad(steps));
         let output = self.llm_chain.call_llm(input).await?;
@@ -103,9 +106,9 @@ where
 
     fn get_prompt<'i>(
         &self,
-        input: AgentInput<'i, <Self::InputCtor as ChainInputCtor>::Target<'i>>,
+        input: AgentInput<<Self::InputCtor as InputCtor>::Target<'i>>,
     ) -> Result<Prompt, ChainError> {
-        self.llm_chain.get_prompt_owned(input)
+        self.llm_chain.get_prompt(input)
     }
 }
 
@@ -165,7 +168,7 @@ mod tests {
             "hola,Me llamo luis, y tengo 10 anos, y estudio Computer scinence",
         );
         let executor = agent.executor().with_memory(memory.into());
-        match executor.call(&input).await {
+        match executor.call(input).await {
             Ok(result) => {
                 println!("Result: {:?}", result.content);
             }
@@ -173,7 +176,7 @@ mod tests {
         }
 
         let input = DefaultChainInput::new("cuanta es la edad de luis +10 y que estudia");
-        match executor.call(&input).await {
+        match executor.call(input).await {
             Ok(result) => {
                 println!("Result: {:?}", result.content);
             }

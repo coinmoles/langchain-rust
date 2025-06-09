@@ -37,7 +37,7 @@ async fn main() {
     //We can now invoke it and ask the same question. It still won't know the answer, but it should respond in a more proper tone for a technical writer!
 
     match chain
-        .call(&DefaultChainInput::new(
+        .call(DefaultChainInput::new(
             "Quien es el escritor de 20000 millas de viaje submarino",
         ))
         .await

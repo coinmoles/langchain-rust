@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
-use crate::schemas::{ChainInput, ChainInputCtor};
+use crate::schemas::{ChainInput, Ctor};
 
-#[derive(Clone, Default, ChainInput, ChainInputCtor)]
+#[derive(Clone, Default, ChainInput, Ctor)]
 pub struct SqlChainInput<'a> {
     pub query: &'a str,
     pub tables: &'a [String],
@@ -24,7 +24,7 @@ impl<'a> SqlChainInput<'a> {
     }
 }
 
-#[derive(Clone, ChainInput, ChainInputCtor)]
+#[derive(Clone, ChainInput, Ctor)]
 pub struct SqlChainLLMChainInput<'a> {
     #[chain_input(text)]
     pub input: Cow<'a, str>,

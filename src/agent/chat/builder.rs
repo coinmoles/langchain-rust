@@ -4,11 +4,11 @@ use crate::{
     agent::{
         create_prompt,
         instructor::{DefaultInstructor, Instructor},
-        AgentError,
+        AgentError, AgentInput,
     },
     chain::LLMChain,
     language_models::llm::LLM,
-    schemas::{DefaultChainInputCtor, ChainInputCtor, ChainOutput},
+    schemas::{ChainOutput, Ctor, DefaultChainInputCtor, InputCtor, StringCtor},
     tools::{ListTools, Tool, Toolbox},
     utils::helper::normalize_tool_name,
 };
@@ -18,11 +18,12 @@ use super::{
     ConversationalAgent,
 };
 
-pub struct ConversationalAgentBuilder<'a, 'b, I = DefaultChainInputCtor, O = String>
+pub struct ConversationalAgentBuilder<'a, 'b, I = DefaultChainInputCtor, O = StringCtor>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
+    I: InputCtor,
+    O: Ctor,
     for<'c> I::Target<'c>: Display,
+    for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {
     tools: Option<Vec<Box<dyn Tool>>>,
     toolboxes: Option<Vec<Box<dyn Toolbox>>>,
@@ -34,9 +35,10 @@ where
 
 impl<'a, 'b, I, O> ConversationalAgentBuilder<'a, 'b, I, O>
 where
-    I: ChainInputCtor,
-    O: ChainOutput,
+    I: InputCtor,
+    O: Ctor,
     for<'c> I::Target<'c>: Display,
+    for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {
     pub(super) fn new() -> Self {
         Self {
