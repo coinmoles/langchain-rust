@@ -236,14 +236,14 @@ where
     }
 }
 
-impl<I, O> GetPrompt<AgentInput<I::Target<'_>>> for AgentExecutor<'_, I, O>
+impl<I, O> GetPrompt<I::Target<'_>> for AgentExecutor<'_, I, O>
 where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    fn get_prompt(&self, input: &AgentInput<I::Target<'_>>) -> Result<Prompt, TemplateError> {
-        self.agent.get_prompt(input)
+    fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, TemplateError> {
+        self.agent.get_prompt(&AgentInput::new(input))
     }
 }

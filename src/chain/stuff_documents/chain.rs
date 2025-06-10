@@ -131,7 +131,7 @@ where
     }
 }
 
-impl<I, O> GetPrompt<I::Target<'_>> for StuffDocument<I, O>
+impl<I, O> GetPrompt<&I::Target<'_>> for StuffDocument<I, O>
 where
     I: InputCtor,
     O: OutputCtor,

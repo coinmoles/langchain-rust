@@ -126,18 +126,16 @@ where
     }
 }
 
-impl<'a, I, O> GetPrompt<ConversationalChainInput<'a, I::Target<'a>>> for ConversationalChain<I, O>
+impl<'a, I, O> GetPrompt<I::Target<'a>> for ConversationalChain<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    fn get_prompt(
-        &self,
-        input: &ConversationalChainInput<'a, I::Target<'a>>,
-    ) -> Result<Prompt, TemplateError> {
-        self.llm_chain.get_prompt(input)
+    fn get_prompt(&self, input: I::Target<'a>) -> Result<Prompt, TemplateError> {
+        self.llm_chain
+            .get_prompt(&ConversationalChainInput::new(input))
     }
 }
 

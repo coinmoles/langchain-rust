@@ -102,7 +102,7 @@ where
     }
 }
 
-impl<I, O> GetPrompt<I::Target<'_>> for LLMChain<I, O>
+impl<I, O> GetPrompt<&I::Target<'_>> for LLMChain<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
