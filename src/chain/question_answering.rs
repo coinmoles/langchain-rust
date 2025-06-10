@@ -17,9 +17,9 @@ use super::{ChainError, LLMChain};
 
 #[derive(Clone, ChainInput, Ctor)]
 pub struct CondenseQuestionPrompt<'a> {
-    #[chain_input(text)]
+    #[langchain(into = "text")]
     chat_history: Cow<'a, str>,
-    #[chain_input(text)]
+    #[langchain(into = "text")]
     question: Cow<'a, str>,
 }
 

@@ -14,13 +14,13 @@ where
 
 #[derive(Debug, Clone, ChainInput)]
 pub struct AgentInput<I: ChainInput> {
-    #[chain_input(inner)]
+    #[langchain(into = "inner")]
     pub inner: I,
-    #[chain_input(placeholder)]
+    #[langchain(into = "placeholder")]
     pub agent_scratchpad: Option<Vec<Message>>,
-    #[chain_input(placeholder)]
+    #[langchain(into = "placeholder")]
     pub chat_history: Option<Vec<Message>>,
-    #[chain_input(placeholder)]
+    #[langchain(into = "placeholder")]
     pub ultimatum: Option<Vec<Message>>,
 }
 

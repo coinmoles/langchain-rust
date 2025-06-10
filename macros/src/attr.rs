@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use proc_macro_error::{Diagnostic, Level};
-use syn::{Attribute, Ident, LitStr, Meta, Path, parse_str, spanned::Spanned};
+use syn::{Attribute, LitStr, Path, parse_str, spanned::Spanned};
 
 use crate::{
     crate_path::{default_crate_path, default_serde_json_path, default_serde_path},
@@ -13,20 +13,26 @@ pub struct SerdeFieldAttrs {
     pub rename: Option<LitStr>,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum ChainInputFieldAttr {
-    Inner,
-    #[default]
-    Text,
-    Placeholder,
+#[derive(Default)]
+pub struct LangchainFieldAttrs {
+    pub output_source: Option<ChainOutputSource>,
+    pub input_kind: Option<ChainInputKind>,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum ChainOutputFieldAttr {
+pub enum ChainOutputSource {
     Input,
     Response,
     #[default]
     ResponseJson,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum ChainInputKind {
+    Inner,
+    #[default]
+    Text,
+    Placeholder,
 }
 
 #[derive(Default)]
@@ -34,15 +40,17 @@ pub struct SerdeStructAttrs {
     pub rename_all: Option<RenameAll>,
 }
 
-pub struct ChainStructAttr {
+pub struct LangchainStructAttrs {
+    pub from_input: Option<syn::Type>,
     pub crate_path: syn::Path,
     pub serde_path: syn::Path,
     pub serde_json_path: syn::Path,
 }
 
-impl Default for ChainStructAttr {
+impl Default for LangchainStructAttrs {
     fn default() -> Self {
         Self {
+            from_input: None,
             crate_path: default_crate_path(),
             serde_path: default_serde_path(),
             serde_json_path: default_serde_json_path(),
@@ -50,96 +58,72 @@ impl Default for ChainStructAttr {
     }
 }
 
-#[derive(Default)]
-pub struct ChainOutputStructAttrs {
-    pub input: Option<syn::Type>,
-}
-
-pub fn extract_attr<T>(
-    attrs: &[Attribute],
-    get_attr: impl Fn(&Attribute) -> Result<Option<T>, Diagnostic>,
-) -> Result<Option<T>, Diagnostic> {
-    attrs
-        .iter()
-        .find_map(|attr| get_attr(attr).transpose())
-        .transpose()
-}
-
-pub fn extract_attr_default<T: Default>(
+pub fn extract_attr<T: Default>(
     attrs: &[Attribute],
     get_attr: impl Fn(&Attribute) -> Result<Option<T>, Diagnostic>,
 ) -> Result<T, Diagnostic> {
-    extract_attr(attrs, get_attr).map(|opt| opt.unwrap_or_default())
+    attrs
+        .iter()
+        .find_map(|attr| get_attr(attr).transpose())
+        .unwrap_or_else(|| Ok(T::default()))
 }
 
-pub fn get_chain_input_field_attr(
+pub fn get_langchain_field_attrs(
     attr: &Attribute,
-) -> Result<Option<ChainInputFieldAttr>, Diagnostic> {
-    if !attr.path().is_ident("chain_input") {
-        return Ok(None);
-    }
-    let Meta::List(meta_list) = &attr.meta else {
-        return Err(Diagnostic::spanned(
-            attr.span(),
-            Level::Error,
-            "`#[chain_input(...)]` must use list syntax, e.g., `#[chain_input(text)]`".into(),
-        ));
-    };
-    let Ok(ident) = meta_list.parse_args::<Ident>() else {
-        return Err(Diagnostic::spanned(
-            meta_list.span(),
-            Level::Error,
-            "`#[chain_input(...)]` must contain a single identifier: `text`, `inner`, or `placeholder`"
-                .into(),
-        ));
-    };
-    match ident.to_string().as_str() {
-        "inner" => Ok(Some(ChainInputFieldAttr::Inner)),
-        "text" => Ok(Some(ChainInputFieldAttr::Text)),
-        "placeholder" => Ok(Some(ChainInputFieldAttr::Placeholder)),
-        _ => Err(Diagnostic::spanned(
-            ident.span(),
-            Level::Error,
-            "Invalid value for `#[chain_input(...)]`, expected `inner`, `text`, or `placeholder`"
-                .into(),
-        )),
-    }
-}
-
-pub fn get_chain_output_field_attr(
-    attr: &Attribute,
-) -> Result<Option<ChainOutputFieldAttr>, Diagnostic> {
-    if !attr.path().is_ident("chain_output") {
+) -> Result<Option<LangchainFieldAttrs>, Diagnostic> {
+    if !attr.path().is_ident("langchain") {
         return Ok(None);
     }
 
-    let Meta::List(meta_list) = &attr.meta else {
-        return Err(Diagnostic::spanned(
-            attr.span(),
+    let mut from = None;
+    let mut into = None;
+
+    attr.parse_nested_meta(|meta| {
+        if meta.path.is_ident("from") {
+            let value = meta.value()?;
+            let lit: LitStr = value.parse()?;
+            from = match lit.value().as_str() {
+                "input" => Some(ChainOutputSource::Input),
+                "response" => Some(ChainOutputSource::Response),
+                "response_json" => Some(ChainOutputSource::ResponseJson),
+                _ => return Err(syn::Error::new_spanned(
+                    lit,
+                    "Invalid value for `#[langchain(from = ...)]`, expected `input`, `response`, or `response_json`",
+                )),
+            };
+        } else if meta.path.is_ident("into") {
+            let value = meta.value()?;
+            let lit: LitStr = value.parse()?;
+            into = match lit.value().as_str() {
+                "inner" => Some(ChainInputKind::Inner),
+                "text" => Some(ChainInputKind::Text),
+                "placeholder" => Some(ChainInputKind::Placeholder),
+                _ => return Err(syn::Error::new_spanned(
+                    lit,
+                    "Invalid value for `#[langchain(into = ...)]`, expected `inner`, `text`, or `placeholder`",
+                )),
+            };
+        }else {
+            return Err(syn::Error::new_spanned(
+                meta.path,
+                "Unknown key in `#[langchain(...)]`",
+            ));
+        }
+
+        Ok(())
+    })
+    .map_err(|e|
+        Diagnostic::spanned(
+            e.span(),
             Level::Error,
-            "`#[chain_output(...)]` must use list syntax, e.g., `#[chain_output(from_input)]`"
-                .into(),
-        ));
-    };
-    let Ok(ident) = meta_list.parse_args::<Ident>() else {
-        return Err(Diagnostic::spanned(
-            meta_list.span(),
-            Level::Error,
-            "`#[chain_output(...)]` must contain a single identifier: `from_input`, `from_response`, or `from_response_json`"
-                .into(),
-        ));
-    };
-    match ident.to_string().as_str() {
-        "from_input" => Ok(Some(ChainOutputFieldAttr::Input)),
-        "from_response" => Ok(Some(ChainOutputFieldAttr::Response)),
-        "from_response_json" => Ok(Some(ChainOutputFieldAttr::ResponseJson)),
-        _ => Err(Diagnostic::spanned(
-            ident.span(),
-            Level::Error,
-            "Invalid value for `#[chain_output(...)]`, expected `from_input`, `from_response`, or `from_response_json`"
-                .into(),
-        )),
-    }
+            format!("Failed to parse langchain attribute: {e}"
+        )
+    ))?;
+
+    Ok(Some(LangchainFieldAttrs {
+        output_source: from,
+        input_kind: into,
+    }))
 }
 
 pub fn get_serde_field_attrs(attr: &Attribute) -> Result<Option<SerdeFieldAttrs>, Diagnostic> {
@@ -168,10 +152,13 @@ pub fn get_serde_field_attrs(attr: &Attribute) -> Result<Option<SerdeFieldAttrs>
     Ok(Some(SerdeFieldAttrs { rename }))
 }
 
-pub fn get_chain_struct_attrs(attr: &Attribute) -> Result<Option<ChainStructAttr>, Diagnostic> {
-    if !attr.path().is_ident("chain") {
+pub fn get_chain_struct_attrs(
+    attr: &Attribute,
+) -> Result<Option<LangchainStructAttrs>, Diagnostic> {
+    if !attr.path().is_ident("langchain") {
         return Ok(None);
     }
+    let mut from_input = None;
     let mut crate_path: Option<Path> = None;
     let mut serde_path: Option<Path> = None;
     let mut serde_json_path: Option<Path> = None;
@@ -181,10 +168,7 @@ pub fn get_chain_struct_attrs(attr: &Attribute) -> Result<Option<ChainStructAttr
             let value = meta.value()?;
             let lit: LitStr = value.parse()?;
             crate_path = Some(parse_str(&lit.value()).expect("Invalid crate path"));
-        } else {
-            return Err(syn::Error::new(meta.path.span(), "Unknown attribute"));
-        }
-        if meta.path.is_ident("serde") {
+        } else if meta.path.is_ident("serde") {
             let value = meta.value()?;
             let lit: LitStr = value.parse()?;
             serde_path = Some(parse_str(&lit.value()).expect("Invalid serde path"));
@@ -192,6 +176,9 @@ pub fn get_chain_struct_attrs(attr: &Attribute) -> Result<Option<ChainStructAttr
             let value = meta.value()?;
             let lit: LitStr = value.parse()?;
             serde_json_path = Some(parse_str(&lit.value()).expect("Invalid serde_json path"));
+        } else if meta.path.is_ident("from_input") {
+            let value = meta.value()?;
+            from_input = Some(value.parse()?);
         } else {
             return Err(syn::Error::new(meta.path.span(), "Unknown attribute"));
         }
@@ -206,41 +193,12 @@ pub fn get_chain_struct_attrs(attr: &Attribute) -> Result<Option<ChainStructAttr
         )
     })?;
 
-    Ok(Some(ChainStructAttr {
+    Ok(Some(LangchainStructAttrs {
+        from_input,
         crate_path: crate_path.unwrap_or_else(default_crate_path),
         serde_path: serde_path.unwrap_or_else(default_serde_path),
         serde_json_path: serde_json_path.unwrap_or_else(default_serde_json_path),
     }))
-}
-
-pub fn get_chain_output_struct_attrs(
-    attr: &Attribute,
-) -> Result<Option<ChainOutputStructAttrs>, Diagnostic> {
-    if !attr.path().is_ident("chain_output") {
-        return Ok(None);
-    }
-    let mut input = None;
-
-    attr.parse_nested_meta(|meta| {
-        if meta.path.is_ident("input") {
-            let value = meta.value()?;
-            let lit = value.parse()?;
-            input = Some(lit);
-        } else {
-            return Err(syn::Error::new(meta.path.span(), "Unknown attribute"));
-        }
-
-        Ok(())
-    })
-    .map_err(|e| {
-        Diagnostic::spanned(
-            e.span(),
-            Level::Error,
-            format!("Failed to parse chain_output attribute: {}", e),
-        )
-    })?;
-
-    Ok(Some(ChainOutputStructAttrs { input }))
 }
 
 pub fn get_serde_struct_attrs(attr: &Attribute) -> Result<Option<SerdeStructAttrs>, Diagnostic> {

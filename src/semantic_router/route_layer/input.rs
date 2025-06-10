@@ -4,8 +4,8 @@ use crate::schemas::{ChainInput, Ctor};
 
 #[derive(Clone, ChainInput, Ctor)]
 pub struct RouteLayerInput<'a> {
-    #[chain_input(text)]
+    #[langchain(into = "text")]
     pub description: Cow<'a, str>,
-    #[chain_input(text)]
+    #[langchain(into = "text")]
     pub query: Cow<'a, str>,
 }

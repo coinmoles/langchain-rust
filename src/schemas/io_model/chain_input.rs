@@ -29,7 +29,7 @@ impl ChainInput for HashMap<&str, &str> {
 
 #[derive(Clone, Default, ChainInput, Ctor)]
 pub struct DefaultChainInput<'a> {
-    #[chain_input(text)]
+    #[langchain(into = "text")]
     input: &'a str,
 }
 

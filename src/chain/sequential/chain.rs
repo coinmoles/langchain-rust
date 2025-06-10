@@ -93,26 +93,22 @@ mod tests {
     #[ignore]
     async fn test_sequential() {
         #[derive(Debug, Clone, ChainInput, Ctor)]
-        pub struct FirstInput<'a> {
-            #[chain_input(text)]
-            input: Cow<'a, str>,
-            #[chain_input(text)]
-            other: Cow<'a, str>,
+        pub struct Chain1Input<'a> {
+            #[langchain(into = "text")]
+            input: &'a str,
+            palabra: &'a str,
         }
         #[derive(Debug, Clone, Serialize, ChainInput, ChainOutput, Ctor)]
-        #[chain_output(input = FirstInput<'a>)]
-        pub struct SecondInput<'a> {
-            #[chain_input(text)]
-            #[chain_output(from_response_json)]
-            #[serde(rename = "name")]
+        #[langchain(from_input = Chain1Input<'a>)]
+        pub struct Chain2Input<'a> {
+            #[langchain(from = "response", into = "text")]
             nombre: Cow<'a, str>,
-            #[chain_input(text)]
-            #[chain_output(from_input)]
-            other: Cow<'a, str>,
+            #[langchain(from = "input", into = "text")]
+            palabra: Cow<'a, str>,
         }
 
         let llm = OpenAI::default();
-        let chain1: LLMChain<FirstInputCtor, SecondInputCtor> = LLMChain::builder()
+        let chain1: LLMChain<Chain1InputCtor, Chain2InputCtor> = LLMChain::builder()
             .prompt(MessageTemplate::from_fstring(
                 MessageType::HumanMessage,
                 "dame un nombre para una tienda de {input}",
@@ -121,10 +117,10 @@ mod tests {
             .build()
             .expect("Failed to build LLMChain");
 
-        let chain2: LLMChain<SecondInputCtor> = LLMChain::builder()
+        let chain2: LLMChain<Chain2InputCtor> = LLMChain::builder()
             .prompt(MessageTemplate::from_fstring(
                 MessageType::HumanMessage,
-                "dame un slogan para una tienda llamada {nombre}",
+                "dame un slogan para una tienda llamada {nombre}, tiene que incluir la palabra {palabra}",
             ))
             .llm(llm.clone())
             .build()
@@ -132,9 +128,9 @@ mod tests {
 
         let chain = sequential_chain!(chain1, chain2);
         let result = chain
-            .call(FirstInput {
-                input: "zapatos".into(),
-                other: "algo".into(),
+            .call(Chain1Input {
+                input: "medias",
+                palabra: "arroz",
             })
             .await;
         assert!(

@@ -14,9 +14,9 @@ where
 
 #[derive(Clone, ChainInput)]
 pub struct ConversationalChainInput<'a, I: ChainInput = DefaultChainInput<'a>> {
-    #[chain_input(inner)]
+    #[langchain(into = "inner")]
     pub inner: I,
-    #[chain_input(text)]
+    #[langchain(into = "text")]
     pub chat_history: Option<Cow<'a, str>>,
 }
 
