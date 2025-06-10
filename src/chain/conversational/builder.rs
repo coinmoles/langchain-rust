@@ -7,7 +7,7 @@ use crate::{
     language_models::llm::LLM,
     memory::{Memory, SimpleMemory},
     output_parsers::OutputParser,
-    schemas::{ChainOutput, Ctor, InputCtor, MessageType},
+    schemas::{ChainOutput, OutputCtor, InputCtor, MessageType},
     template::{MessageTemplate, PromptTemplate},
 };
 
@@ -16,7 +16,7 @@ use super::{prompt::DEFAULT_TEMPLATE, ConversationalChain};
 pub struct ConversationalChainBuilder<I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> I::Target<'b>: Display,
     for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
 {
@@ -30,7 +30,7 @@ where
 impl<I, O> ConversationalChainBuilder<I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> I::Target<'b>: Display,
     for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
 {

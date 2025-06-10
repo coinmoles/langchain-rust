@@ -7,7 +7,9 @@ use crate::{
     chain::{Chain, ChainError},
     language_models::llm::LLM,
     output_parsers::OutputParser,
-    schemas::{ChainOutput, Ctor, InputCtor, LLMOutput, Prompt, StreamData, StringCtor, WithUsage},
+    schemas::{
+        ChainOutput, InputCtor, LLMOutput, OutputCtor, Prompt, StreamData, StringCtor, WithUsage,
+    },
     template::PromptTemplate,
 };
 
@@ -16,7 +18,7 @@ use super::LLMChainBuilder;
 pub struct LLMChain<I, O = StringCtor>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     pub(super) prompt: PromptTemplate,
@@ -28,7 +30,7 @@ where
 impl<I, O> LLMChain<I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     pub fn builder() -> LLMChainBuilder<I, O> {
@@ -73,7 +75,7 @@ where
 impl<I, O> Chain for LLMChain<I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     type InputCtor = I;
@@ -82,7 +84,7 @@ where
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
         let llm_output = self.call_llm(&input).await?;
         let content = llm_output.content.into_text()?;
-        let content = O::Target::try_from_string(input, content)?;
+        let content = O::Target::parse_response(input, content)?;
 
         Ok(WithUsage {
             content,
@@ -113,7 +115,7 @@ mod tests {
         chain::Chain,
         llm::openai::{OpenAI, OpenAIModel},
         prompt_template,
-        schemas::{ChainInput, MessageType},
+        schemas::{ChainInput, Ctor, MessageType},
         template::MessageTemplate,
     };
 

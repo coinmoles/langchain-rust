@@ -3,24 +3,24 @@ use std::pin::Pin;
 use async_trait::async_trait;
 use futures::Stream;
 
-use crate::schemas::{Ctor, InputCtor, OutputTrace, Prompt, StreamData, WithUsage};
+use crate::schemas::{InputCtor, OutputCtor, OutputTrace, Prompt, StreamData, WithUsage};
 
 use super::ChainError;
 
 #[async_trait]
 pub trait Chain: Sync + Send {
     type InputCtor: InputCtor;
-    type OutputCtor: Ctor;
+    type OutputCtor: OutputCtor;
 
     async fn call<'a>(
         &self,
         input: <Self::InputCtor as InputCtor>::Target<'a>,
-    ) -> Result<WithUsage<<Self::OutputCtor as Ctor>::Target<'a>>, ChainError>;
+    ) -> Result<WithUsage<<Self::OutputCtor as OutputCtor>::Target<'a>>, ChainError>;
 
     async fn call_with_trace<'a>(
         &self,
         input: <Self::InputCtor as InputCtor>::Target<'a>,
-    ) -> Result<OutputTrace<<Self::OutputCtor as Ctor>::Target<'a>>, ChainError> {
+    ) -> Result<OutputTrace<<Self::OutputCtor as OutputCtor>::Target<'a>>, ChainError> {
         let output = self.call(input).await?;
 
         Ok(OutputTrace::single(output))

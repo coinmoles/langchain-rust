@@ -8,7 +8,7 @@ use crate::{
     },
     chain::LLMChain,
     language_models::llm::LLM,
-    schemas::{ChainOutput, Ctor, DefaultChainInputCtor, InputCtor, StringCtor},
+    schemas::{ChainOutput, DefaultChainInputCtor, InputCtor, OutputCtor, StringCtor},
     tools::{ListTools, Tool, Toolbox},
     utils::helper::normalize_tool_name,
 };
@@ -21,7 +21,7 @@ use super::{
 pub struct ConversationalAgentBuilder<'a, 'b, I = DefaultChainInputCtor, O = StringCtor>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'c> I::Target<'c>: Display,
     for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {
@@ -36,7 +36,7 @@ where
 impl<'a, 'b, I, O> ConversationalAgentBuilder<'a, 'b, I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'c> I::Target<'c>: Display,
     for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {

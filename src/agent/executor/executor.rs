@@ -8,7 +8,7 @@ use tokio::sync::RwLock;
 
 use crate::agent::{AgentError, AgentInput};
 use crate::chain::Chain;
-use crate::schemas::{ChainOutput, Ctor, InputCtor, IntoWithUsage, Prompt, WithUsage};
+use crate::schemas::{ChainOutput, InputCtor, IntoWithUsage, OutputCtor, Prompt, WithUsage};
 use crate::utils::helper::normalize_tool_name;
 use crate::{
     agent::Agent,
@@ -22,7 +22,7 @@ use super::ExecutorOptions;
 pub struct AgentExecutor<'a, I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> I::Target<'b>: Display,
 {
     agent: Box<dyn Agent<InputCtor = I, OutputCtor = O> + 'a>,
@@ -33,7 +33,7 @@ where
 impl<'a, I, O> AgentExecutor<'a, I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> I::Target<'b>: Display,
 {
     pub fn from_agent(agent: impl Agent<InputCtor = I, OutputCtor = O> + 'a) -> Self {
@@ -72,7 +72,7 @@ where
 impl<I, O> Chain for AgentExecutor<'_, I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> I::Target<'b>: Display,
     for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
@@ -223,7 +223,7 @@ where
 
                     log::debug!("\nAgent finished with result:\n{}", &final_answer);
 
-                    let final_answer = O::Target::try_from_string(input.inner, final_answer)?;
+                    let final_answer = O::Target::parse_response(input.inner, final_answer)?;
                     return Ok(final_answer.with_usage(total_usage));
                 }
             }

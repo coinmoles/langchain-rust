@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 use crate::{
     chain::ChainError,
-    schemas::{AgentEvent, AgentStep, Ctor, InputCtor, Prompt, WithUsage},
+    schemas::{AgentEvent, AgentStep, InputCtor, OutputCtor, Prompt, WithUsage},
     tools::Tool,
 };
 
@@ -13,7 +13,7 @@ use super::{AgentError, AgentExecutor, AgentInput};
 #[async_trait]
 pub trait Agent: Send + Sync {
     type InputCtor: InputCtor;
-    type OutputCtor: Ctor;
+    type OutputCtor: OutputCtor;
 
     async fn plan<'i>(
         &self,

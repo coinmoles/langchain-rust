@@ -4,7 +4,7 @@ use crate::{
     agent::{create_prompt, AgentError, AgentInput},
     chain::LLMChain,
     language_models::{llm::LLM, options::CallOptions, LLMError},
-    schemas::{ChainOutput, Ctor, InputCtor},
+    schemas::{ChainOutput, InputCtor, OutputCtor},
     tools::{Tool, Toolbox},
     utils::helper::normalize_tool_name,
 };
@@ -17,7 +17,7 @@ use super::{
 pub struct OpenAiToolAgentBuilder<'a, 'b, I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'c> I::Target<'c>: Display,
     for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {
@@ -31,7 +31,7 @@ where
 impl<'a, 'b, I, O> OpenAiToolAgentBuilder<'a, 'b, I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'c> I::Target<'c>: Display,
     for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {

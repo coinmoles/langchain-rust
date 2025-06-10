@@ -2,7 +2,7 @@ use crate::{
     chain::{ChainError, LLMChain},
     language_models::llm::LLM,
     output_parsers::OutputParser,
-    schemas::{ChainOutput, Ctor, InputCtor, MessageType},
+    schemas::{ChainOutput, OutputCtor, InputCtor, MessageType},
     template::{MessageTemplate, PromptTemplate},
 };
 
@@ -11,7 +11,7 @@ use super::{prompt::DEFAULT_STUFF_QA_TEMPLATE, StuffDocument};
 pub struct StuffDocumentBuilder<'a, I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     llm: Option<Box<dyn LLM>>,
@@ -24,7 +24,7 @@ where
 impl<'a, I, O> StuffDocumentBuilder<'a, I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     pub(super) fn new() -> Self {

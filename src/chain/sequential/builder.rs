@@ -2,7 +2,7 @@ use serde::Serialize;
 
 use crate::{
     chain::Chain,
-    schemas::{Ctor, InputCtor},
+    schemas::{InputCtor, OutputCtor},
 };
 
 use super::SequentialChain;
@@ -45,9 +45,9 @@ impl<'a, Op1, Op2> AddChain<'a, Op1::InputCtor, Op2> for Op1
 where
     Op1: Chain + 'a,
     Op2: Chain + 'a,
-    for<'b> <Op1::OutputCtor as Ctor>::Target<'b>:
+    for<'b> <Op1::OutputCtor as OutputCtor>::Target<'b>:
         Serialize + Clone + Into<<Op2::InputCtor as InputCtor>::Target<'b>>,
-    for<'b> <Op2::OutputCtor as Ctor>::Target<'b>: Serialize,
+    for<'b> <Op2::OutputCtor as OutputCtor>::Target<'b>: Serialize,
 {
     fn add_chain(
         self,

@@ -3,15 +3,15 @@ use serde::Serialize;
 
 use crate::{
     chain::{Chain, ChainError},
-    schemas::{Ctor, InputCtor, IntoWithUsage, OutputTrace, Prompt, TokenUsage, WithUsage},
+    schemas::{InputCtor, IntoWithUsage, OutputCtor, OutputTrace, Prompt, TokenUsage, WithUsage},
 };
 
 pub struct SequentialChain<'a, I, M1, M2, O>
 where
     I: InputCtor,
-    M1: Ctor,
+    M1: OutputCtor,
     M2: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> M1::Target<'b>: Serialize + Clone + Into<M2::Target<'b>>,
     for<'b> O::Target<'b>: Serialize,
 {
@@ -23,9 +23,9 @@ where
 impl<I, M1, M2, O> Chain for SequentialChain<'_, I, M1, M2, O>
 where
     I: InputCtor,
-    M1: Ctor,
+    M1: OutputCtor,
     M2: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> M1::Target<'b>: Serialize + Clone + Into<M2::Target<'b>>,
     for<'b> O::Target<'b>: Serialize,
 {
@@ -80,9 +80,9 @@ mod tests {
     use serde::Serialize;
 
     use crate::{
-        chain::{Chain, LLMChain},
+        chain::LLMChain,
         llm::openai::OpenAI,
-        schemas::{ChainInput, ChainOutput, MessageType, TryFromStringError},
+        schemas::{ChainInput, ChainOutput, Ctor, MessageType, TryFromStringError},
         sequential_chain,
         template::MessageTemplate,
     };

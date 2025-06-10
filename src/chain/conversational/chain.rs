@@ -11,8 +11,8 @@ use crate::{
     language_models::LLMError,
     memory::Memory,
     schemas::{
-        messages::Message, ChainOutput, Ctor, DefaultChainInputCtor, InputCtor, IntoWithUsage,
-        LLMOutput, Prompt, StreamData, StringCtor, WithUsage,
+        messages::Message, ChainOutput, DefaultChainInputCtor, InputCtor, IntoWithUsage, LLMOutput,
+        OutputCtor, Prompt, StreamData, StringCtor, WithUsage,
     },
 };
 
@@ -21,7 +21,7 @@ use super::{ConversationalChainBuilder, ConversationalChainInput, Conversational
 pub struct ConversationalChain<I = DefaultChainInputCtor, O = StringCtor>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> I::Target<'b>: Display,
     for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
 {
@@ -33,7 +33,7 @@ where
 impl<I, O> ConversationalChain<I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> I::Target<'b>: Display,
     for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
 {
@@ -46,7 +46,7 @@ where
 impl<I, O> Chain for ConversationalChain<I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> I::Target<'b>: Display,
     for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
 {
@@ -72,10 +72,7 @@ where
             LLMOutput::Refusal(refusal) => return Err(LLMError::OtherError(refusal.into()).into()),
         }
 
-        Ok(
-            O::Target::try_from_string(input, result.content.into_text()?)?
-                .with_usage(result.usage),
-        )
+        Ok(O::Target::parse_response(input, result.content.into_text()?)?.with_usage(result.usage))
     }
 
     async fn stream(

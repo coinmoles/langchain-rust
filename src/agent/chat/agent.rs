@@ -6,8 +6,8 @@ use crate::{
     agent::{instructor::Instructor, Agent, AgentError, AgentInput, AgentInputCtor},
     chain::{Chain, ChainError, LLMChain},
     schemas::{
-        AgentEvent, AgentStep, ChainOutput, Ctor, DefaultChainInputCtor, InputCtor, IntoWithUsage,
-        Message, Prompt, StringCtor, WithUsage,
+        AgentEvent, AgentStep, ChainOutput, DefaultChainInputCtor, InputCtor, IntoWithUsage,
+        Message, OutputCtor, Prompt, StringCtor, WithUsage,
     },
     tools::{Tool, Toolbox},
 };
@@ -17,7 +17,7 @@ use super::ConversationalAgentBuilder;
 pub struct ConversationalAgent<I = DefaultChainInputCtor, O = StringCtor>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'c> I::Target<'c>: Display,
     for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {
@@ -30,7 +30,7 @@ where
 impl<I, O> ConversationalAgent<I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'c> I::Target<'c>: Display,
     for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {
@@ -69,7 +69,7 @@ where
 impl<I, O> Agent for ConversationalAgent<I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'c> I::Target<'c>: Display,
     for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {

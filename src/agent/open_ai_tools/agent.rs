@@ -6,7 +6,7 @@ use std::fmt::Display;
 use crate::agent::{AgentInput, AgentInputCtor};
 use crate::chain::{ChainError, LLMChain};
 use crate::schemas::{
-    AgentStep, ChainOutput, Ctor, DefaultChainInputCtor, InputCtor, IntoWithUsage, LLMOutput,
+    AgentStep, ChainOutput, DefaultChainInputCtor, InputCtor, IntoWithUsage, LLMOutput, OutputCtor,
     Prompt, StringCtor, WithUsage,
 };
 use crate::tools::Toolbox;
@@ -30,7 +30,7 @@ pub struct LogTools {
 pub struct OpenAiToolAgent<I = DefaultChainInputCtor, O = StringCtor>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'c> I::Target<'c>: Display,
     for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {
@@ -42,7 +42,7 @@ where
 impl<I, O> OpenAiToolAgent<I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'c> I::Target<'c>: Display,
     for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {
@@ -67,7 +67,7 @@ where
 impl<I, O> Agent for OpenAiToolAgent<I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'c> I::Target<'c>: Display,
     for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
 {

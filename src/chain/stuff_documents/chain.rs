@@ -10,7 +10,9 @@ use indoc::indoc;
 use crate::{
     chain::{Chain, ChainError, LLMChain, StuffQACtor},
     language_models::llm::LLM,
-    schemas::{ChainOutput, Ctor, InputCtor, MessageType, Prompt, StreamData, StringCtor, WithUsage},
+    schemas::{
+        ChainOutput, InputCtor, MessageType, OutputCtor, Prompt, StreamData, StringCtor, WithUsage,
+    },
     template::MessageTemplate,
 };
 
@@ -22,7 +24,7 @@ use super::{
 pub struct StuffDocument<I = StuffQACtor, O = StringCtor>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     llm_chain: LLMChain<I, O>,
@@ -34,7 +36,7 @@ where
 impl<I, O> StuffDocument<I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     pub fn builder<'b>() -> StuffDocumentBuilder<'b, I, O> {
@@ -109,7 +111,7 @@ impl StuffDocument<StuffQACtor, StringCtor> {
 impl<I, O> Chain for StuffDocument<I, O>
 where
     I: InputCtor,
-    O: Ctor,
+    O: OutputCtor,
     for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
 {
     type InputCtor = I;
