@@ -18,8 +18,8 @@ pub struct OpenAiToolAgentBuilder<'a, 'b, I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'c> I::Target<'c>: Display,
-    for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
+    for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
 {
     tools: Option<Vec<Box<dyn Tool>>>,
     toolboxes: Option<Vec<Box<dyn Toolbox>>>,
@@ -32,8 +32,8 @@ impl<'a, 'b, I, O> OpenAiToolAgentBuilder<'a, 'b, I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'c> I::Target<'c>: Display,
-    for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
+    for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
 {
     pub(super) fn new() -> Self {
         Self {

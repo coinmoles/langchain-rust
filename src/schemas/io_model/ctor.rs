@@ -7,15 +7,15 @@ mod sealed {
 }
 
 pub trait Ctor: Send + Sync + 'static {
-    type Target<'a>: Send + Sync + 'a;
+    type Target<'any>: Send + Sync + 'any;
 }
 
 pub trait InputCtor: sealed::Sealed + Send + Sync + 'static {
-    type Target<'a>: ChainInput;
+    type Target<'any>: ChainInput;
 }
 
 pub trait OutputCtor: sealed::Sealed + Send + Sync + 'static {
-    type Target<'a>: Send + Sync + 'a;
+    type Target<'any>: Send + Sync + 'any;
 }
 
 impl<T: Ctor> sealed::Sealed for T {}
@@ -23,21 +23,21 @@ impl<T: Ctor> sealed::Sealed for T {}
 impl<T> InputCtor for T
 where
     T: Ctor + sealed::Sealed,
-    for<'a> T::Target<'a>: ChainInput,
+    for<'any> T::Target<'any>: ChainInput,
 {
-    type Target<'a> = T::Target<'a>;
+    type Target<'any> = T::Target<'any>;
 }
 
 impl<T> OutputCtor for T
 where
     T: Ctor + sealed::Sealed,
-    for<'a> T::Target<'a>: Send + Sync + 'a,
+    for<'any> T::Target<'any>: Send + Sync + 'any,
 {
-    type Target<'a> = T::Target<'a>;
+    type Target<'any> = T::Target<'any>;
 }
 
 pub struct StringCtor;
 
 impl Ctor for StringCtor {
-    type Target<'a> = String;
+    type Target<'any> = String;
 }

@@ -20,7 +20,7 @@ pub struct LLMChain<I, O = StringCtor>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub(super) prompt: PromptTemplate,
     pub(super) llm: Box<dyn LLM>,
@@ -32,7 +32,7 @@ impl<I, O> LLMChain<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub fn builder() -> LLMChainBuilder<I, O> {
         LLMChainBuilder::new()
@@ -77,7 +77,7 @@ impl<I, O> Chain for LLMChain<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     type InputCtor = I;
     type OutputCtor = O;
@@ -106,7 +106,7 @@ impl<I, O> GetPrompt<I::Target<'_>> for LLMChain<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     fn get_prompt(&self, input: &I::Target<'_>) -> Result<Prompt, TemplateError> {
         let prompt = self.prompt.format(input)?;

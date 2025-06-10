@@ -26,7 +26,7 @@ pub struct AgentExecutor<'a, I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> I::Target<'b>: Display,
+    for<'any> I::Target<'any>: Display,
 {
     agent: Box<dyn Agent<InputCtor = I, OutputCtor = O> + 'a>,
     memory: Option<Arc<RwLock<dyn Memory>>>,
@@ -37,7 +37,7 @@ impl<'a, I, O> AgentExecutor<'a, I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> I::Target<'b>: Display,
+    for<'any> I::Target<'any>: Display,
 {
     pub fn from_agent(agent: impl Agent<InputCtor = I, OutputCtor = O> + 'a) -> Self {
         Self {
@@ -76,8 +76,8 @@ impl<I, O> Chain for AgentExecutor<'_, I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> I::Target<'b>: Display,
-    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
+    for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     type InputCtor = I;
     type OutputCtor = O;
@@ -238,7 +238,7 @@ impl<I, O> GetPrompt<AgentInput<I::Target<'_>>> for AgentExecutor<'_, I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> I::Target<'b>: Display,
+    for<'any> I::Target<'any>: Display,
 {
     fn get_prompt(&self, input: &AgentInput<I::Target<'_>>) -> Result<Prompt, TemplateError> {
         self.agent.get_prompt(input)

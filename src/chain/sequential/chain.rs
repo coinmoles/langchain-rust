@@ -12,8 +12,8 @@ where
     M1: OutputCtor,
     M2: InputCtor,
     O: OutputCtor,
-    for<'b> M1::Target<'b>: Serialize + Clone + Into<M2::Target<'b>>,
-    for<'b> O::Target<'b>: Serialize,
+    for<'any> M1::Target<'any>: Serialize + Clone + Into<M2::Target<'any>>,
+    for<'any> O::Target<'any>: Serialize,
 {
     pub first: Box<dyn Chain<InputCtor = I, OutputCtor = M1> + 'a>,
     pub second: Box<dyn Chain<InputCtor = M2, OutputCtor = O> + 'a>,
@@ -26,8 +26,8 @@ where
     M1: OutputCtor,
     M2: InputCtor,
     O: OutputCtor,
-    for<'b> M1::Target<'b>: Serialize + Clone + Into<M2::Target<'b>>,
-    for<'b> O::Target<'b>: Serialize,
+    for<'any> M1::Target<'any>: Serialize + Clone + Into<M2::Target<'any>>,
+    for<'any> O::Target<'any>: Serialize,
 {
     type InputCtor = I;
     type OutputCtor = O;

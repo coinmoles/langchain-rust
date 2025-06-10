@@ -23,8 +23,8 @@ pub struct ConversationalChain<I = DefaultChainInputCtor, O = StringCtor>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> I::Target<'b>: Display,
-    for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
+    for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<ConversationalChainInput<'any, I::Target<'any>>>,
 {
     pub(super) llm_chain: LLMChain<ConversationalChainInputCtor<I>, O>,
     pub memory: Arc<RwLock<dyn Memory>>,
@@ -35,8 +35,8 @@ impl<I, O> ConversationalChain<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> I::Target<'b>: Display,
-    for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
+    for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<ConversationalChainInput<'any, I::Target<'any>>>,
 {
     pub fn builder() -> ConversationalChainBuilder<I, O> {
         ConversationalChainBuilder::new()
@@ -48,8 +48,8 @@ impl<I, O> Chain for ConversationalChain<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> I::Target<'b>: Display,
-    for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
+    for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<ConversationalChainInput<'any, I::Target<'any>>>,
 {
     type InputCtor = I;
     type OutputCtor = O;
@@ -126,8 +126,8 @@ impl<'a, I, O> GetPrompt<ConversationalChainInput<'a, I::Target<'a>>> for Conver
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> I::Target<'b>: Display,
-    for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
+    for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<ConversationalChainInput<'any, I::Target<'any>>>,
 {
     fn get_prompt(
         &self,

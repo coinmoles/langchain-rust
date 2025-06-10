@@ -12,7 +12,7 @@ pub struct LLMChainBuilder<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     prompt: Option<PromptTemplate>,
     llm: Option<Box<dyn LLM>>,
@@ -24,7 +24,7 @@ impl<I, O> LLMChainBuilder<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub(super) fn new() -> Self {
         Self {

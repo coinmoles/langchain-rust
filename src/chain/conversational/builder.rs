@@ -17,8 +17,8 @@ pub struct ConversationalChainBuilder<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> I::Target<'b>: Display,
-    for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
+    for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<ConversationalChainInput<'any, I::Target<'any>>>,
 {
     llm: Option<Box<dyn LLM>>,
     memory: Option<Arc<RwLock<dyn Memory>>>,
@@ -31,8 +31,8 @@ impl<I, O> ConversationalChainBuilder<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> I::Target<'b>: Display,
-    for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
+    for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<ConversationalChainInput<'any, I::Target<'any>>>,
 {
     pub(super) fn new() -> Self {
         Self {

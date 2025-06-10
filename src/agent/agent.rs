@@ -26,7 +26,7 @@ pub trait Agent: Send + Sync {
     fn executor<'a>(self) -> AgentExecutor<'a, Self::InputCtor, Self::OutputCtor>
     where
         Self: Sized + 'a,
-        for<'b> <Self::InputCtor as InputCtor>::Target<'b>: Display,
+        for<'any> <Self::InputCtor as InputCtor>::Target<'any>: Display,
     {
         AgentExecutor::from_agent(self)
     }

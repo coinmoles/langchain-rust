@@ -45,9 +45,9 @@ impl<'a, Op1, Op2> AddChain<'a, Op1::InputCtor, Op2> for Op1
 where
     Op1: Chain + 'a,
     Op2: Chain + 'a,
-    for<'b> <Op1::OutputCtor as OutputCtor>::Target<'b>:
-        Serialize + Clone + Into<<Op2::InputCtor as InputCtor>::Target<'b>>,
-    for<'b> <Op2::OutputCtor as OutputCtor>::Target<'b>: Serialize,
+    for<'any> <Op1::OutputCtor as OutputCtor>::Target<'any>:
+        Serialize + Clone + Into<<Op2::InputCtor as InputCtor>::Target<'any>>,
+    for<'any> <Op2::OutputCtor as OutputCtor>::Target<'any>: Serialize,
 {
     fn add_chain(
         self,

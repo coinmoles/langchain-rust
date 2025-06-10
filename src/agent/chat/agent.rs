@@ -19,8 +19,8 @@ pub struct ConversationalAgent<I = DefaultChainInputCtor, O = StringCtor>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'c> I::Target<'c>: Display,
-    for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
+    for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
 {
     pub(super) llm_chain: LLMChain<AgentInputCtor<I>, O>,
     pub(super) tools: HashMap<String, Box<dyn Tool>>,
@@ -32,8 +32,8 @@ impl<I, O> ConversationalAgent<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'c> I::Target<'c>: Display,
-    for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
+    for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
 {
     pub fn new(
         llm_chain: LLMChain<AgentInputCtor<I>, O>,
@@ -71,8 +71,8 @@ impl<I, O> Agent for ConversationalAgent<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'c> I::Target<'c>: Display,
-    for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
+    for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
 {
     type InputCtor = I;
     type OutputCtor = O;
