@@ -5,7 +5,7 @@ use futures::Stream;
 
 use crate::{
     chain::{Chain, ChainError, LLMChain},
-    schemas::{IntoWithUsage, Prompt, StreamData, StringCtor, TokenUsage, WithUsage},
+    schemas::{IntoWithUsage, StreamData, StringCtor, TokenUsage, WithUsage},
     tools::SQLDatabase,
 };
 
@@ -148,10 +148,5 @@ impl Chain for SQLDatabaseChain {
         let (llm_inputs, _) = self.call_builder_chains(&input).await?;
 
         self.llm_chain.stream(llm_inputs).await
-    }
-
-    fn get_prompt(&self, _input: SqlChainInput<'_>) -> Result<Prompt, ChainError> {
-        log::warn!("SQLDatabaseChain does not support get_prompt, returning an empty prompt.");
-        Ok(Prompt::new(vec![]))
     }
 }

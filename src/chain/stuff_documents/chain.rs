@@ -11,9 +11,10 @@ use crate::{
     chain::{Chain, ChainError, LLMChain, StuffQACtor},
     language_models::llm::LLM,
     schemas::{
-        ChainOutput, InputCtor, MessageType, OutputCtor, Prompt, StreamData, StringCtor, WithUsage,
+        ChainOutput, GetPrompt, InputCtor, MessageType, OutputCtor, Prompt, StreamData, StringCtor,
+        WithUsage,
     },
-    template::MessageTemplate,
+    template::{MessageTemplate, TemplateError},
 };
 
 use super::{
@@ -128,8 +129,15 @@ where
     {
         self.llm_chain.stream(input).await
     }
+}
 
-    fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, ChainError> {
+impl<I, O> GetPrompt<I::Target<'_>> for StuffDocument<I, O>
+where
+    I: InputCtor,
+    O: OutputCtor,
+    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
+{
+    fn get_prompt(&self, input: &I::Target<'_>) -> Result<Prompt, TemplateError> {
         self.llm_chain.get_prompt(input)
     }
 }

@@ -3,7 +3,7 @@ use std::pin::Pin;
 use async_trait::async_trait;
 use futures::Stream;
 
-use crate::schemas::{InputCtor, OutputCtor, OutputTrace, Prompt, StreamData, WithUsage};
+use crate::schemas::{InputCtor, OutputCtor, OutputTrace, StreamData, WithUsage};
 
 use super::ChainError;
 
@@ -78,9 +78,4 @@ pub trait Chain: Sync + Send {
     {
         unimplemented!("Streaming is not implemented for this chain")
     }
-
-    fn get_prompt(
-        &self,
-        input: <Self::InputCtor as InputCtor>::Target<'_>,
-    ) -> Result<Prompt, ChainError>;
 }

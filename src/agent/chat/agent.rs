@@ -4,11 +4,12 @@ use async_trait::async_trait;
 
 use crate::{
     agent::{instructor::Instructor, Agent, AgentError, AgentInput, AgentInputCtor},
-    chain::{Chain, ChainError, LLMChain},
+    chain::LLMChain,
     schemas::{
-        AgentEvent, AgentStep, ChainOutput, DefaultChainInputCtor, InputCtor, IntoWithUsage,
-        Message, OutputCtor, Prompt, StringCtor, WithUsage,
+        AgentEvent, AgentStep, ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor,
+        IntoWithUsage, Message, OutputCtor, Prompt, StringCtor, WithUsage,
     },
+    template::TemplateError,
     tools::{Tool, Toolbox},
 };
 
@@ -104,10 +105,10 @@ where
         None
     }
 
-    fn get_prompt<'i>(
+    fn get_prompt(
         &self,
-        input: AgentInput<<Self::InputCtor as InputCtor>::Target<'i>>,
-    ) -> Result<Prompt, ChainError> {
+        input: &AgentInput<<Self::InputCtor as InputCtor>::Target<'_>>,
+    ) -> Result<Prompt, TemplateError> {
         self.llm_chain.get_prompt(input)
     }
 }

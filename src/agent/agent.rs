@@ -3,8 +3,8 @@ use std::fmt::Display;
 use async_trait::async_trait;
 
 use crate::{
-    chain::ChainError,
     schemas::{AgentEvent, AgentStep, InputCtor, OutputCtor, Prompt, WithUsage},
+    template::TemplateError,
     tools::Tool,
 };
 
@@ -23,11 +23,6 @@ pub trait Agent: Send + Sync {
 
     fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool>;
 
-    fn get_prompt<'i>(
-        &self,
-        input: AgentInput<<Self::InputCtor as InputCtor>::Target<'i>>,
-    ) -> Result<Prompt, ChainError>;
-
     fn executor<'a>(self) -> AgentExecutor<'a, Self::InputCtor, Self::OutputCtor>
     where
         Self: Sized + 'a,
@@ -35,4 +30,9 @@ pub trait Agent: Send + Sync {
     {
         AgentExecutor::from_agent(self)
     }
+
+    fn get_prompt(
+        &self,
+        input: &AgentInput<<Self::InputCtor as InputCtor>::Target<'_>>,
+    ) -> Result<Prompt, TemplateError>;
 }

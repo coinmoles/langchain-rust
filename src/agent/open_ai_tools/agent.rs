@@ -4,15 +4,15 @@ use std::collections::HashMap;
 use std::fmt::Display;
 
 use crate::agent::{AgentInput, AgentInputCtor};
-use crate::chain::{ChainError, LLMChain};
+use crate::chain::LLMChain;
 use crate::schemas::{
-    AgentStep, ChainOutput, DefaultChainInputCtor, InputCtor, IntoWithUsage, LLMOutput, OutputCtor,
-    Prompt, StringCtor, WithUsage,
+    AgentStep, ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, IntoWithUsage, LLMOutput,
+    OutputCtor, Prompt, StringCtor, WithUsage,
 };
+use crate::template::TemplateError;
 use crate::tools::Toolbox;
 use crate::{
     agent::{Agent, AgentError},
-    chain::Chain,
     language_models::LLMError,
     schemas::{agent_plan::AgentEvent, Message},
     tools::Tool,
@@ -111,10 +111,19 @@ where
         None
     }
 
-    fn get_prompt<'i>(
-        &self,
-        input: AgentInput<<Self::InputCtor as InputCtor>::Target<'i>>,
-    ) -> Result<Prompt, ChainError> {
+    fn get_prompt(&self, input: &AgentInput<I::Target<'_>>) -> Result<Prompt, TemplateError> {
+        self.llm_chain.get_prompt(input)
+    }
+}
+
+impl<I, O> GetPrompt<AgentInput<I::Target<'_>>> for OpenAiToolAgent<I, O>
+where
+    I: InputCtor,
+    O: OutputCtor,
+    for<'c> I::Target<'c>: Display,
+    for<'c> O::Target<'c>: ChainOutput<AgentInput<I::Target<'c>>>,
+{
+    fn get_prompt(&self, input: &AgentInput<I::Target<'_>>) -> Result<Prompt, TemplateError> {
         self.llm_chain.get_prompt(input)
     }
 }

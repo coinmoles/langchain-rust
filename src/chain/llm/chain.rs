@@ -8,9 +8,10 @@ use crate::{
     language_models::llm::LLM,
     output_parsers::OutputParser,
     schemas::{
-        ChainOutput, InputCtor, LLMOutput, OutputCtor, Prompt, StreamData, StringCtor, WithUsage,
+        ChainOutput, GetPrompt, InputCtor, LLMOutput, OutputCtor, Prompt, StreamData, StringCtor,
+        WithUsage,
     },
-    template::PromptTemplate,
+    template::{PromptTemplate, TemplateError},
 };
 
 use super::LLMChainBuilder;
@@ -56,7 +57,7 @@ where
         Ok(output)
     }
 
-    async fn stream_llm(
+    pub async fn stream_llm(
         &self,
         input: &I::Target<'_>,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
@@ -99,10 +100,16 @@ where
     {
         self.stream_llm(&input).await
     }
+}
 
-    fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, ChainError> {
-        let prompt = self.prompt.format(&input)?;
-
+impl<I, O> GetPrompt<I::Target<'_>> for LLMChain<I, O>
+where
+    I: InputCtor,
+    O: OutputCtor,
+    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
+{
+    fn get_prompt(&self, input: &I::Target<'_>) -> Result<Prompt, TemplateError> {
+        let prompt = self.prompt.format(input)?;
         Ok(prompt)
     }
 }

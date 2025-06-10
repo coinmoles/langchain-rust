@@ -8,7 +8,10 @@ use tokio::sync::RwLock;
 
 use crate::agent::{AgentError, AgentInput};
 use crate::chain::Chain;
-use crate::schemas::{ChainOutput, InputCtor, IntoWithUsage, OutputCtor, Prompt, WithUsage};
+use crate::schemas::{
+    ChainOutput, GetPrompt, InputCtor, IntoWithUsage, OutputCtor, Prompt, WithUsage,
+};
+use crate::template::TemplateError;
 use crate::utils::helper::normalize_tool_name;
 use crate::{
     agent::Agent,
@@ -80,8 +83,17 @@ where
     type OutputCtor = O;
 
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
-        {
-            let prompt = self.get_prompt(input.clone()).map_err(|e| {
+        let human_message = input.to_string();
+        let options = &self.options;
+
+        let mut steps: Vec<AgentStep> = Vec::new();
+        let mut use_counts: HashMap<String, usize> = HashMap::new();
+        let mut consecutive_fails: usize = 0;
+        let mut total_usage: Option<TokenUsage> = None;
+        let mut input = AgentInput::new(input);
+
+        if log::log_enabled!(log::Level::Debug) {
+            let prompt = self.agent.get_prompt(&input).map_err(|e| {
                 ChainError::AgentError(format!("Error formatting initial messages: {e}"))
             })?;
             for message in prompt.to_messages() {
@@ -92,15 +104,6 @@ where
                 );
             }
         }
-
-        let human_message = input.to_string();
-        let options = &self.options;
-
-        let mut steps: Vec<AgentStep> = Vec::new();
-        let mut use_counts: HashMap<String, usize> = HashMap::new();
-        let mut consecutive_fails: usize = 0;
-        let mut total_usage: Option<TokenUsage> = None;
-        let mut input = AgentInput::new(input);
 
         if let Some(memory) = &self.memory {
             input.set_chat_history(memory.read().await.messages());
@@ -229,8 +232,15 @@ where
             }
         }
     }
+}
 
-    fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, ChainError> {
-        self.agent.get_prompt(AgentInput::new(input))
+impl<I, O> GetPrompt<AgentInput<I::Target<'_>>> for AgentExecutor<'_, I, O>
+where
+    I: InputCtor,
+    O: OutputCtor,
+    for<'b> I::Target<'b>: Display,
+{
+    fn get_prompt(&self, input: &AgentInput<I::Target<'_>>) -> Result<Prompt, TemplateError> {
+        self.agent.get_prompt(input)
     }
 }

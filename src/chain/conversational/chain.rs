@@ -11,9 +11,10 @@ use crate::{
     language_models::LLMError,
     memory::Memory,
     schemas::{
-        messages::Message, ChainOutput, DefaultChainInputCtor, InputCtor, IntoWithUsage, LLMOutput,
-        OutputCtor, Prompt, StreamData, StringCtor, WithUsage,
+        messages::Message, ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, IntoWithUsage,
+        LLMOutput, OutputCtor, Prompt, StreamData, StringCtor, WithUsage,
     },
+    template::TemplateError,
 };
 
 use super::{ConversationalChainBuilder, ConversationalChainInput, ConversationalChainInputCtor};
@@ -119,9 +120,19 @@ where
 
         Ok(Box::pin(output_stream))
     }
+}
 
-    fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, ChainError> {
-        let input = ConversationalChainInput::new(input);
+impl<'a, I, O> GetPrompt<ConversationalChainInput<'a, I::Target<'a>>> for ConversationalChain<I, O>
+where
+    I: InputCtor,
+    O: OutputCtor,
+    for<'b> I::Target<'b>: Display,
+    for<'b> O::Target<'b>: ChainOutput<ConversationalChainInput<'b, I::Target<'b>>>,
+{
+    fn get_prompt(
+        &self,
+        input: &ConversationalChainInput<'a, I::Target<'a>>,
+    ) -> Result<Prompt, TemplateError> {
         self.llm_chain.get_prompt(input)
     }
 }

@@ -6,7 +6,7 @@ use crate::schemas::{Ctor, Message};
 pub type TextReplacements<'a> = HashMap<&'a str, Cow<'a, str>>;
 pub type PlaceholderReplacements<'a> = HashMap<&'a str, Cow<'a, [Message]>>;
 
-pub trait ChainInput: Clone + Send + Sync {
+pub trait ChainInput: Send + Sync {
     fn text_replacements(&self) -> TextReplacements;
     fn placeholder_replacements(&self) -> PlaceholderReplacements {
         HashMap::new()

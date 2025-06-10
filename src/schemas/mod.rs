@@ -27,3 +27,6 @@ pub use step_func::*;
 
 mod stream;
 pub use stream::*;
+
+mod get_prompt;
+pub use get_prompt::*;

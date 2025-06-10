@@ -4,7 +4,7 @@ use crate::{
     chain::Chain,
     language_models::llm::LLM,
     schemas::{
-        messages::Message, ChainInput, Ctor, Document, InputCtor, MessageType, Prompt, StreamData,
+        messages::Message, ChainInput, Ctor, Document, InputCtor, MessageType, StreamData,
         StringCtor, TextReplacements, WithUsage,
     },
     template::MessageTemplate,
@@ -100,10 +100,6 @@ where
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
     {
         self.chain.stream(input).await
-    }
-
-    fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, ChainError> {
-        self.chain.get_prompt(input)
     }
 }
 

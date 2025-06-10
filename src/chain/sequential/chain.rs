@@ -3,7 +3,7 @@ use serde::Serialize;
 
 use crate::{
     chain::{Chain, ChainError},
-    schemas::{InputCtor, IntoWithUsage, OutputCtor, OutputTrace, Prompt, TokenUsage, WithUsage},
+    schemas::{InputCtor, IntoWithUsage, OutputCtor, OutputTrace, TokenUsage, WithUsage},
 };
 
 pub struct SequentialChain<'a, I, M1, M2, O>
@@ -53,10 +53,6 @@ where
         let result = result1.extend(result2)?;
 
         Ok(result)
-    }
-
-    fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, ChainError> {
-        self.first.get_prompt(input)
     }
 }
 
