@@ -1,6 +1,9 @@
+use std::str::FromStr;
+
 use heck::{
     ToKebabCase, ToLowerCamelCase, ToPascalCase, ToShoutyKebabCase, ToShoutySnakeCase, ToSnakeCase,
 };
+use syn::LitStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RenameAll {
@@ -14,21 +17,40 @@ pub enum RenameAll {
     ScreamingKebabCase,
 }
 
-impl RenameAll {
-    pub fn from_str(s: &str) -> Option<Self> {
+impl FromStr for RenameAll {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "lowercase" => Some(RenameAll::Lowercase),
-            "UPPERCASE" => Some(RenameAll::Uppercase),
-            "PascalCase" => Some(RenameAll::PascalCase),
-            "camelCase" => Some(RenameAll::CamelCase),
-            "snake_case" => Some(RenameAll::SnakeCase),
-            "SCREAMING_SNAKE_CASE" => Some(RenameAll::ScreamingSnakeCase),
-            "kebab-case" => Some(RenameAll::KebabCase),
-            "SCREAMING-KEBAB-CASE" => Some(RenameAll::ScreamingKebabCase),
-            _ => None,
+            "lowercase" => Ok(RenameAll::Lowercase),
+            "UPPERCASE" => Ok(RenameAll::Uppercase),
+            "PascalCase" => Ok(RenameAll::PascalCase),
+            "camelCase" => Ok(RenameAll::CamelCase),
+            "snake_case" => Ok(RenameAll::SnakeCase),
+            "SCREAMING_SNAKE_CASE" => Ok(RenameAll::ScreamingSnakeCase),
+            "kebab-case" => Ok(RenameAll::KebabCase),
+            "SCREAMING-KEBAB-CASE" => Ok(RenameAll::ScreamingKebabCase),
+            _ => Err(format!("Invalid rename_all value: {s}")),
         }
     }
+}
 
+impl std::fmt::Display for RenameAll {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RenameAll::Lowercase => write!(f, "lowercase"),
+            RenameAll::Uppercase => write!(f, "UPPERCASE"),
+            RenameAll::PascalCase => write!(f, "PascalCase"),
+            RenameAll::CamelCase => write!(f, "camelCase"),
+            RenameAll::SnakeCase => write!(f, "snake_case"),
+            RenameAll::ScreamingSnakeCase => write!(f, "SCREAMING_SNAKE_CASE"),
+            RenameAll::KebabCase => write!(f, "kebab-case"),
+            RenameAll::ScreamingKebabCase => write!(f, "SCREAMING-KEBAB-CASE"),
+        }
+    }
+}
+
+impl RenameAll {
     pub fn apply(&self, input: String) -> String {
         match self {
             RenameAll::Lowercase => input.to_lowercase(),
@@ -39,6 +61,23 @@ impl RenameAll {
             RenameAll::ScreamingSnakeCase => input.to_shouty_snake_case(),
             RenameAll::KebabCase => input.to_kebab_case(),
             RenameAll::ScreamingKebabCase => input.to_shouty_kebab_case(),
+        }
+    }
+}
+
+pub fn get_renamed_key(
+    field: &syn::Field,
+    rename: &Option<LitStr>,
+    rename_all: &Option<RenameAll>,
+) -> String {
+    match rename {
+        Some(rename) => rename.value(),
+        None => {
+            let ident = field.ident.as_ref().unwrap();
+            match rename_all {
+                Some(rename_all) => rename_all.apply(ident.to_string()),
+                None => ident.to_string(),
+            }
         }
     }
 }

@@ -1,3 +1,5 @@
+pub use macros::ChainOutput;
+
 use serde::Serialize;
 
 pub trait ChainOutput<I>: Serialize + Clone + Send + Sync {

@@ -82,7 +82,7 @@ mod tests {
     use crate::{
         chain::LLMChain,
         llm::openai::OpenAI,
-        schemas::{ChainInput, ChainOutput, Ctor, MessageType, OutputParseError},
+        schemas::{ChainInput, ChainOutput, Ctor, MessageType},
         sequential_chain,
         template::MessageTemplate,
     };
@@ -99,24 +99,16 @@ mod tests {
             #[chain_input(text)]
             other: Cow<'a, str>,
         }
-        #[derive(Debug, Clone, Serialize, ChainInput, Ctor)]
+        #[derive(Debug, Clone, Serialize, ChainInput, ChainOutput, Ctor)]
+        #[chain_output(input = FirstInput<'a>)]
         pub struct SecondInput<'a> {
             #[chain_input(text)]
+            #[chain_output(from_response_json)]
+            #[serde(rename = "name")]
             nombre: Cow<'a, str>,
             #[chain_input(text)]
+            #[chain_output(from_input)]
             other: Cow<'a, str>,
-        }
-        impl<'a> ChainOutput<FirstInput<'a>> for SecondInput<'a> {
-            fn parse_output(
-                input: FirstInput<'a>,
-                response: impl Into<String>,
-            ) -> Result<Self, OutputParseError> {
-                let original: String = response.into();
-                Ok(Self {
-                    nombre: original.into(),
-                    other: input.other,
-                })
-            }
         }
 
         let llm = OpenAI::default();

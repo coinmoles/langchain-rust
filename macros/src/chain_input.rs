@@ -7,7 +7,7 @@ use crate::{
         extract_option_inner_type, is_cow_str_type, is_message_slice_type, is_str_type,
         is_string_type, is_vec_message_type,
     },
-    rename::RenameAll,
+    rename::{RenameAll, get_renamed_key},
 };
 
 pub fn get_fields(input: &DeriveInput) -> Result<&FieldsNamed, Diagnostic> {
@@ -53,16 +53,7 @@ pub fn generate_text_replacement(
     rename: &Option<LitStr>,
     rename_all: &Option<RenameAll>,
 ) -> proc_macro2::TokenStream {
-    let key = match rename {
-        Some(rename) => rename.value(),
-        None => {
-            let ident = field.ident.as_ref().unwrap();
-            match rename_all {
-                Some(rename_all) => rename_all.apply(ident.to_string()),
-                None => ident.to_string(),
-            }
-        }
-    };
+    let key = get_renamed_key(field, rename, rename_all);
     let value = generate_text_replacement_conversion(field);
 
     quote! {
@@ -105,16 +96,7 @@ pub fn generate_placeholder_replacement(
     rename: &Option<LitStr>,
     rename_all: &Option<RenameAll>,
 ) -> proc_macro2::TokenStream {
-    let key = match rename {
-        Some(rename) => rename.value(),
-        None => {
-            let ident = field.ident.as_ref().unwrap();
-            match rename_all {
-                Some(rename_all) => rename_all.apply(ident.to_string()),
-                None => ident.to_string(),
-            }
-        }
-    };
+    let key = get_renamed_key(field, rename, rename_all);
     let value = generate_placeholder_replacement_conversion(field);
 
     quote! {
