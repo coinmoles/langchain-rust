@@ -105,7 +105,7 @@ pub fn derive_chain_input(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_derive(Ctor, attributes(chain_input, serde))]
-pub fn derive_chain_input_ctor(input: TokenStream) -> TokenStream {
+pub fn derive_ctor(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
     let struct_name = &input.ident;
@@ -118,7 +118,7 @@ pub fn derive_chain_input_ctor(input: TokenStream) -> TokenStream {
         #[automatically_derived]
         impl Ctor for #ctor_struct_name
         {
-            type Target<'b> = #struct_name #target_lifetime;
+            type Target #target_lifetime = #struct_name #target_lifetime;
         }
     };
 
