@@ -3,11 +3,11 @@ use std::{fmt::Display, sync::Arc};
 use tokio::sync::RwLock;
 
 use crate::{
-    chain::{ChainError, ConversationalChainInput, LLMChain},
+    chain::{ChainError, LLMChain},
     language_models::llm::LLM,
     memory::{Memory, SimpleMemory},
     output_parsers::OutputParser,
-    schemas::{ChainOutput, OutputCtor, InputCtor, MessageType},
+    schemas::{ChainOutput, InputCtor, MessageType, OutputCtor},
     template::{MessageTemplate, PromptTemplate},
 };
 
@@ -18,7 +18,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<ConversationalChainInput<'any, I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     llm: Option<Box<dyn LLM>>,
     memory: Option<Arc<RwLock<dyn Memory>>>,
@@ -32,7 +32,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<ConversationalChainInput<'any, I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub(super) fn new() -> Self {
         Self {
@@ -89,6 +89,10 @@ where
             .memory
             .unwrap_or_else(|| Arc::new(RwLock::new(SimpleMemory::new())));
 
-        Ok(ConversationalChain { llm_chain, memory })
+        Ok(ConversationalChain {
+            llm_chain,
+            memory,
+            _phantom: std::marker::PhantomData,
+        })
     }
 }

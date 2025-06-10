@@ -32,11 +32,12 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    pub(super) llm_chain: LLMChain<AgentInputCtor<I>, O>,
+    pub(super) llm_chain: LLMChain<AgentInputCtor<I>>,
     pub(super) tools: HashMap<String, Box<dyn Tool>>,
     pub(super) toolboxes: Vec<Box<dyn Toolbox>>,
+    pub(super) _phantom: std::marker::PhantomData<O>,
 }
 
 impl<I, O> OpenAiToolAgent<I, O>
@@ -44,7 +45,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub fn builder<'a, 'b>() -> OpenAiToolAgentBuilder<'a, 'b, I, O> {
         OpenAiToolAgentBuilder::new()
@@ -69,7 +70,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     type InputCtor = I;
     type OutputCtor = O;
@@ -121,7 +122,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     fn get_prompt(&self, input: &AgentInput<I::Target<'_>>) -> Result<Prompt, TemplateError> {
         self.llm_chain.get_prompt(input)

@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    agent::{create_prompt, AgentError, AgentInput},
+    agent::{create_prompt, AgentError},
     chain::LLMChain,
     language_models::{llm::LLM, options::CallOptions, LLMError},
     schemas::{ChainOutput, InputCtor, OutputCtor},
@@ -19,7 +19,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     tools: Option<Vec<Box<dyn Tool>>>,
     toolboxes: Option<Vec<Box<dyn Toolbox>>>,
@@ -33,7 +33,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub(super) fn new() -> Self {
         Self {
@@ -112,6 +112,7 @@ where
             llm_chain,
             tools: tools_map,
             toolboxes,
+            _phantom: std::marker::PhantomData,
         })
     }
 }

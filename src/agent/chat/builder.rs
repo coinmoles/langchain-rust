@@ -4,7 +4,7 @@ use crate::{
     agent::{
         create_prompt,
         instructor::{DefaultInstructor, Instructor},
-        AgentError, AgentInput,
+        AgentError,
     },
     chain::LLMChain,
     language_models::llm::LLM,
@@ -23,7 +23,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     tools: Option<Vec<Box<dyn Tool>>>,
     toolboxes: Option<Vec<Box<dyn Toolbox>>>,
@@ -38,7 +38,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub(super) fn new() -> Self {
         Self {
@@ -122,6 +122,7 @@ where
             tools,
             toolboxes,
             instructor,
+            _phantom: std::marker::PhantomData,
         })
     }
 }

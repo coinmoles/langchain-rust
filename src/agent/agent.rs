@@ -3,7 +3,7 @@ use std::fmt::Display;
 use async_trait::async_trait;
 
 use crate::{
-    schemas::{AgentEvent, AgentStep, InputCtor, OutputCtor, Prompt, WithUsage},
+    schemas::{AgentEvent, AgentStep, ChainOutput, InputCtor, OutputCtor, Prompt, WithUsage},
     template::TemplateError,
     tools::Tool,
 };
@@ -27,6 +27,8 @@ pub trait Agent: Send + Sync {
     where
         Self: Sized + 'a,
         for<'any> <Self::InputCtor as InputCtor>::Target<'any>: Display,
+        for<'any> <Self::OutputCtor as OutputCtor>::Target<'any>:
+            ChainOutput<<Self::InputCtor as InputCtor>::Target<'any>>,
     {
         AgentExecutor::from_agent(self)
     }

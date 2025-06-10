@@ -12,7 +12,7 @@ pub struct StuffDocumentBuilder<'a, I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     llm: Option<Box<dyn LLM>>,
     output_key: Option<&'a str>,
@@ -25,7 +25,7 @@ impl<'a, I, O> StuffDocumentBuilder<'a, I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub(super) fn new() -> Self {
         Self {

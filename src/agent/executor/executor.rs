@@ -27,6 +27,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     agent: Box<dyn Agent<InputCtor = I, OutputCtor = O> + 'a>,
     memory: Option<Arc<RwLock<dyn Memory>>>,
@@ -38,6 +39,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub fn from_agent(agent: impl Agent<InputCtor = I, OutputCtor = O> + 'a) -> Self {
         Self {
@@ -239,6 +241,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     fn get_prompt(&self, input: &AgentInput<I::Target<'_>>) -> Result<Prompt, TemplateError> {
         self.agent.get_prompt(input)

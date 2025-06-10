@@ -24,10 +24,11 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<ConversationalChainInput<'any, I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    pub(super) llm_chain: LLMChain<ConversationalChainInputCtor<I>, O>,
+    pub(super) llm_chain: LLMChain<ConversationalChainInputCtor<I>>,
     pub memory: Arc<RwLock<dyn Memory>>,
+    pub(super) _phantom: std::marker::PhantomData<O>,
 }
 
 //Conversational Chain is a simple chain to interact with ai as a string of messages
@@ -36,7 +37,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<ConversationalChainInput<'any, I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub fn builder() -> ConversationalChainBuilder<I, O> {
         ConversationalChainBuilder::new()
@@ -49,7 +50,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<ConversationalChainInput<'any, I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     type InputCtor = I;
     type OutputCtor = O;
@@ -73,7 +74,10 @@ where
             LLMOutput::Refusal(refusal) => return Err(LLMError::OtherError(refusal.into()).into()),
         }
 
-        Ok(O::Target::parse_output(input, result.content.into_text()?)?.with_usage(result.usage))
+        Ok(
+            O::Target::parse_output(input.inner, result.content.into_text()?)?
+                .with_usage(result.usage),
+        )
     }
 
     async fn stream(
@@ -127,7 +131,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<ConversationalChainInput<'any, I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     fn get_prompt(
         &self,

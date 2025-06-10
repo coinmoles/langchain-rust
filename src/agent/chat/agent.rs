@@ -20,12 +20,13 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    pub(super) llm_chain: LLMChain<AgentInputCtor<I>, O>,
+    pub(super) llm_chain: LLMChain<AgentInputCtor<I>>,
     pub(super) tools: HashMap<String, Box<dyn Tool>>,
     pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
     pub(super) instructor: Box<dyn Instructor>,
+    pub(super) _phantom: std::marker::PhantomData<O>,
 }
 
 impl<I, O> ConversationalAgent<I, O>
@@ -33,10 +34,10 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub fn new(
-        llm_chain: LLMChain<AgentInputCtor<I>, O>,
+        llm_chain: LLMChain<AgentInputCtor<I>>,
         tools: HashMap<String, Box<dyn Tool>>,
         toolboxes: Vec<Arc<dyn Toolbox>>,
         instructor: Box<dyn Instructor>,
@@ -46,6 +47,7 @@ where
             tools,
             toolboxes,
             instructor,
+            _phantom: std::marker::PhantomData,
         }
     }
 
@@ -72,7 +74,7 @@ where
     I: InputCtor,
     O: OutputCtor,
     for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<AgentInput<I::Target<'any>>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     type InputCtor = I;
     type OutputCtor = O;

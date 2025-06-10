@@ -26,7 +26,7 @@ pub struct StuffDocument<I = StuffQACtor, O = StringCtor>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     llm_chain: LLMChain<I, O>,
     input_key: String,
@@ -38,9 +38,9 @@ impl<I, O> StuffDocument<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    pub fn builder<'b>() -> StuffDocumentBuilder<'b, I, O> {
+    pub fn builder<'any>() -> StuffDocumentBuilder<'any, I, O> {
         StuffDocumentBuilder::new()
     }
 
@@ -113,7 +113,7 @@ impl<I, O> Chain for StuffDocument<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     type InputCtor = I;
     type OutputCtor = O;
@@ -135,7 +135,7 @@ impl<I, O> GetPrompt<I::Target<'_>> for StuffDocument<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
-    for<'b> O::Target<'b>: ChainOutput<I::Target<'b>>,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     fn get_prompt(&self, input: &I::Target<'_>) -> Result<Prompt, TemplateError> {
         self.llm_chain.get_prompt(input)
