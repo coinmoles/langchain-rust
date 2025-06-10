@@ -109,20 +109,20 @@ where
 
 #[derive(Clone, Ctor)]
 pub struct StuffQA<'a> {
-    input_documents: Vec<Document>,
+    input_documents: Cow<'a, [Document]>,
     question: Cow<'a, str>,
 }
 
 impl<'a> StuffQA<'a> {
     pub fn new() -> Self {
         Self {
-            input_documents: vec![],
+            input_documents: Cow::Borrowed(&[]),
             question: "".into(),
         }
     }
 
-    pub fn documents(mut self, documents: &[Document]) -> Self {
-        self.input_documents = documents.to_vec();
+    pub fn documents(mut self, documents: impl Into<Cow<'a, [Document]>>) -> Self {
+        self.input_documents = documents.into();
         self
     }
 
@@ -170,17 +170,18 @@ mod tests {
     async fn test_qa() {
         let llm = OpenAI::default();
         let chain = StuffDocument::load_stuff_qa(llm);
-        let input = StuffQA::new()
-            .documents(&[
-                Document::new(indoc! {"
+        let documents = [
+            Document::new(indoc! {"
                     Question: Which is the favorite text editor of luis
                     Answer: Nvim"
-                }),
-                Document::new(indoc! {"
+            }),
+            Document::new(indoc! {"
                     Question: How old is Luis
                     Answer: 24"
-                }),
-            ])
+            }),
+        ];
+        let input = StuffQA::new()
+            .documents(&documents)
             .question("How old is luis and whats his favorite text editor");
 
         let output = chain.call(input).await.unwrap().content;
