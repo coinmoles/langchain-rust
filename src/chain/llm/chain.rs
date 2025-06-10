@@ -84,7 +84,7 @@ where
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
         let llm_output = self.call_llm(&input).await?;
         let content = llm_output.content.into_text()?;
-        let content = O::Target::parse_response(input, content)?;
+        let content = O::Target::parse_output(input, content)?;
 
         Ok(WithUsage {
             content,

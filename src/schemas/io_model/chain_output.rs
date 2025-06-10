@@ -1,27 +1,29 @@
 use serde::Serialize;
 
 pub trait ChainOutput<I>: Serialize + Clone + Send + Sync {
-    fn try_from_string(input: I, s: impl Into<String>) -> Result<Self, TryFromStringError>;
+    fn parse_output(input: I, response: impl Into<String>) -> Result<Self, OutputParseError>;
 }
 
 impl<T> ChainOutput<T> for String {
-    fn try_from_string(_input: T, s: impl Into<String>) -> Result<Self, TryFromStringError> {
-        let original: String = s.into();
+    fn parse_output(_input: T, output: impl Into<String>) -> Result<Self, OutputParseError> {
+        let original: String = output.into();
         Ok(original)
     }
 }
 
 #[derive(Debug)]
-pub struct TryFromStringError(pub String);
+pub struct OutputParseError {
+    pub original: String,
+    pub error: Option<Box<dyn std::error::Error + Send + Sync>>,
+}
 
-impl std::fmt::Display for TryFromStringError {
+impl std::fmt::Display for OutputParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Failed to construct desired struct from output:\n{}",
-            self.0
-        )
+        if let Some(err) = &self.error {
+            writeln!(f, "{err}")?;
+        }
+        write!(f, "Original response:\n{}", self.original)
     }
 }
 
-impl std::error::Error for TryFromStringError {}
+impl std::error::Error for OutputParseError {}

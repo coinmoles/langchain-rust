@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 use crate::{
-    language_models::LLMError, output_parsers::OutputParserError, schemas::TryFromStringError,
+    language_models::LLMError, output_parsers::OutputParserError, schemas::OutputParseError,
     template::TemplateError,
 };
 
@@ -17,7 +17,7 @@ pub enum ChainError {
     OutputParser(#[from] OutputParserError),
 
     #[error("Output parse error: {0}")]
-    OutputParseError(#[from] TryFromStringError),
+    OutputParseError(#[from] OutputParseError),
 
     #[error("Prompt error: {0}")]
     PromptError(#[from] TemplateError),

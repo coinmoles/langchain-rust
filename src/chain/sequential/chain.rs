@@ -82,7 +82,7 @@ mod tests {
     use crate::{
         chain::LLMChain,
         llm::openai::OpenAI,
-        schemas::{ChainInput, ChainOutput, Ctor, MessageType, TryFromStringError},
+        schemas::{ChainInput, ChainOutput, Ctor, MessageType, OutputParseError},
         sequential_chain,
         template::MessageTemplate,
     };
@@ -107,11 +107,11 @@ mod tests {
             other: Cow<'a, str>,
         }
         impl<'a> ChainOutput<FirstInput<'a>> for SecondInput<'a> {
-            fn try_from_string(
+            fn parse_output(
                 input: FirstInput<'a>,
-                s: impl Into<String>,
-            ) -> Result<Self, TryFromStringError> {
-                let original: String = s.into();
+                response: impl Into<String>,
+            ) -> Result<Self, OutputParseError> {
+                let original: String = response.into();
                 Ok(Self {
                     nombre: original.into(),
                     other: input.other,

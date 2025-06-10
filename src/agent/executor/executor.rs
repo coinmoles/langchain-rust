@@ -223,7 +223,7 @@ where
 
                     log::debug!("\nAgent finished with result:\n{}", &final_answer);
 
-                    let final_answer = O::Target::parse_response(input.inner, final_answer)?;
+                    let final_answer = O::Target::parse_output(input.inner, final_answer)?;
                     return Ok(final_answer.with_usage(total_usage));
                 }
             }

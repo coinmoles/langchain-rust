@@ -72,7 +72,7 @@ where
             LLMOutput::Refusal(refusal) => return Err(LLMError::OtherError(refusal.into()).into()),
         }
 
-        Ok(O::Target::parse_response(input, result.content.into_text()?)?.with_usage(result.usage))
+        Ok(O::Target::parse_output(input, result.content.into_text()?)?.with_usage(result.usage))
     }
 
     async fn stream(
