@@ -2,7 +2,8 @@ use quote::{format_ident, quote};
 
 use crate::{
     attr::{ChainOutputFieldAttr, SerdeFieldAttrs},
-    rename::{RenameAll, get_renamed_key},
+    helpers::get_renamed_key,
+    rename::RenameAll,
 };
 
 pub fn deser_struct(

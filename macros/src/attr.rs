@@ -13,14 +13,15 @@ pub struct SerdeFieldAttrs {
     pub rename: Option<LitStr>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum ChainInputFieldAttr {
     Inner,
+    #[default]
     Text,
     Placeholder,
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum ChainOutputFieldAttr {
     Input,
     Response,

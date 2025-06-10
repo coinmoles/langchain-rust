@@ -9,8 +9,9 @@ use crate::{
         get_chain_input_field_attr, get_chain_output_field_attr, get_chain_output_struct_attrs,
         get_chain_struct_attrs, get_serde_field_attrs, get_serde_struct_attrs,
     },
-    chain_input::{generate_placeholder_replacement, generate_text_replacement, get_fields},
+    chain_input::{generate_placeholder_replacement, generate_text_replacement},
     chain_output::{deser_struct, field_initializers},
+    helpers::get_fields,
 };
 
 mod attr;
@@ -18,6 +19,7 @@ mod chain_input;
 mod chain_output;
 mod check_type;
 mod crate_path;
+mod helpers;
 mod rename;
 
 #[proc_macro_error]

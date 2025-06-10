@@ -3,7 +3,6 @@ use std::str::FromStr;
 use heck::{
     ToKebabCase, ToLowerCamelCase, ToPascalCase, ToShoutyKebabCase, ToShoutySnakeCase, ToSnakeCase,
 };
-use syn::LitStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RenameAll {
@@ -61,23 +60,6 @@ impl RenameAll {
             RenameAll::ScreamingSnakeCase => input.to_shouty_snake_case(),
             RenameAll::KebabCase => input.to_kebab_case(),
             RenameAll::ScreamingKebabCase => input.to_shouty_kebab_case(),
-        }
-    }
-}
-
-pub fn get_renamed_key(
-    field: &syn::Field,
-    rename: &Option<LitStr>,
-    rename_all: &Option<RenameAll>,
-) -> String {
-    match rename {
-        Some(rename) => rename.value(),
-        None => {
-            let ident = field.ident.as_ref().unwrap();
-            match rename_all {
-                Some(rename_all) => rename_all.apply(ident.to_string()),
-                None => ident.to_string(),
-            }
         }
     }
 }

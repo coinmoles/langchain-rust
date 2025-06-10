@@ -1,30 +1,15 @@
-use proc_macro_error::{Diagnostic, Level, abort};
+use proc_macro_error::abort;
 use quote::{ToTokens, quote};
-use syn::{Data, DeriveInput, Field, Fields, FieldsNamed, LitStr, spanned::Spanned};
+use syn::{Field, LitStr, spanned::Spanned};
 
 use crate::{
     check_type::{
         extract_option_inner_type, is_cow_str_type, is_message_slice_type, is_str_type,
         is_string_type, is_vec_message_type,
     },
-    rename::{RenameAll, get_renamed_key},
+    helpers::get_renamed_key,
+    rename::RenameAll,
 };
-
-pub fn get_fields(input: &DeriveInput) -> Result<&FieldsNamed, Diagnostic> {
-    match &input.data {
-        Data::Struct(data_struct) => match &data_struct.fields {
-            Fields::Named(fields_named) => Ok(fields_named),
-            _ => Err(Diagnostic::new(
-                Level::Error,
-                "ChainInput can only be derived for structs with named fields".into(),
-            )),
-        },
-        _ => Err(Diagnostic::new(
-            Level::Error,
-            "ChainInput can only be derived for structs".into(),
-        )),
-    }
-}
 
 fn generate_text_replacement_conversion(field: &Field) -> proc_macro2::TokenStream {
     let ident = field.ident.as_ref().unwrap();
