@@ -4,7 +4,9 @@ use indoc::formatdoc;
 use serde_json::{json, Value};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row, Transaction};
 
-use crate::{embedding::embedder_trait::Embedder, vectorstore::VecStoreOptions};
+use crate::{
+    embedding::embedder_trait::Embedder, schemas::BuilderError, vectorstore::VecStoreOptions,
+};
 
 use super::{
     HNSWIndex, PgFilter, PgOptions, Store, PG_LOCKID_EXTENSION, PG_LOCK_ID_COLLECTION_TABLE,
@@ -107,9 +109,6 @@ impl StoreBuilder<PgFilter> {
 
     // Finalize the builder and construct the Store object
     pub async fn build(self) -> Result<Store, Box<dyn Error>> {
-        if self.embedder.is_none() {
-            return Err("Embedder is required".into());
-        }
         let pool = self.get_pool().await?;
         let mut tx = pool.begin().await?;
         self.create_vector_extension_if_not_exists(&mut tx).await?;
@@ -124,9 +123,13 @@ impl StoreBuilder<PgFilter> {
 
         tx.commit().await?;
 
+        let embedder = self
+            .embedder
+            .ok_or(BuilderError::MissingField("embedder"))?;
+
         Ok(Store {
             pool,
-            embedder: self.embedder.unwrap(),
+            embedder,
             collection_name: self.collection_name,
             pre_delete_collection: self.pre_delete_collection,
             collection_uuid,

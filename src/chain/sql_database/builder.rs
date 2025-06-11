@@ -1,8 +1,9 @@
 use crate::{
-    chain::{ChainError, LLMChain},
+    chain::LLMChain,
     language_models::{llm::LLM, options::CallOptions},
     output_parsers::OutputParser,
     prompt_template,
+    schemas::BuilderError,
     schemas::MessageType,
     template::{MessageTemplate, PromptTemplate},
     tools::SQLDatabase,
@@ -61,19 +62,15 @@ impl<'b> SQLDatabaseChainBuilder<'b> {
         self
     }
 
-    pub fn build(self) -> Result<SQLDatabaseChain, ChainError> {
-        let llm = self
-            .llm
-            .ok_or_else(|| ChainError::MissingObject("LLM must be set".into()))?;
-        let top_k = self
-            .top_k
-            .ok_or_else(|| ChainError::MissingObject("Top K must be set".into()))?;
+    pub fn build(self) -> Result<SQLDatabaseChain, BuilderError> {
+        let llm = self.llm.ok_or(BuilderError::MissingField("llm"))?;
+        let top_k = self.top_k.ok_or(BuilderError::MissingField("top_k"))?;
         let database = self
             .database
-            .ok_or_else(|| ChainError::MissingObject("Database must be set".into()))?;
+            .ok_or(BuilderError::MissingField("database"))?;
 
         let prompt: PromptTemplate = prompt_template![MessageTemplate::from_jinja2(
-            MessageType::HumanMessage,
+            MessageType::Human,
             format!("{DEFAULT_SQLTEMPLATE}{DEFAULT_SQLSUFFIX}"),
         )];
 
@@ -87,7 +84,9 @@ impl<'b> SQLDatabaseChainBuilder<'b> {
                 builder = builder.output_parser(output_parser);
             }
 
-            builder.build()?
+            builder
+                .build()
+                .map_err(|e| BuilderError::Inner("llm_chain", Box::new(e)))?
         };
 
         Ok(SQLDatabaseChain {

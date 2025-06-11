@@ -1,8 +1,9 @@
 use crate::{
-    chain::{ChainError, LLMChain},
+    chain::LLMChain,
     language_models::llm::LLM,
     output_parsers::OutputParser,
-    schemas::{ChainOutput, OutputCtor, InputCtor, MessageType},
+    schemas::BuilderError,
+    schemas::{ChainOutput, InputCtor, MessageType, OutputCtor},
     template::{MessageTemplate, PromptTemplate},
 };
 
@@ -53,14 +54,12 @@ where
         self
     }
 
-    pub fn build(self) -> Result<StuffDocument<I, O>, ChainError> {
-        let llm = self
-            .llm
-            .ok_or_else(|| ChainError::MissingObject("LLM must be set".into()))?;
+    pub fn build(self) -> Result<StuffDocument<I, O>, BuilderError> {
+        let llm = self.llm.ok_or(BuilderError::MissingField("llm"))?;
         let prompt = match self.prompt {
             Some(prompt) => prompt,
             None => {
-                MessageTemplate::from_fstring(MessageType::SystemMessage, DEFAULT_STUFF_QA_TEMPLATE)
+                MessageTemplate::from_fstring(MessageType::System, DEFAULT_STUFF_QA_TEMPLATE)
                     .into()
             }
         };
@@ -71,7 +70,9 @@ where
                 builder = builder.output_parser(output_parser);
             }
 
-            builder.build()?
+            builder
+                .build()
+                .map_err(|e| BuilderError::Inner("llm_chain", Box::new(e)))?
         };
 
         Ok(StuffDocument::new(llm_chain))

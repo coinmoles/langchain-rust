@@ -2,7 +2,7 @@ use std::{error::Error, sync::Arc};
 
 use surrealdb::{Connection, Surreal};
 
-use crate::embedding::embedder_trait::Embedder;
+use crate::{embedding::embedder_trait::Embedder, schemas::BuilderError};
 
 use super::Store;
 
@@ -108,21 +108,18 @@ impl<C: Connection> StoreBuilder<C> {
 
     // Finalize the builder and construct the Store object
     pub async fn build(self) -> Result<Store<C>, Box<dyn Error>> {
-        if self.embedder.is_none() {
-            return Err("Embedder is required".into());
-        }
-
-        if self.db.is_none() {
-            return Err("Db is required".into());
-        }
+        let embedder = self
+            .embedder
+            .ok_or(BuilderError::MissingField("embedder"))?;
+        let db = self.db.ok_or(BuilderError::MissingField("db"))?;
 
         Ok(Store {
-            db: self.db.unwrap(),
+            db,
             collection_name: self.collection_name,
             collection_table_name: self.collection_table_name,
             collection_metadata_key_name: self.collection_metadata_key_name,
             vector_dimensions: self.vector_dimensions,
-            embedder: self.embedder.unwrap(),
+            embedder,
             schemafull: self.schemafull,
         })
     }

@@ -126,7 +126,7 @@ impl ConversationalRetrieverChainBuilder {
         self
     }
 
-    pub fn build(mut self) -> Result<ConversationalRetrieverChain, ChainError> {
+    pub fn build(mut self) -> Result<ConversationalRetrieverChain, BuilerError> {
         if let Some(llm) = self.llm {
             let combine_documents_chain = {
                 let mut builder = StuffDocumentBuilder::new().llm(llm.clone_box());
@@ -142,22 +142,18 @@ impl ConversationalRetrieverChainBuilder {
 
         let retriever = self
             .retriever
-            .ok_or_else(|| ChainError::MissingObject("Retriever must be set".into()))?;
+            .ok_or(BuilderError::MissingField("retriever"))?;
 
         let memory = self
             .memory
             .unwrap_or_else(|| Arc::new(RwLock::new(SimpleMemory::new())));
 
-        let combine_documents_chain = self.combine_documents_chain.ok_or_else(|| {
-            ChainError::MissingObject(
-                "Combine documents chain must be set or llm must be set".into(),
-            )
-        })?;
-        let condense_question_chain = self.condense_question_chain.ok_or_else(|| {
-            ChainError::MissingObject(
-                "Condense question chain must be set or llm must be set".into(),
-            )
-        })?;
+        let combine_documents_chain = self
+            .combine_documents_chain
+            .ok_or(BuilderError::MissingField("combine_documents_chain"))?;
+        let condense_question_chain = self
+            .condense_question_chain
+            .ok_or(BuilderError::MissingField("condense_question_chain"))?;
         Ok(ConversationalRetrieverChain {
             retriever,
             memory,

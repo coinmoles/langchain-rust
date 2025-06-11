@@ -1,12 +1,12 @@
 use std::fmt::Display;
 
 use crate::{
-    agent::{create_prompt, AgentError},
+    agent::create_prompt,
     chain::LLMChain,
-    language_models::{llm::LLM, options::CallOptions, LLMError},
+    language_models::{llm::LLM, options::CallOptions},
     schemas::{ChainOutput, InputCtor, OutputCtor},
     tools::{Tool, Toolbox},
-    utils::helper::normalize_tool_name,
+    utils::helper::{normalize_tool_name, BuilderError},
 };
 
 use super::{
@@ -68,7 +68,7 @@ where
     pub async fn build<L: LLM + 'static>(
         self,
         llm: L,
-    ) -> Result<OpenAiToolAgent<I, O>, AgentError> {
+    ) -> Result<OpenAiToolAgent<I, O>, BuilderError> {
         let system_prompt = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
 
@@ -86,7 +86,7 @@ where
                 .map(|toolbox| toolbox.get_tools())
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|e| {
-                    LLMError::OtherError(format!("Failed to fetch tool metadata from toolbox: {e}"))
+                    BuilderError::Other(format!("Failed to fetch tool metadata from toolbox: {e}"))
                 })?
                 .iter()
                 .flat_map(|tools| tools.values().map(|tool| tool.as_openai_tool()))
@@ -101,7 +101,11 @@ where
         let prompt = create_prompt(system_prompt, initial_prompt);
         let mut llm = llm;
         llm.add_call_options(CallOptions::new().with_tools(tools_openai));
-        let llm_chain = LLMChain::builder().prompt(prompt).llm(llm).build()?;
+        let llm_chain = LLMChain::builder()
+            .prompt(prompt)
+            .llm(llm)
+            .build()
+            .map_err(|e| BuilderError::Inner("llm_chain", Box::new(e)))?;
 
         let tools_map = tools
             .into_iter()

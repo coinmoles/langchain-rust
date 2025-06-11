@@ -1,4 +1,5 @@
 use crate::embedding::Embedder;
+use crate::schemas::BuilderError;
 use crate::vectorstore::qdrant::Store;
 use qdrant_client::qdrant::{CreateCollectionBuilder, Distance, Filter, VectorParamsBuilder};
 use qdrant_client::Qdrant;
@@ -88,13 +89,14 @@ impl StoreBuilder {
     }
 
     /// Build the Store object.
-    pub async fn build(mut self) -> Result<Store, Box<dyn Error>> {
-        let client = self.client.take().ok_or("'client' is required")?;
-        let embedder = self.embedder.take().ok_or("'embedder' is required")?;
+    pub async fn build(self) -> Result<Store, Box<dyn Error>> {
+        let client = self.client.ok_or(BuilderError::MissingField("client"))?;
+        let embedder = self
+            .embedder
+            .ok_or(BuilderError::MissingField("embedder"))?;
         let collection_name = self
             .collection_name
-            .take()
-            .ok_or("'collection_name' is required")?;
+            .ok_or(BuilderError::MissingField("collection_name"))?;
 
         let collection_exists = client.collection_exists(&collection_name).await?;
 

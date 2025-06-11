@@ -3,11 +3,11 @@ use std::{fmt::Display, sync::Arc};
 use tokio::sync::RwLock;
 
 use crate::{
-    chain::{ChainError, LLMChain},
+    chain::LLMChain,
     language_models::llm::LLM,
     memory::{Memory, SimpleMemory},
     output_parsers::OutputParser,
-    schemas::{ChainOutput, InputCtor, MessageType, OutputCtor},
+    schemas::{BuilderError, ChainOutput, InputCtor, MessageType, OutputCtor},
     template::{MessageTemplate, PromptTemplate},
 };
 
@@ -65,15 +65,11 @@ where
         self
     }
 
-    pub fn build(self) -> Result<ConversationalChain<I, O>, ChainError> {
-        let llm = self
-            .llm
-            .ok_or_else(|| ChainError::MissingObject("LLM must be set".into()))?;
+    pub fn build(self) -> Result<ConversationalChain<I, O>, BuilderError> {
+        let llm = self.llm.ok_or(BuilderError::MissingField("llm"))?;
         let prompt = match self.prompt {
             Some(prompt) => prompt,
-            None => {
-                MessageTemplate::from_fstring(MessageType::HumanMessage, DEFAULT_TEMPLATE).into()
-            }
+            None => MessageTemplate::from_fstring(MessageType::Human, DEFAULT_TEMPLATE).into(),
         };
         let llm_chain = {
             let mut builder = LLMChain::builder().prompt(prompt).llm(llm);
@@ -82,7 +78,9 @@ where
                 builder = builder.output_parser(output_parser);
             }
 
-            builder.build()?
+            builder
+                .build()
+                .map_err(|e| BuilderError::Inner("llm_chain", Box::new(e)))?
         };
 
         let memory = self

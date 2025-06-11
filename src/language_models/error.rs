@@ -4,7 +4,7 @@ use serde_json::Error as SerdeJsonError;
 use thiserror::Error;
 use tokio::time::error::Elapsed;
 
-use crate::llm::AnthropicError;
+use crate::{llm::AnthropicError, tools::ToolError};
 
 #[derive(Error, Debug)]
 pub enum LLMError {
@@ -24,7 +24,7 @@ pub enum LLMError {
     IoError(#[from] std::io::Error),
 
     #[error("Tool error: {0}")]
-    ToolError(String),
+    ToolError(#[from] ToolError),
 
     #[error("Operation timed out")]
     Timeout(#[from] Elapsed),

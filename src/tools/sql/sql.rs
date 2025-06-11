@@ -1,4 +1,4 @@
-use std::{collections::HashSet, error::Error, fmt};
+use std::{collections::HashSet, error::Error};
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -13,8 +13,8 @@ pub enum Dialect {
     PostgreSQL,
 }
 
-impl fmt::Display for Dialect {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for Dialect {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Dialect::MySQL => write!(f, "mysql"),
             Dialect::SQLite => write!(f, "sqlite"),
@@ -76,15 +76,7 @@ impl SQLDatabaseBuilder {
 
     // Function to build the SQLDatabase instance
     pub async fn build(self) -> Result<SQLDatabase, Box<dyn Error>> {
-        let table_names_result = self.engine.table_names().await;
-
-        // Handle potential error from table_names call
-        let table_names = match table_names_result {
-            Ok(names) => names,
-            Err(error) => {
-                return Err(error);
-            }
-        };
+        let table_names = self.engine.table_names().await?;
 
         // Filter out ignored tables
         let all_tables: HashSet<String> = table_names

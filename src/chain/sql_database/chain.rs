@@ -74,7 +74,7 @@ impl SQLDatabaseChain {
             .database
             .table_info(input.tables)
             .await
-            .map_err(|e| ChainError::DatabaseError(e.to_string()))?;
+            .map_err(|e| ChainError::OtherError(format!("Database error: {e}")))?;
 
         let llm_inputs = SqlChainLLMChainInput {
             input: llm_input.clone().into(),
@@ -105,7 +105,7 @@ impl SQLDatabaseChain {
             .database
             .query(&output.content)
             .await
-            .map_err(|e| ChainError::DatabaseError(e.to_string()))?;
+            .map_err(|e| ChainError::OtherError(format!("Database error: {e}")))?;
 
         llm_input.input = format!(
             "{}{}{}{}",

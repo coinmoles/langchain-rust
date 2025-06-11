@@ -128,23 +128,16 @@ impl RouteLayerBuilder {
     }
 
     pub async fn build(mut self) -> Result<RouteLayer, RouteLayerBuilderError> {
-        // Check if any routers lack an embedding and there's no global embedder provided.
-        if self.embedder.is_none() {
-            return Err(RouteLayerBuilderError::MissingEmbedder);
-        }
-
-        if self.llm.is_none() {
-            return Err(RouteLayerBuilderError::MissingLLM);
-        }
-
-        if self.index.is_none() {
-            return Err(RouteLayerBuilderError::MissingIndex);
-        }
+        let embedder = self
+            .embedder
+            .ok_or(RouteLayerBuilderError::MissingEmbedder)?;
+        let index = self.index.ok_or(RouteLayerBuilderError::MissingIndex)?;
+        let llm = self.llm.ok_or(RouteLayerBuilderError::MissingLLM)?;
 
         let mut router = RouteLayer {
-            embedder: self.embedder.unwrap(), //it's safe to unwrap here because we checked for None above
-            index: self.index.unwrap(),
-            llm: self.llm.unwrap(),
+            embedder, //it's safe to unwrap here because we checked for None above
+            index,
+            llm,
             threshold: self.threshold.unwrap_or(0.82),
             top_k: self.top_k,
             aggregation_method: self.aggregation_method,

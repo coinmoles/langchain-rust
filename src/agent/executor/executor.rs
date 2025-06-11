@@ -59,14 +59,14 @@ where
         self
     }
 
-    fn too_many_fails(&self, consecutive_fails: usize) -> Result<(), ChainError> {
+    fn too_many_fails(&self, consecutive_fails: usize) -> Result<(), AgentError> {
         if self
             .options
             .max_consecutive_fails
             .is_some_and(|max_consecutive_fails| consecutive_fails >= max_consecutive_fails)
         {
             log::error!("Too many consecutive fails ({consecutive_fails} in a row), aborting");
-            return Err(ChainError::AgentError("Too many consecutive fails".into()));
+            return Err(AgentError::TooManyConsecutiveFails(consecutive_fails));
         }
 
         Ok(())
@@ -95,9 +95,7 @@ where
         let mut input = AgentInput::new(input);
 
         if log::log_enabled!(log::Level::Debug) {
-            let prompt = self.agent.get_prompt(&input).map_err(|e| {
-                ChainError::AgentError(format!("Error formatting initial messages: {e}"))
-            })?;
+            let prompt = self.agent.get_prompt(&input)?;
             for message in prompt.to_messages() {
                 log::debug!(
                     "\n{}:\n{}",
@@ -178,9 +176,7 @@ where
                                     e
                                 );
                                 if options.break_if_tool_error {
-                                    return Err(ChainError::AgentError(
-                                        AgentError::ToolError(e.to_string()).to_string(),
-                                    ));
+                                    return Err(ChainError::AgentError(AgentError::ToolError(e)));
                                 } else {
                                     formatdoc! {"
                                         Tool call failed: {e}

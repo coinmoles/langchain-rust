@@ -50,7 +50,7 @@ where
             .call_with_trace(result1.final_step.content.clone().into())
             .await?;
 
-        let result = result1.extend(result2)?;
+        let result = result1.extend(result2);
 
         Ok(result)
     }

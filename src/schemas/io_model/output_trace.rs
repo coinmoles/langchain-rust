@@ -35,7 +35,7 @@ impl<T> OutputTrace<T> {
         }
     }
 
-    pub fn extend<T2>(self, other: OutputTrace<T2>) -> Result<OutputTrace<T2>, serde_json::Error>
+    pub fn extend<T2>(self, other: OutputTrace<T2>) -> OutputTrace<T2>
     where
         T: Serialize,
     {
@@ -45,16 +45,17 @@ impl<T> OutputTrace<T> {
             .previous_steps
             .into_iter()
             .chain(std::iter::once(WithUsage {
-                content: serde_json::to_value(self.final_step.content)?,
+                content: serde_json::to_value(self.final_step.content)
+                    .unwrap_or(Value::String("Failed to serialize step".into())),
                 usage: self.final_step.usage,
             }))
             .chain(other.previous_steps)
             .collect();
 
-        Ok(OutputTrace {
+        OutputTrace {
             previous_steps: steps,
             final_step: other.final_step,
             total_usage,
-        })
+        }
     }
 }

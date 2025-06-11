@@ -6,7 +6,7 @@ use sqlx::{
 };
 
 use super::Store;
-use crate::embedding::embedder_trait::Embedder;
+use crate::{embedding::embedder_trait::Embedder, schemas::BuilderError};
 
 pub struct StoreBuilder {
     pool: Option<Pool<Sqlite>>,
@@ -56,15 +56,16 @@ impl StoreBuilder {
 
     // Finalize the builder and construct the Store object
     pub async fn build(self) -> Result<Store, Box<dyn Error>> {
-        if self.embedder.is_none() {
-            return Err("Embedder is required".into());
-        }
+        let pool = self.get_pool().await?;
+        let embedder = self
+            .embedder
+            .ok_or(BuilderError::MissingField("embedder"))?;
 
         Ok(Store {
-            pool: self.get_pool().await?,
+            pool,
             table: self.table,
             vector_dimensions: self.vector_dimensions,
-            embedder: self.embedder.unwrap(),
+            embedder,
         })
     }
 

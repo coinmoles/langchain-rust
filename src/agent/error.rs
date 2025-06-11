@@ -1,33 +1,38 @@
 use thiserror::Error;
 
-use crate::{chain::ChainError, language_models::LLMError, template::TemplateError};
+use crate::{
+    chain::ChainError, language_models::LLMError, template::TemplateError, tools::ToolError,
+};
 
 #[derive(Error, Debug)]
 pub enum AgentError {
     #[error("LLM error: {0}")]
     LLMError(#[from] LLMError),
 
-    #[error("Chain error: {0}")]
-    ChainError(#[from] ChainError),
-
     #[error("Prompt error: {0}")]
     PromptError(#[from] TemplateError),
 
     #[error("Tool error: {0}")]
-    ToolError(String),
+    ToolError(ToolError),
 
-    #[error("Missing Object On Builder: {0}")]
-    MissingObject(String),
-
-    #[error("Missing input variable: {0}")]
-    MissingInputVariable(String),
-
-    #[error("Serde json error: {0}")]
-    SerdeJsonError(#[from] serde_json::Error),
-
-    #[error("Error: {0}")]
-    OtherError(String),
+    #[error("Too many consecutive fails: {0}")]
+    TooManyConsecutiveFails(usize),
 
     #[error("Invalid response from LLM: {0}")]
     InvalidFormatError(String),
+
+    #[error("Error: {0}")]
+    OtherError(String),
+}
+
+impl From<ChainError> for AgentError {
+    fn from(error: ChainError) -> Self {
+        match error {
+            ChainError::AgentError(e) => e,
+            ChainError::LLMError(e) => AgentError::LLMError(e),
+            ChainError::PromptError(e) => AgentError::PromptError(e),
+            ChainError::OtherError(msg) => AgentError::OtherError(msg),
+            other => AgentError::OtherError(other.to_string()),
+        }
+    }
 }

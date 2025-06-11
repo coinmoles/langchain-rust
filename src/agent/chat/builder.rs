@@ -4,11 +4,12 @@ use crate::{
     agent::{
         create_prompt,
         instructor::{DefaultInstructor, Instructor},
-        AgentError,
     },
     chain::LLMChain,
     language_models::llm::LLM,
-    schemas::{ChainOutput, DefaultChainInputCtor, InputCtor, OutputCtor, StringCtor},
+    schemas::{
+        BuilderError, ChainOutput, DefaultChainInputCtor, InputCtor, OutputCtor, StringCtor,
+    },
     tools::{ListTools, Tool, Toolbox},
     utils::helper::normalize_tool_name,
 };
@@ -79,7 +80,7 @@ where
     pub async fn build<L: Into<Box<dyn LLM>>>(
         self,
         llm: L,
-    ) -> Result<ConversationalAgent<I, O>, AgentError> {
+    ) -> Result<ConversationalAgent<I, O>, BuilderError> {
         let toolboxes = self
             .toolboxes
             .unwrap_or_default()
@@ -115,7 +116,11 @@ where
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
 
         let prompt = create_prompt(system_prompt, initial_prompt);
-        let llm_chain = LLMChain::builder().prompt(prompt).llm(llm).build()?;
+        let llm_chain = LLMChain::builder()
+            .prompt(prompt)
+            .llm(llm)
+            .build()
+            .map_err(|e| BuilderError::Inner("llm_chain", Box::new(e)))?;
 
         Ok(ConversationalAgent {
             llm_chain,

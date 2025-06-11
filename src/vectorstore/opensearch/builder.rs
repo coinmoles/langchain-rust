@@ -57,24 +57,18 @@ impl StoreBuilder {
     }
 
     // Finalize the builder and construct the Store object
-    pub async fn build(self) -> Result<Store, Box<dyn Error>> {
-        if self.client.is_none() {
-            return Err("Client is required".into());
-        }
-
-        if self.embedder.is_none() {
-            return Err("Embedder is required".into());
-        }
-
-        if self.index.is_none() {
-            return Err("Index is required".into());
-        }
+    pub async fn build(self) -> Result<Store, BuilderError> {
+        let client = self.client.ok_or(BuilderError::MissingField("client"))?;
+        let embedder = self
+            .embedder
+            .ok_or(BuilderError::MissingField("embedder"))?;
+        let index = self.index.ok_or(BuilderError::MissingField("index"))?;
 
         Ok(Store {
-            client: self.client.unwrap(),
-            embedder: self.embedder.unwrap(),
+            client,
+            embedder,
             k: self.k,
-            index: self.index.unwrap(),
+            index,
             vector_field: self.vector_field,
             content_field: self.content_field,
         })
