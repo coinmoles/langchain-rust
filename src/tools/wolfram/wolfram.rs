@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 
 use crate::tools::{input::DefaultToolInput, ToolFunction};
-use std::error::Error;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 struct WolframError {
@@ -129,7 +128,10 @@ impl ToolFunction for Wolfram {
             .into()
     }
 
-    async fn run(&self, input: Self::Input) -> Result<Self::Result, Box<dyn Error + Send + Sync>> {
+    async fn run(
+        &self,
+        input: Self::Input,
+    ) -> Result<Self::Result, Box<dyn std::error::Error + Send + Sync>> {
         let mut url = format!(
             "https://api.wolframalpha.com/v2/query?appid={}&input={}&output=JSON&format=plaintext&podstate=Result__Step-by-step+solution",
             &self.app_id,

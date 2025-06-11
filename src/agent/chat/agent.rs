@@ -146,7 +146,7 @@ mod tests {
         fn description(&self) -> String {
             "Usefull to make calculations".to_string()
         }
-        async fn parse_input(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {
+        async fn parse_input(&self, input: Value) -> Result<String, serde_json::Error> {
             Ok(input.to_string())
         }
         async fn run(&self, _input: String) -> Result<i128, Box<dyn Error + Send + Sync>> {

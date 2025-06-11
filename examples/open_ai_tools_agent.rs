@@ -29,7 +29,7 @@ impl ToolFunction for Date {
         "Useful when you need to get the date, input should be an empty object ({})".to_string()
     }
 
-    async fn parse_input(&self, _input: Value) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn parse_input(&self, _input: Value) -> Result<(), serde_json::Error> {
         Ok(())
     }
 

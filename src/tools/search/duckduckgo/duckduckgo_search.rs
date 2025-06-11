@@ -99,7 +99,7 @@ impl ToolFunction for DuckDuckGoSearch {
         true
     }
 
-    async fn parse_input(&self, input: Value) -> Result<Self::Input, Box<dyn Error + Send + Sync>> {
+    async fn parse_input(&self, input: Value) -> Result<Self::Input, serde_json::Error> {
         if let Ok(result) = serde_json::from_value::<DuckDuckGoSearchInput>(input.clone()) {
             return Ok(result);
         }

@@ -23,6 +23,9 @@ pub enum LLMError {
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
 
+    #[error("Tool error: {0}")]
+    ToolError(String),
+
     #[error("Operation timed out")]
     Timeout(#[from] Elapsed),
 

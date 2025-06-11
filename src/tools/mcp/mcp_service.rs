@@ -1,13 +1,15 @@
-use std::{collections::HashMap, error::Error, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
 use reqwest::IntoUrl;
 use rmcp::{
-    model::InitializeRequestParam, service::RunningService, transport::SseTransport, RoleClient,
-    ServiceExt,
+    model::InitializeRequestParam,
+    service::RunningService,
+    transport::{sse::SseTransportError, SseTransport},
+    RoleClient, ServiceExt,
 };
 
-use crate::utils::helper::normalize_tool_name;
+use crate::{tools::ToolError, utils::helper::normalize_tool_name};
 
 use super::McpTool;
 
@@ -15,18 +17,14 @@ pub type McpService = RunningService<RoleClient, InitializeRequestParam>;
 
 #[async_trait]
 pub trait McpServiceFromUrl: Send + Sync {
-    async fn from_url(
-        url: impl IntoUrl + Send + Sync,
-    ) -> Result<Self, Box<dyn Error + Send + Sync>>
+    async fn from_url(url: impl IntoUrl + Send + Sync) -> Result<Self, SseTransportError>
     where
         Self: Sized;
 }
 
 #[async_trait]
 impl McpServiceFromUrl for McpService {
-    async fn from_url(
-        url: impl IntoUrl + Send + Sync,
-    ) -> Result<Self, Box<dyn Error + Send + Sync>> {
+    async fn from_url(url: impl IntoUrl + Send + Sync) -> Result<Self, SseTransportError> {
         let transport = SseTransport::start(url).await?;
 
         let client_info = rmcp::model::ClientInfo {
@@ -38,10 +36,7 @@ impl McpServiceFromUrl for McpService {
             },
         };
 
-        let client = client_info
-            .serve(transport)
-            .await
-            .map_err(|e| format!("Failed to connect to MCP server: {e}"))?;
+        let client = client_info.serve(transport).await?;
 
         Ok(client)
     }
@@ -52,17 +47,14 @@ pub trait McpServiceExt: Send + Sync {
     async fn fetch_tools(
         &self,
         names: Option<impl IntoIterator<Item = impl AsRef<str>> + Send + Sync>,
-    ) -> Result<HashMap<String, McpTool>, Box<dyn Error + Send + Sync>>;
+    ) -> Result<HashMap<String, McpTool>, ToolError>;
 
-    async fn fetch_tool(
-        &self,
-        name: impl AsRef<str> + Send + Sync,
-    ) -> Result<McpTool, Box<dyn Error + Send + Sync>> {
+    async fn fetch_tool(&self, name: impl AsRef<str> + Send + Sync) -> Result<McpTool, ToolError> {
         let tool_name = normalize_tool_name(name.as_ref());
         self.fetch_tools(Some([&tool_name]))
             .await?
             .remove(&tool_name)
-            .ok_or(format!("Tool {tool_name} not found").into())
+            .ok_or(ToolError::ToolNotFound(tool_name))
     }
 }
 
@@ -71,7 +63,7 @@ impl McpServiceExt for Arc<McpService> {
     async fn fetch_tools(
         &self,
         names: Option<impl IntoIterator<Item = impl AsRef<str>> + Send + Sync>,
-    ) -> Result<HashMap<String, McpTool>, Box<dyn Error + Send + Sync>> {
+    ) -> Result<HashMap<String, McpTool>, ToolError> {
         let tools = self
             .list_all_tools()
             .await?

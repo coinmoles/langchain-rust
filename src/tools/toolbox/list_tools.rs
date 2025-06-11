@@ -59,10 +59,7 @@ where
         format!("List all tools in the toolbox {}", self.0.name())
     }
 
-    async fn parse_input(
-        &self,
-        _input: Value,
-    ) -> Result<Self::Input, Box<dyn std::error::Error + Send + Sync>> {
+    async fn parse_input(&self, _input: Value) -> Result<Self::Input, serde_json::Error> {
         Ok(())
     }
 

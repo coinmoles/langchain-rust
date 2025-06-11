@@ -34,3 +34,6 @@ pub use mcp::*;
 
 mod results;
 pub use results::*;
+
+mod error;
+pub use error::*;

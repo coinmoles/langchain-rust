@@ -1,5 +1,5 @@
+use std::fmt::Display;
 use std::string::String;
-use std::{error::Error, fmt::Display};
 
 use async_openai::types::{
     ChatCompletionTool, ChatCompletionToolArgs, ChatCompletionToolType, FunctionObjectArgs,
@@ -10,8 +10,7 @@ use schemars::{gen::SchemaSettings, schema::RootSchema, schema_for, JsonSchema};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::tools::describe_parameters;
-use crate::tools::input::DefaultToolInput;
+use super::{describe_parameters, input::DefaultToolInput, ToolError};
 
 mod sealed {
     /// A sealed trait to prevent external implementations of the `Tool` trait.
@@ -55,7 +54,7 @@ pub trait Tool: sealed::Sealed + Send + Sync {
     ///
     /// This function utilizes `parse_input` to parse the input and then calls `run`.
     /// Its used by the Agent
-    async fn call(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>>;
+    async fn call(&self, input: Value) -> Result<String, ToolError>;
 
     fn usage_limit(&self) -> Option<usize> {
         None
@@ -146,16 +145,17 @@ pub trait ToolFunction: Send + Sync {
     ///     self.simple_search(input).await
     /// }
     /// ```
-    async fn run(&self, input: Self::Input) -> Result<Self::Result, Box<dyn Error + Send + Sync>>;
+    async fn run(
+        &self,
+        input: Self::Input,
+    ) -> Result<Self::Result, Box<dyn std::error::Error + Send + Sync>>;
 
     /// Parses the input string, which could be a JSON value or a raw string, depending on the LLM model.
     ///
     /// Implement this function to extract the parameters needed for your tool. If a simple
     /// string is sufficient, the default implementation can be used.
-    async fn parse_input(&self, input: Value) -> Result<Self::Input, Box<dyn Error + Send + Sync>> {
-        let result = serde_json::from_value(input)?;
-
-        Ok(result)
+    async fn parse_input(&self, input: Value) -> Result<Self::Input, serde_json::Error> {
+        serde_json::from_value(input)
     }
 
     fn usage_limit(&self) -> Option<usize> {
@@ -186,9 +186,9 @@ where
         self.strict()
     }
 
-    async fn call(&self, input: Value) -> Result<String, Box<dyn Error + Send + Sync>> {
+    async fn call(&self, input: Value) -> Result<String, ToolError> {
         let input = self.parse_input(input).await?;
-        let result = self.run(input).await?;
+        let result = self.run(input).await.map_err(ToolError::ExecutionError)?;
 
         Ok(result.to_string())
     }
