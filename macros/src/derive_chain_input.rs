@@ -178,7 +178,7 @@ pub fn derive_chain_input(input: syn::DeriveInput) -> Result<proc_macro2::TokenS
 
     let expanded = quote! {
         #[automatically_derived]
-        impl #impl_generics ChainInput for #struct_name #ty_generics
+        impl #impl_generics #crate_path::schemas::ChainInput for #struct_name #ty_generics
         #where_clause
         {
             fn text_replacements(&self) -> #crate_path::schemas::TextReplacements {

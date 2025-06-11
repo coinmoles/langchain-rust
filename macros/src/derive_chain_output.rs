@@ -176,7 +176,7 @@ pub fn derive_chain_output(
 
     let expanded = quote! {
         #[automatically_derived]
-        impl #impl_generics ChainOutput<#from_input> for #struct_name #ty_generics
+        impl #impl_generics #crate_path::schemas::ChainOutput<#from_input> for #struct_name #ty_generics
         #where_clause
         {
             fn parse_output(input: #from_input, output: impl Into<String>) -> Result<Self, #crate_path::schemas::OutputParseError> {
