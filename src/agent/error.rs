@@ -13,7 +13,7 @@ pub enum AgentError {
     PromptError(#[from] TemplateError),
 
     #[error("Tool error: {0}")]
-    ToolError(ToolError),
+    ToolError(#[from] ToolError),
 
     #[error("Too many consecutive fails: {0}")]
     TooManyConsecutiveFails(usize),
