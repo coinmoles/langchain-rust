@@ -30,12 +30,14 @@ async fn main() {
     print!("Please enter a question: ");
     io::stdout().flush().unwrap();
 
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
+    let input = {
+        let mut buf = String::new();
+        io::stdin().read_line(&mut buf).unwrap();
+        buf
+    };
 
-    let input = input.trim();
-    let mut input_variables = chain.prompt_builder().query(input).build().into();
-    match chain.invoke(&mut input_variables).await {
+    let input = chain.prompt_builder().query(input.trim());
+    match chain.call(input).await {
         Ok(result) => {
             println!("Result: {:?}", result);
         }
