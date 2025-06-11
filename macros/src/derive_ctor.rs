@@ -5,14 +5,14 @@ pub fn derive_ctor(input: syn::DeriveInput) -> Result<proc_macro2::TokenStream, 
     let struct_name = &input.ident;
     let ctor_struct_name = format_ident!("{struct_name}Ctor");
 
-    let target_lifetime = input.generics.lifetimes().next().map(|_| quote! { <'b> });
+    let target_lifetime = input.generics.lifetimes().next().map(|_| quote! { <'a> });
 
     let expanded = quote! {
         pub struct #ctor_struct_name;
         #[automatically_derived]
         impl Ctor for #ctor_struct_name
         {
-            type Target #target_lifetime = #struct_name #target_lifetime;
+            type Target<'a> = #struct_name #target_lifetime;
         }
     };
 
