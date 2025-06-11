@@ -8,6 +8,7 @@ use crate::{
         SerdeStructAttrs, extract_attr, get_chain_struct_attrs, get_langchain_field_attrs,
         get_serde_field_attrs, get_serde_struct_attrs,
     },
+    crate_path::{default_crate_path, default_serde_json_path, default_serde_path},
     helpers::{get_fields, get_renamed_key},
     rename::RenameAll,
 };
@@ -98,12 +99,23 @@ struct ChainOutputStructSpec {
 
 impl ChainOutputStructSpec {
     fn new(langchain_attrs: LangchainStructAttrs, serde_attrs: SerdeStructAttrs) -> Self {
+        let crate_path = langchain_attrs
+            .crate_path
+            .unwrap_or_else(default_crate_path);
+        let serde_path = serde_attrs
+            .crate_path
+            .or(langchain_attrs.serde_path)
+            .unwrap_or_else(default_serde_path);
+        let serde_json_path = langchain_attrs
+            .serde_json_path
+            .unwrap_or_else(default_serde_json_path);
+
         Self {
             rename_all: serde_attrs.rename_all,
             from_input: langchain_attrs.from_input,
-            crate_path: langchain_attrs.crate_path,
-            serde_path: langchain_attrs.serde_path,
-            serde_json_path: langchain_attrs.serde_json_path,
+            crate_path,
+            serde_path,
+            serde_json_path,
         }
     }
 }

@@ -12,6 +12,7 @@ use crate::{
         extract_option_inner_type, is_cow_str_type, is_message_slice_type, is_str_type,
         is_string_type, is_vec_message_type,
     },
+    crate_path::default_crate_path,
     helpers::{get_fields, get_renamed_key},
     rename::RenameAll,
 };
@@ -116,7 +117,9 @@ struct ChainInputStructSpec {
 impl ChainInputStructSpec {
     fn new(langchain_attrs: LangchainStructAttrs, serde_attrs: SerdeStructAttrs) -> Self {
         Self {
-            crate_path: langchain_attrs.crate_path,
+            crate_path: langchain_attrs
+                .crate_path
+                .unwrap_or_else(default_crate_path),
             rename_all: serde_attrs.rename_all,
         }
     }

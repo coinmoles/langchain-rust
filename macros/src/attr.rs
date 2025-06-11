@@ -3,10 +3,7 @@ use std::str::FromStr;
 use proc_macro_error::{Diagnostic, Level};
 use syn::{Attribute, LitStr, Path, parse_str, spanned::Spanned};
 
-use crate::{
-    crate_path::{default_crate_path, default_serde_json_path, default_serde_path},
-    rename::RenameAll,
-};
+use crate::rename::RenameAll;
 
 #[derive(Default)]
 pub struct SerdeFieldAttrs {
@@ -38,24 +35,15 @@ pub enum ChainInputKind {
 #[derive(Default)]
 pub struct SerdeStructAttrs {
     pub rename_all: Option<RenameAll>,
+    pub crate_path: Option<syn::Path>,
 }
 
+#[derive(Default)]
 pub struct LangchainStructAttrs {
     pub from_input: Option<syn::Type>,
-    pub crate_path: syn::Path,
-    pub serde_path: syn::Path,
-    pub serde_json_path: syn::Path,
-}
-
-impl Default for LangchainStructAttrs {
-    fn default() -> Self {
-        Self {
-            from_input: None,
-            crate_path: default_crate_path(),
-            serde_path: default_serde_path(),
-            serde_json_path: default_serde_json_path(),
-        }
-    }
+    pub crate_path: Option<syn::Path>,
+    pub serde_path: Option<syn::Path>,
+    pub serde_json_path: Option<syn::Path>,
 }
 
 pub fn extract_attr<T: Default>(
@@ -195,9 +183,9 @@ pub fn get_chain_struct_attrs(
 
     Ok(Some(LangchainStructAttrs {
         from_input,
-        crate_path: crate_path.unwrap_or_else(default_crate_path),
-        serde_path: serde_path.unwrap_or_else(default_serde_path),
-        serde_json_path: serde_json_path.unwrap_or_else(default_serde_json_path),
+        crate_path,
+        serde_path,
+        serde_json_path,
     }))
 }
 
@@ -206,6 +194,7 @@ pub fn get_serde_struct_attrs(attr: &Attribute) -> Result<Option<SerdeStructAttr
         return Ok(None);
     }
     let mut rename_all = None;
+    let mut crate_path = None;
     attr.parse_nested_meta(|meta| {
         if meta.path.is_ident("rename_all") {
             let value = meta.value()?;
@@ -214,6 +203,14 @@ pub fn get_serde_struct_attrs(attr: &Attribute) -> Result<Option<SerdeStructAttr
             rename_all =
                 Some(RenameAll::from_str(&v).map_err(|e| syn::Error::new_spanned(lit, e))?);
         }
+        if meta.path.is_ident("crate") {
+            let value = meta.value()?;
+            let lit: LitStr = value.parse()?;
+            crate_path = Some(parse_str(&lit.value()).expect("Invalid crate path"));
+        } else {
+            return Err(syn::Error::new(meta.path.span(), "Unknown attribute"));
+        }
+
         Ok(())
     })
     .map_err(|e| {
@@ -224,5 +221,8 @@ pub fn get_serde_struct_attrs(attr: &Attribute) -> Result<Option<SerdeStructAttr
         )
     })?;
 
-    Ok(Some(SerdeStructAttrs { rename_all }))
+    Ok(Some(SerdeStructAttrs {
+        rename_all,
+        crate_path,
+    }))
 }
