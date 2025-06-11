@@ -13,7 +13,7 @@ async fn main() {
 
     let prompt = prompt_template![
         Message::new_system_message("You are world class technical documentation writer."),
-        MessageTemplate::from_fstring(MessageType::HumanMessage, "{input}")
+        MessageTemplate::from_fstring(MessageType::Human, "{input}")
     ];
 
     let chain: LLMChain<DefaultChainInputCtor> = LLMChain::builder()

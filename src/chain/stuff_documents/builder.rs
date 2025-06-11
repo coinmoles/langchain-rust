@@ -59,8 +59,7 @@ where
         let prompt = match self.prompt {
             Some(prompt) => prompt,
             None => {
-                MessageTemplate::from_fstring(MessageType::System, DEFAULT_STUFF_QA_TEMPLATE)
-                    .into()
+                MessageTemplate::from_fstring(MessageType::System, DEFAULT_STUFF_QA_TEMPLATE).into()
             }
         };
 

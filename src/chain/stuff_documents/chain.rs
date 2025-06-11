@@ -86,7 +86,7 @@ impl StuffDocument<StuffQACtor, StringCtor> {
     ///
     pub fn load_stuff_qa<L: Into<Box<dyn LLM>>>(llm: L) -> Self {
         let default_qa_prompt_template = MessageTemplate::from_jinja2(
-            MessageType::SystemMessage,
+            MessageType::System,
             indoc! {"
             Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
             

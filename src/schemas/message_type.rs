@@ -13,28 +13,28 @@ use std::fmt;
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 pub enum MessageType {
     #[serde(rename = "system")]
-    SystemMessage,
+    System,
     #[serde(rename = "ai")]
-    AIMessage,
+    Ai,
     #[serde(rename = "human")]
-    HumanMessage,
+    Human,
     #[serde(rename = "tool")]
-    ToolMessage,
+    Tool,
 }
 
 impl Default for MessageType {
     fn default() -> Self {
-        Self::SystemMessage
+        Self::System
     }
 }
 
 impl fmt::Display for MessageType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MessageType::SystemMessage => write!(f, "system"),
-            MessageType::AIMessage => write!(f, "ai"),
-            MessageType::HumanMessage => write!(f, "human"),
-            MessageType::ToolMessage => write!(f, "tool"),
+            MessageType::System => write!(f, "system"),
+            MessageType::Ai => write!(f, "ai"),
+            MessageType::Human => write!(f, "human"),
+            MessageType::Tool => write!(f, "tool"),
         }
     }
 }

@@ -46,7 +46,7 @@ impl<C: Config> OpenAI<C> {
             prompt
                 .into_iter()
                 .map(|message| match message.message_type {
-                    MessageType::SystemMessage => Message::new_ai_message(message.content.clone()),
+                    MessageType::System => Message::new_ai_message(message.content.clone()),
                     _ => message.clone(),
                 })
                 .collect::<Vec<Message>>()
@@ -321,7 +321,7 @@ mod tests {
         let image_urls = vec![format!("data:image/jpeg;base64,{image_base64}")];
         let messages = vec![
             Message::new_human_message("Describe this image"),
-            Message::new::<&str>(MessageType::HumanMessage, "").with_images(image_urls),
+            Message::new::<&str>(MessageType::Human, "").with_images(image_urls),
         ];
 
         // Call the generate function

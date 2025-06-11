@@ -23,7 +23,7 @@ async fn main() {
     // We can also guide it's response with a prompt template. Prompt templates are used to convert raw user input to a better input to the LLM.
     let prompt = prompt_template![
         Message::new_system_message("You are world class technical documentation writer."),
-        MessageTemplate::from_fstring(MessageType::HumanMessage, "{input}",)
+        MessageTemplate::from_fstring(MessageType::Human, "{input}",)
     ];
 
     //We can now combine these into a simple LLM chain:

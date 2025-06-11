@@ -21,7 +21,7 @@ pub struct ProductoInput<'a> {
 #[tokio::main]
 async fn main() {
     let prompt = MessageTemplate::from_jinja2(
-        MessageType::HumanMessage,
+        MessageType::Human,
         "Give me a creative name for a store that sells: {{producto}}",
     );
 

@@ -17,10 +17,10 @@ impl ClaudeMessage {
 
     pub fn from_message(message: &Message) -> Self {
         match message.message_type {
-            MessageType::SystemMessage => Self::new("system", &message.content),
-            MessageType::AIMessage => Self::new("assistant", &message.content),
-            MessageType::HumanMessage => Self::new("user", &message.content),
-            MessageType::ToolMessage => Self::new("tool", &message.content),
+            MessageType::System => Self::new("system", &message.content),
+            MessageType::Ai => Self::new("assistant", &message.content),
+            MessageType::Human => Self::new("user", &message.content),
+            MessageType::Tool => Self::new("tool", &message.content),
         }
     }
 }

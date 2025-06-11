@@ -106,7 +106,7 @@ mod tests {
         let llm = OpenAI::default();
         let chain1: LLMChain<Chain1InputCtor, Chain2InputCtor> = LLMChain::builder()
             .prompt(MessageTemplate::from_fstring(
-                MessageType::HumanMessage,
+                MessageType::Human,
                 "dame un nombre para una tienda de {input}",
             ))
             .llm(llm.clone())
@@ -115,7 +115,7 @@ mod tests {
 
         let chain2: LLMChain<Chain2InputCtor> = LLMChain::builder()
             .prompt(MessageTemplate::from_fstring(
-                MessageType::HumanMessage,
+                MessageType::Human,
                 "dame un slogan para una tienda llamada {nombre}, tiene que incluir la palabra {palabra}",
             ))
             .llm(llm.clone())

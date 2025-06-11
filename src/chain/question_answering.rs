@@ -58,7 +58,7 @@ where
 impl CondenseQuestionGeneratorChain<CondenseQuestionPromptCtor> {
     pub fn new<L: Into<Box<dyn LLM>>>(llm: L) -> Self {
         let condense_question_prompt_template = MessageTemplate::from_jinja2(
-            MessageType::SystemMessage,
+            MessageType::System,
             indoc! {"
             Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.
 

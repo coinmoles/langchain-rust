@@ -61,7 +61,7 @@ impl Message {
     pub fn new_system_message<T: std::fmt::Display>(content: T) -> Self {
         Message {
             content: content.to_string(),
-            message_type: MessageType::SystemMessage,
+            message_type: MessageType::System,
             id: None,
             tool_calls: None,
             images: None,
@@ -71,7 +71,7 @@ impl Message {
     pub fn new_human_message<T: std::fmt::Display>(content: T) -> Self {
         Message {
             content: content.to_string(),
-            message_type: MessageType::HumanMessage,
+            message_type: MessageType::Human,
             id: None,
             tool_calls: None,
             images: None,
@@ -81,7 +81,7 @@ impl Message {
     pub fn new_ai_message<T: std::fmt::Display>(content: T) -> Self {
         Message {
             content: content.to_string(),
-            message_type: MessageType::AIMessage,
+            message_type: MessageType::Ai,
             id: None,
             tool_calls: None,
             images: None,
@@ -99,7 +99,7 @@ impl Message {
     ) -> Self {
         Message {
             content: content.to_string(),
-            message_type: MessageType::ToolMessage,
+            message_type: MessageType::Tool,
             id: id.map(|id| id.into()),
             tool_calls: None,
             images: None,
@@ -172,7 +172,7 @@ impl TryFrom<Message> for ChatCompletionRequestMessage {
 
     fn try_from(value: Message) -> Result<Self, Self::Error> {
         match value.message_type {
-            MessageType::AIMessage => Ok(match value.tool_calls {
+            MessageType::Ai => Ok(match value.tool_calls {
                 Some(tool_calls) => ChatCompletionRequestAssistantMessageArgs::default()
                     .tool_calls(
                         tool_calls
@@ -189,7 +189,7 @@ impl TryFrom<Message> for ChatCompletionRequestMessage {
                     .build()?
                     .into(),
             }),
-            MessageType::HumanMessage => {
+            MessageType::Human => {
                 let content: ChatCompletionRequestUserMessageContent = match value.images {
                     Some(images) => images
                         .into_iter()
@@ -209,11 +209,11 @@ impl TryFrom<Message> for ChatCompletionRequestMessage {
                     .build()?
                     .into())
             }
-            MessageType::SystemMessage => Ok(ChatCompletionRequestSystemMessageArgs::default()
+            MessageType::System => Ok(ChatCompletionRequestSystemMessageArgs::default()
                 .content(value.content)
                 .build()?
                 .into()),
-            MessageType::ToolMessage => Ok(ChatCompletionRequestToolMessageArgs::default()
+            MessageType::Tool => Ok(ChatCompletionRequestToolMessageArgs::default()
                 .content(value.content)
                 .tool_call_id(value.id.unwrap_or_default())
                 .build()?

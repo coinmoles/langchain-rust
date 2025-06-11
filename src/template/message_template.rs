@@ -101,7 +101,7 @@ mod tests {
     #[test]
     fn test_fstring_template() {
         let template =
-            MessageTemplate::from_fstring(MessageType::AIMessage, "Hello {name}, how are you?");
+            MessageTemplate::from_fstring(MessageType::Ai, "Hello {name}, how are you?");
 
         let input = HashMap::from([("name", "Alice".into())]);
 
@@ -112,7 +112,7 @@ mod tests {
     #[test]
     fn test_jinja2_template() {
         let template =
-            MessageTemplate::from_jinja2(MessageType::AIMessage, "Hello {{name}}, how are you?");
+            MessageTemplate::from_jinja2(MessageType::Ai, "Hello {{name}}, how are you?");
 
         let input_variables = HashMap::from([("name", "Alice".into())]);
 
@@ -123,7 +123,7 @@ mod tests {
     #[test]
     fn test_jinja2_template_duplicate() {
         let template = MessageTemplate::from_jinja2(
-            MessageType::AIMessage,
+            MessageType::Ai,
             "Hello {{name}}, how are you? Nice to meet you {{name}}!",
         );
 

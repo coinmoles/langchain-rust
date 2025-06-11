@@ -14,7 +14,7 @@ async fn main() {
     let image_base64 = BASE64_STANDARD.encode(image);
 
     let prompt = prompt_template![
-        MessageTemplate::from_fstring(MessageType::HumanMessage, "{input}"),
+        MessageTemplate::from_fstring(MessageType::Human, "{input}"),
         Message::new_human_message("")
             .with_images(vec![format!("data:image/jpeg;base64,{image_base64}")])
     ];

@@ -10,7 +10,7 @@ use langchain_rust::{llm::openai::OpenAI, schemas::MessageType, template::Messag
 #[tokio::main]
 async fn main() -> io::Result<()> {
     let prompt = MessageTemplate::from_jinja2(
-        MessageType::HumanMessage,
+        MessageType::Human,
         indoc! {"
             Create a conventional commit message for the following changes.
 

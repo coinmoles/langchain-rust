@@ -85,7 +85,7 @@ impl RouteLayerBuilder {
 
     pub fn llm<L: LLM + 'static>(mut self, llm: L) -> Self {
         let prompt = MessageTemplate::from_jinja2(
-            MessageType::HumanMessage,
+            MessageType::Human,
             r#"
             You should Generate the input for the following tool.
             Tool description:{{description}}.
