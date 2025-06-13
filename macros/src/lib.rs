@@ -29,6 +29,7 @@ pub fn derive_chain_output(input: TokenStream) -> TokenStream {
         .into()
 }
 
+#[proc_macro_error]
 #[proc_macro_derive(Ctor, attributes(langchain))]
 pub fn derive_ctor(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
