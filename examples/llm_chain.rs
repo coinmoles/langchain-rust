@@ -1,9 +1,8 @@
 use langchain_rust::{
-    chain::{Chain, LLMChain},
-    language_models::llm::LLM,
-    llm::{openai::OpenAI, OpenAIConfig},
+    chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain},
+    llm::{openai::OpenAI, OpenAIConfig, LLM},
     prompt_template,
-    schemas::{messages::Message, DefaultChainInput, DefaultChainInputCtor, MessageType},
+    schemas::{messages::Message, MessageType},
     template::MessageTemplate,
 };
 

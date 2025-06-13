@@ -1,10 +1,10 @@
 use langchain_rust::{
-    chain::{Chain, LLMChain},
+    chain::{Chain, ChainInput, Ctor, LLMChain},
     llm::{
         openai::{OpenAI, OpenAIModel},
         OpenAIConfig,
     },
-    schemas::{ChainInput, Ctor, MessageType},
+    schemas::MessageType,
     template::MessageTemplate,
 };
 use std::{

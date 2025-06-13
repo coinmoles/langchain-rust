@@ -1,5 +1,5 @@
 #[cfg(feature = "ollama")]
-use langchain_rust::language_models::llm::LLM;
+use langchain_rust::llm::LLM;
 
 #[cfg(feature = "ollama")]
 #[tokio::main]

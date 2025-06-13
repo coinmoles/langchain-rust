@@ -1,6 +1,6 @@
-use langchain_rust::{
-    language_models::llm::LLM,
-    llm::openai::{AzureConfig, OpenAI},
+use langchain_rust::llm::{
+    openai::{AzureConfig, OpenAI},
+    LLM,
 };
 
 #[tokio::main]

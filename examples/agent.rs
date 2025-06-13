@@ -1,12 +1,12 @@
 use langchain_rust::{
     agent::{Agent, ConversationalAgent},
     chain::Chain,
+    chain::{DefaultChainInput, DefaultChainInputCtor},
     llm::{
         openai::{OpenAI, OpenAIModel},
         OpenAIConfig,
     },
     memory::SimpleMemory,
-    schemas::{DefaultChainInput, DefaultChainInputCtor},
     tools::CommandExecutor,
 };
 

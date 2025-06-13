@@ -1,9 +1,9 @@
 use base64::prelude::*;
 use langchain_rust::{
-    chain::{Chain, LLMChain},
+    chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain},
     llm::OpenAI,
     prompt_template,
-    schemas::{DefaultChainInput, DefaultChainInputCtor, Message, MessageType},
+    schemas::{Message, MessageType},
     template::MessageTemplate,
 };
 

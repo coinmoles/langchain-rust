@@ -31,7 +31,7 @@ where
         LLMChainBuilder::new()
     }
 
-    pub(crate) async fn call_with_reference(
+    pub async fn call_with_reference(
         &self,
         input: &I::Target<'_>,
     ) -> Result<WithUsage<O::Target<'static>>, ChainError> {

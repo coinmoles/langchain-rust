@@ -1,4 +1,4 @@
-use langchain_rust::{language_models::llm::LLM, llm::Claude};
+use langchain_rust::llm::{Claude, LLM};
 
 #[tokio::main]
 async fn main() {

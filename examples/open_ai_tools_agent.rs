@@ -3,10 +3,9 @@ use std::error::Error;
 use async_trait::async_trait;
 use langchain_rust::{
     agent::{Agent, OpenAiToolAgent},
-    chain::Chain,
+    chain::{Chain, DefaultChainInput, DefaultChainInputCtor},
     llm::openai::OpenAI,
     memory::SimpleMemory,
-    schemas::{DefaultChainInput, DefaultChainInputCtor},
     tools::{CommandExecutor, DuckDuckGoSearch, SerpApi, Tool, ToolFunction},
     tools_vec,
 };
