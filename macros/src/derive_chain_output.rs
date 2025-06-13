@@ -1,5 +1,5 @@
 use proc_macro_error::{Diagnostic, Level};
-use quote::{format_ident, quote};
+use quote::{ToTokens, format_ident, quote};
 use syn::{LitStr, spanned::Spanned};
 
 use crate::{
@@ -18,6 +18,8 @@ fn deser_struct(
     serde_path: &syn::Path,
     rename_all: &Option<RenameAll>,
 ) -> proc_macro2::TokenStream {
+    let serde_path_str = serde_path.to_token_stream().to_string();
+
     let deser_fields = field_specs
         .iter()
         .filter(|f| f.output_source == ChainOutputSource::ResponseJson)
@@ -43,6 +45,7 @@ fn deser_struct(
 
     quote! {
         #[derive(#serde_path::Deserialize)]
+        #[serde(crate = #serde_path_str)]
         #rename_all_attr
         struct InputDeserialize {
             #(#deser_fields),*
