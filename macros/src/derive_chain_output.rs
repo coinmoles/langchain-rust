@@ -8,7 +8,7 @@ use crate::{
         SerdeStructAttrs, extract_attr, get_chain_struct_attrs, get_langchain_field_attrs,
         get_serde_field_attrs, get_serde_struct_attrs,
     },
-    crate_path::{default_crate_path, default_serde_path},
+    crate_path::{default_crate_path, default_serde_json_path, default_serde_path},
     helpers::{get_fields, get_renamed_key},
     rename::RenameAll,
 };
@@ -18,13 +18,14 @@ fn deser_struct(
     serde_path: &syn::Path,
     rename_all: &Option<RenameAll>,
 ) -> proc_macro2::TokenStream {
-    let serde_path_str = serde_path.to_token_stream().to_string();
+    let serde_path_str = serde_path.to_token_stream().to_string().replace(" ", "");
 
     let deser_fields = field_specs
         .iter()
         .filter(|f| f.output_source == ChainOutputSource::ResponseJson)
         .map(|f| {
             let ident = f.field.ident.as_ref().unwrap();
+            let ty = &f.field.ty;
             let rename_attr = f.rename.as_ref().map(|r| {
                 quote! {
                     #[serde(rename = #r)]
@@ -33,7 +34,7 @@ fn deser_struct(
 
             quote! {
                 #rename_attr
-                pub #ident: String
+                pub #ident: #ty
             }
         });
     let rename_all_attr = rename_all.as_ref().map(|rename_all| {
@@ -97,6 +98,7 @@ struct ChainOutputStructSpec {
     from_input: Option<syn::Type>,
     crate_path: syn::Path,
     serde_path: syn::Path,
+    serde_json_path: syn::Path,
 }
 
 impl ChainOutputStructSpec {
@@ -108,12 +110,16 @@ impl ChainOutputStructSpec {
             .crate_path
             .or(langchain_attrs.serde_path)
             .unwrap_or_else(default_serde_path);
+        let serde_json_path = langchain_attrs
+            .serde_json_path
+            .unwrap_or_else(default_serde_json_path);
 
         Self {
             rename_all: serde_attrs.rename_all,
             from_input: langchain_attrs.from_input,
             crate_path,
             serde_path,
+            serde_json_path,
         }
     }
 }
@@ -130,6 +136,7 @@ pub fn derive_chain_output(
         from_input,
         crate_path,
         serde_path,
+        serde_json_path,
     } = ChainOutputStructSpec::new(
         extract_attr(&input.attrs, get_chain_struct_attrs)?,
         extract_attr(&input.attrs, get_serde_struct_attrs)?,
@@ -175,7 +182,9 @@ pub fn derive_chain_output(
         #deser_struct
 
         let original = text.into();
-        let deserialized = #crate_path::output_parser::parse_partial_json(&original, false)?;
+        println!("{original}");
+        let value = #crate_path::output_parser::parse_partial_json(&original, false)?;
+        let deserialized: InputDeserialize = #serde_json_path::from_value(value)?;
         Ok(Self {
             #(#field_initializers),*
         })

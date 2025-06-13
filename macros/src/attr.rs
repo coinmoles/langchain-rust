@@ -43,7 +43,7 @@ pub struct LangchainStructAttrs {
     pub from_input: Option<syn::Type>,
     pub crate_path: Option<syn::Path>,
     pub serde_path: Option<syn::Path>,
-    // pub serde_json_path: Option<syn::Path>,
+    pub serde_json_path: Option<syn::Path>,
 }
 
 pub fn extract_attr<T: Default>(
@@ -149,7 +149,7 @@ pub fn get_chain_struct_attrs(
     let mut from_input = None;
     let mut crate_path: Option<Path> = None;
     let mut serde_path: Option<Path> = None;
-    // let mut serde_json_path: Option<Path> = None;
+    let mut serde_json_path: Option<Path> = None;
 
     attr.parse_nested_meta(|meta| {
         if meta.path.is_ident("crate") {
@@ -160,13 +160,11 @@ pub fn get_chain_struct_attrs(
             let value = meta.value()?;
             let lit: LitStr = value.parse()?;
             serde_path = Some(parse_str(&lit.value()).expect("Invalid serde path"));
-        }
-        // else if meta.path.is_ident("serde_json") {
-        //     let value = meta.value()?;
-        //     let lit: LitStr = value.parse()?;
-        //     serde_json_path = Some(parse_str(&lit.value()).expect("Invalid serde_json path"));
-        // }
-        else if meta.path.is_ident("from_input") {
+        } else if meta.path.is_ident("serde_json") {
+            let value = meta.value()?;
+            let lit: LitStr = value.parse()?;
+            serde_json_path = Some(parse_str(&lit.value()).expect("Invalid serde_json path"));
+        } else if meta.path.is_ident("from_input") {
             let value = meta.value()?;
             from_input = Some(value.parse()?);
         } else {
@@ -187,7 +185,7 @@ pub fn get_chain_struct_attrs(
         from_input,
         crate_path,
         serde_path,
-        // serde_json_path,
+        serde_json_path,
     }))
 }
 
