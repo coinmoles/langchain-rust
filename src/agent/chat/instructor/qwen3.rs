@@ -4,8 +4,8 @@ use serde_json::Value;
 use crate::{
     agent::AgentOutput,
     output_parser::{
-        extract_from_tag, is_malformed_event, is_malformed_event_str, parse_partial_json,
-        remove_thought, OutputParseError,
+        extract_from_codeblock, extract_from_tag, is_malformed_event, is_malformed_event_str,
+        parse_partial_json, remove_thought, OutputParseError,
     },
     schemas::ToolCall,
     tools::Tool,
@@ -100,6 +100,7 @@ impl Instructor for Qwen3Instructor {
     fn parse_from_text<'a>(&self, output: String) -> Result<AgentOutput, OutputParseError> {
         let text = remove_thought(&output);
         let text = extract_from_tag(text, "tool_call");
+        let text = extract_from_codeblock(text);
 
         let json = parse_partial_json(text, false);
 
