@@ -178,10 +178,10 @@ pub fn derive_chain_input(input: syn::DeriveInput) -> Result<proc_macro2::TokenS
 
     let expanded = quote! {
         #[automatically_derived]
-        impl #impl_generics #crate_path::schemas::ChainInput for #struct_name #ty_generics
+        impl #impl_generics #crate_path::chain::ChainInput for #struct_name #ty_generics
         #where_clause
         {
-            fn text_replacements(&self) -> #crate_path::schemas::TextReplacements {
+            fn text_replacements(&self) -> #crate_path::chain::TextReplacements {
                 let mut map = std::collections::HashMap::from([
                     #(#text_replacements),*
                 ]);
@@ -189,7 +189,7 @@ pub fn derive_chain_input(input: syn::DeriveInput) -> Result<proc_macro2::TokenS
                 map
             }
 
-            fn placeholder_replacements(&self) -> #crate_path::schemas::PlaceholderReplacements {
+            fn placeholder_replacements(&self) -> #crate_path::chain::PlaceholderReplacements {
                 let mut map = std::collections::HashMap::from([
                     #(#placeholder_replacements),*
                 ]);

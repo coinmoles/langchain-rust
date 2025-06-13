@@ -1,9 +1,6 @@
 use serde::Serialize;
 
-use crate::{
-    chain::Chain,
-    schemas::{InputCtor, OutputCtor},
-};
+use crate::chain::{Chain, InputCtor, OutputCtor};
 
 use super::SequentialChain;
 

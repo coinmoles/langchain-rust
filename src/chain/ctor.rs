@@ -1,6 +1,6 @@
 pub use macros::Ctor;
 
-use crate::schemas::ChainInput;
+use crate::chain::ChainInput;
 
 mod sealed {
     pub trait Sealed {}

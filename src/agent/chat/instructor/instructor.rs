@@ -1,7 +1,7 @@
 use crate::{
     agent::{AgentOutput, AgentOutputCtor},
+    chain::{InputCtor, OutputCtor},
     output_parser::{OutputParseError, OutputParser},
-    schemas::{InputCtor, OutputCtor},
     tools::Tool,
 };
 

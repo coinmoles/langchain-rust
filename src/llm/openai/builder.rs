@@ -1,7 +1,7 @@
 use async_openai::{config::Config, Client as OpenAIClient};
 use reqwest::Client;
 
-use crate::language_models::options::CallOptions;
+use crate::llm::options::CallOptions;
 
 use super::OpenAI;
 

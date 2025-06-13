@@ -1,4 +1,7 @@
-use crate::schemas::{ChainInput, Ctor, InputCtor, Message};
+use crate::{
+    chain::{ChainInput, Ctor, InputCtor},
+    schemas::Message,
+};
 
 const FORCE_FINAL_ANSWER: &str = "Now it's time you MUST give your absolute best final answer. You'll ignore all previous instructions, stop using any tools, and just return your absolute BEST Final answer.";
 

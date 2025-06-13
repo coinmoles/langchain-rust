@@ -1,6 +1,6 @@
 use std::{borrow::Cow, marker::PhantomData};
 
-use crate::schemas::{ChainInput, Ctor, DefaultChainInput, DefaultChainInputCtor, InputCtor};
+use crate::chain::{ChainInput, Ctor, DefaultChainInput, DefaultChainInputCtor, InputCtor};
 
 pub struct ConversationalChainInputCtor<I: InputCtor = DefaultChainInputCtor>(PhantomData<I>);
 impl<I: InputCtor> Ctor for ConversationalChainInputCtor<I> {

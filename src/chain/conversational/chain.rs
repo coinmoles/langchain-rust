@@ -7,12 +7,13 @@ use futures_util::{pin_mut, StreamExt};
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{
-    chain::{Chain, ChainError, LLMChain},
-    memory::Memory,
-    schemas::{
-        messages::Message, ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, IntoWithUsage,
-        LLMOutput, LLMOutputCtor, OutputCtor, Prompt, StreamData, StringCtor, WithUsage,
+    chain::{
+        Chain, ChainError, ChainOutput, DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor,
+        StringCtor,
     },
+    llm::{LLMOutput, LLMOutputCtor},
+    memory::Memory,
+    schemas::{messages::Message, GetPrompt, IntoWithUsage, Prompt, StreamData, WithUsage},
     template::TemplateError,
 };
 
@@ -135,8 +136,8 @@ mod tests {
     use async_openai::config::OpenAIConfig;
 
     use crate::{
+        chain::DefaultChainInput,
         llm::openai::{OpenAI, OpenAIModel},
-        schemas::DefaultChainInput,
     };
 
     use super::*;

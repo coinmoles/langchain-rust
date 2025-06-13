@@ -1,6 +1,3 @@
-pub mod io_model;
-pub use io_model::*;
-
 mod message_type;
 pub use message_type::*;
 
@@ -30,3 +27,15 @@ pub use get_prompt::*;
 
 mod builder_error;
 pub use builder_error::*;
+
+mod tool_call;
+pub use tool_call::*;
+
+mod with_usage;
+pub use with_usage::*;
+
+mod output_trace;
+pub use output_trace::*;
+
+mod token_usage;
+pub use token_usage::*;

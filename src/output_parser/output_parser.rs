@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 
 use crate::{
+    chain::{InputCtor, OutputCtor},
     output_parser::OutputParseError,
-    schemas::{InputCtor, OutputCtor},
 };
 
 #[async_trait]

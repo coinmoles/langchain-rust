@@ -6,11 +6,8 @@ use crate::{
     agent::{
         Agent, AgentError, AgentInput, AgentInputCtor, AgentOutput, AgentOutputCtor, AgentStep,
     },
-    chain::LLMChain,
-    schemas::{
-        ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, Message, OutputCtor, Prompt,
-        StringCtor, WithUsage,
-    },
+    chain::{ChainOutput, DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor, StringCtor},
+    schemas::{GetPrompt, Message, Prompt, WithUsage},
     template::TemplateError,
     tools::{Tool, Toolbox},
 };
@@ -108,10 +105,9 @@ mod tests {
 
     use crate::{
         agent::{Agent, ConversationalAgent},
-        chain::Chain,
+        chain::{Chain, DefaultChainInput},
         llm::openai::{OpenAI, OpenAIModel},
         memory::SimpleMemory,
-        schemas::DefaultChainInput,
         tools::ToolFunction,
     };
 

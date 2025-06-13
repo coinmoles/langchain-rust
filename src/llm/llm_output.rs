@@ -4,9 +4,7 @@ use async_openai::types::{ChatCompletionResponseMessage, Role};
 use macros::Ctor;
 use serde::{Deserialize, Serialize};
 
-use crate::{language_models::LLMError, schemas::ChainOutput};
-
-use super::ToolCall;
+use crate::{chain::ChainOutput, llm::LLMError, schemas::ToolCall};
 
 #[derive(Debug, Clone, Ctor)]
 pub enum LLMOutput {

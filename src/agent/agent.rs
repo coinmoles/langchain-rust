@@ -4,7 +4,8 @@ use async_trait::async_trait;
 
 use crate::{
     agent::{AgentOutput, AgentStep},
-    schemas::{ChainOutput, InputCtor, OutputCtor, Prompt, WithUsage},
+    chain::{ChainOutput, InputCtor, OutputCtor},
+    schemas::{Prompt, WithUsage},
     template::TemplateError,
     tools::Tool,
 };

@@ -1,8 +1,6 @@
 use thiserror::Error;
 
-use crate::{
-    chain::ChainError, language_models::LLMError, template::TemplateError, tools::ToolError,
-};
+use crate::{chain::ChainError, llm::LLMError, template::TemplateError, tools::ToolError};
 
 #[derive(Error, Debug)]
 pub enum AgentError {

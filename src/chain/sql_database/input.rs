@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::schemas::{ChainInput, Ctor};
+use crate::chain::{ChainInput, Ctor};
 
 #[derive(Clone, Default, ChainInput, Ctor)]
 pub struct SqlChainInput<'a> {

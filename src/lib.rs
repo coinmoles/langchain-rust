@@ -2,7 +2,6 @@ pub mod agent;
 pub mod chain;
 pub mod document_loaders;
 pub mod embedding;
-pub mod language_models;
 pub mod llm;
 pub mod memory;
 pub mod output_parser;

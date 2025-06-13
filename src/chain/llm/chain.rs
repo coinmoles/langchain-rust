@@ -4,13 +4,10 @@ use async_trait::async_trait;
 use futures::{Stream, TryStreamExt};
 
 use crate::{
-    chain::{Chain, ChainError},
-    language_models::llm::LLM,
+    chain::{Chain, ChainError, ChainOutput, InputCtor, OutputCtor, StringCtor},
+    llm::{LLMOutput, LLM},
     output_parser::OutputParser,
-    schemas::{
-        ChainOutput, GetPrompt, InputCtor, IntoWithUsage, LLMOutput, OutputCtor, Prompt,
-        StreamData, StringCtor, WithUsage,
-    },
+    schemas::{GetPrompt, IntoWithUsage, Prompt, StreamData, WithUsage},
     template::{PromptTemplate, TemplateError},
 };
 
@@ -115,10 +112,10 @@ mod tests {
     use async_openai::config::OpenAIConfig;
 
     use crate::{
-        chain::Chain,
+        chain::{Chain, ChainInput, Ctor},
         llm::openai::{OpenAI, OpenAIModel},
         prompt_template,
-        schemas::{ChainInput, Ctor, MessageType},
+        schemas::MessageType,
         template::MessageTemplate,
     };
 

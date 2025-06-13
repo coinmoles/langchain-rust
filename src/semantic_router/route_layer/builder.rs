@@ -5,8 +5,7 @@ use futures_util::future::try_join_all;
 use crate::{
     chain::LLMChain,
     embedding::{openai::OpenAiEmbedder, Embedder},
-    language_models::llm::LLM,
-    llm::openai::OpenAI,
+    llm::{openai::OpenAI, LLM},
     schemas::MessageType,
     semantic_router::{Index, MemoryIndex, RouteLayerBuilderError, Router},
     template::MessageTemplate,

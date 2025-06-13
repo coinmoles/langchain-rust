@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use regex::Regex;
 
-use crate::schemas::{ChainOutput, InputCtor, OutputCtor};
+use crate::chain::{ChainOutput, InputCtor, OutputCtor};
 
 use super::{OutputParseError, OutputParser};
 
@@ -79,7 +79,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::schemas::StringCtor;
+    use crate::chain::StringCtor;
 
     use super::*;
 

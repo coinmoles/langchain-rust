@@ -1,7 +1,8 @@
 use crate::{
-    language_models::llm::LLM,
+    chain::{ChainOutput, InputCtor, OutputCtor},
+    llm::LLM,
     output_parser::{OutputParser, SimpleParser},
-    schemas::{BuilderError, ChainOutput, InputCtor, OutputCtor},
+    schemas::BuilderError,
     template::PromptTemplate,
 };
 

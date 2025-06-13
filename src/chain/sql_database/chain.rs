@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use futures::Stream;
 
 use crate::{
-    chain::{Chain, ChainError, LLMChain},
-    schemas::{IntoWithUsage, StreamData, StringCtor, TokenUsage, WithUsage},
+    chain::{Chain, ChainError, LLMChain, StringCtor},
+    schemas::{IntoWithUsage, StreamData, TokenUsage, WithUsage},
     tools::SQLDatabase,
 };
 

@@ -1,7 +1,10 @@
 use std::collections::HashSet;
 
-use crate::schemas::{Message, MessageType, TextReplacements};
-use crate::template::TemplateError;
+use crate::{
+    chain::TextReplacements,
+    schemas::{Message, MessageType},
+    template::TemplateError,
+};
 
 #[derive(Clone)]
 pub enum TemplateFormat {
@@ -100,8 +103,7 @@ mod tests {
 
     #[test]
     fn test_fstring_template() {
-        let template =
-            MessageTemplate::from_fstring(MessageType::Ai, "Hello {name}, how are you?");
+        let template = MessageTemplate::from_fstring(MessageType::Ai, "Hello {name}, how are you?");
 
         let input = HashMap::from([("name", "Alice".into())]);
 

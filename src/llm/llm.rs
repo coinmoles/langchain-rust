@@ -3,9 +3,10 @@ use std::pin::Pin;
 use async_trait::async_trait;
 use futures::Stream;
 
-use crate::schemas::{LLMOutput, Message, StreamData, WithUsage};
-
-use super::{options::CallOptions, LLMError};
+use crate::{
+    llm::{options::CallOptions, LLMError, LLMOutput},
+    schemas::{Message, StreamData, WithUsage},
+};
 
 #[async_trait]
 pub trait LLM: Sync + Send + LLMClone {

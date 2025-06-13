@@ -18,7 +18,7 @@ pub fn derive_ctor(input: syn::DeriveInput) -> Result<proc_macro2::TokenStream, 
     let expanded = quote! {
         pub struct #ctor_struct_name;
         #[automatically_derived]
-        impl #crate_path::schemas::Ctor for #ctor_struct_name
+        impl #crate_path::chain::Ctor for #ctor_struct_name
         {
             type Target<'a> = #struct_name #target_lifetime;
         }

@@ -3,7 +3,10 @@ use std::pin::Pin;
 use async_trait::async_trait;
 use futures::Stream;
 
-use crate::schemas::{InputCtor, OutputCtor, OutputTrace, StreamData, WithUsage};
+use crate::{
+    chain::{InputCtor, OutputCtor},
+    schemas::{OutputTrace, StreamData, WithUsage},
+};
 
 use super::ChainError;
 

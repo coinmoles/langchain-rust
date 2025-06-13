@@ -1,4 +1,7 @@
-use crate::schemas::{ChainOutput, Ctor, ToolCall};
+use crate::{
+    chain::{ChainOutput, Ctor},
+    schemas::ToolCall,
+};
 
 pub struct AgentOutputCtor;
 

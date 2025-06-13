@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use serde::Serialize;
 
 use crate::{
-    chain::{Chain, ChainError},
-    schemas::{InputCtor, IntoWithUsage, OutputCtor, OutputTrace, TokenUsage, WithUsage},
+    chain::{Chain, ChainError, InputCtor, OutputCtor},
+    schemas::{IntoWithUsage, OutputTrace, TokenUsage, WithUsage},
 };
 
 pub struct SequentialChain<'a, I, M1, M2, O>
@@ -76,9 +76,9 @@ mod tests {
     use serde::Serialize;
 
     use crate::{
-        chain::LLMChain,
+        chain::{ChainInput, ChainOutput, Ctor, LLMChain},
         llm::openai::OpenAI,
-        schemas::{ChainInput, ChainOutput, Ctor, MessageType},
+        schemas::MessageType,
         sequential_chain,
         template::MessageTemplate,
     };

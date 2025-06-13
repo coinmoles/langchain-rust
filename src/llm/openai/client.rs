@@ -10,10 +10,8 @@ use async_trait::async_trait;
 use futures::{Stream, StreamExt};
 
 use crate::{
-    language_models::{llm::LLM, options::CallOptions, LLMError},
-    schemas::{
-        messages::Message, IntoWithUsage, LLMOutput, MessageType, StreamData, TokenUsage, WithUsage,
-    },
+    llm::{options::CallOptions, LLMError, LLMOutput, LLM},
+    schemas::{messages::Message, IntoWithUsage, MessageType, StreamData, TokenUsage, WithUsage},
 };
 
 use super::{
@@ -161,7 +159,7 @@ impl<C: Config> OpenAI<C> {}
 
 #[cfg(test)]
 mod tests {
-    use crate::language_models::options::StreamOption;
+    use crate::llm::options::StreamOption;
     use crate::schemas::MessageType;
 
     use super::*;

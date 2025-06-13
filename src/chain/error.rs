@@ -1,8 +1,7 @@
 use thiserror::Error;
 
 use crate::{
-    agent::AgentError, language_models::LLMError, output_parser::OutputParseError,
-    template::TemplateError,
+    agent::AgentError, llm::LLMError, output_parser::OutputParseError, template::TemplateError,
 };
 
 #[derive(Error, Debug)]

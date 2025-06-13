@@ -5,7 +5,7 @@ use async_openai::types::{
 use serde::Serialize;
 
 use crate::{
-    language_models::{options::CallOptions, LLMError},
+    llm::{options::CallOptions, LLMError},
     schemas::Message,
 };
 

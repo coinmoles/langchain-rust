@@ -1,8 +1,12 @@
 use std::collections::HashSet;
 
+use crate::{
+    chain::ChainInput,
+    schemas::{Message, Prompt},
+    template::TemplateError,
+};
+
 use super::MessageTemplate;
-use crate::schemas::{ChainInput, Message, Prompt};
-use crate::template::TemplateError;
 
 #[derive(Clone)]
 pub enum MessageOrTemplate {

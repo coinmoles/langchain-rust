@@ -7,11 +7,8 @@ use crate::{
     agent::{
         Agent, AgentError, AgentInput, AgentInputCtor, AgentOutput, AgentOutputCtor, AgentStep,
     },
-    chain::LLMChain,
-    schemas::{
-        ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, Message, OutputCtor, Prompt,
-        StringCtor, WithUsage,
-    },
+    chain::{ChainOutput, DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor, StringCtor},
+    schemas::{GetPrompt, Message, Prompt, WithUsage},
     template::TemplateError,
     tools::{Tool, Toolbox},
 };
