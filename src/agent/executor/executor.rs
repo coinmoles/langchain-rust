@@ -17,26 +17,22 @@ use crate::{agent::Agent, chain::ChainError, memory::Memory, schemas::TokenUsage
 
 use super::ExecutorOptions;
 
-pub struct AgentExecutor<'a, I, O>
+pub struct AgentExecutor<'a, I: InputCtor, O: OutputCtor>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    agent: Box<dyn Agent<InputCtor = I, OutputCtor = O> + 'a>,
+    agent: Box<dyn Agent<I, O> + 'a>,
     memory: Option<Arc<RwLock<dyn Memory>>>,
     options: ExecutorOptions,
 }
 
-impl<'a, I, O> AgentExecutor<'a, I, O>
+impl<'a, I: InputCtor, O: OutputCtor> AgentExecutor<'a, I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    pub fn from_agent(agent: impl Agent<InputCtor = I, OutputCtor = O> + 'a) -> Self {
+    pub fn from_agent(agent: impl Agent<I, O> + 'a) -> Self {
         Self {
             agent: Box::new(agent),
             memory: None,
@@ -69,16 +65,11 @@ where
 }
 
 #[async_trait]
-impl<I, O> Chain for AgentExecutor<'_, I, O>
+impl<I: InputCtor, O: OutputCtor> Chain<I, O> for AgentExecutor<'_, I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    type InputCtor = I;
-    type OutputCtor = O;
-
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
         let human_message = input.to_string();
         let options = &self.options;
@@ -228,10 +219,8 @@ where
     }
 }
 
-impl<I, O> GetPrompt<I::Target<'_>> for AgentExecutor<'_, I, O>
+impl<I: InputCtor, O: OutputCtor> GetPrompt<I::Target<'_>> for AgentExecutor<'_, I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {

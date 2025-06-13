@@ -7,10 +7,8 @@ use crate::{
 
 use super::LLMChain;
 
-pub struct LLMChainBuilder<I, O>
+pub struct LLMChainBuilder<I: InputCtor, O: OutputCtor>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     prompt: Option<PromptTemplate>,
@@ -19,10 +17,8 @@ where
     _phantom: std::marker::PhantomData<(I, O)>,
 }
 
-impl<I, O> LLMChainBuilder<I, O>
+impl<I: InputCtor, O: OutputCtor> LLMChainBuilder<I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub(super) fn new() -> Self {

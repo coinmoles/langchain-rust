@@ -109,15 +109,12 @@ impl StuffDocument<StuffQACtor, StringCtor> {
 }
 
 #[async_trait]
-impl<I, O> Chain for StuffDocument<I, O>
+impl<I, O> Chain<I, O> for StuffDocument<I, O>
 where
     I: InputCtor,
     O: OutputCtor,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    type InputCtor = I;
-    type OutputCtor = O;
-
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
         self.llm_chain.call(input).await
     }

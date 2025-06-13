@@ -13,10 +13,8 @@ use crate::{
 
 use super::{prompt::DEFAULT_TEMPLATE, ConversationalChain};
 
-pub struct ConversationalChainBuilder<I, O>
+pub struct ConversationalChainBuilder<I: InputCtor, O: OutputCtor>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
@@ -27,10 +25,8 @@ where
     _phantom: std::marker::PhantomData<(I, O)>,
 }
 
-impl<I, O> ConversationalChainBuilder<I, O>
+impl<I: InputCtor, O: OutputCtor> ConversationalChainBuilder<I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {

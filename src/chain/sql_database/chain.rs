@@ -118,10 +118,7 @@ impl SQLDatabaseChain {
 }
 
 #[async_trait]
-impl Chain for SQLDatabaseChain {
-    type InputCtor = SqlChainInputCtor;
-    type OutputCtor = StringCtor;
-
+impl Chain<SqlChainInputCtor, StringCtor> for SQLDatabaseChain {
     async fn call<'a>(&self, input: SqlChainInput<'a>) -> Result<WithUsage<String>, ChainError> {
         let (llm_inputs, token_usage) = self.call_builder_chains(&input).await?;
         let output = self.llm_chain.call(llm_inputs).await?;

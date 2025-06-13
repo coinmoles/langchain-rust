@@ -16,10 +16,8 @@ use crate::{
 
 use super::LLMChainBuilder;
 
-pub struct LLMChain<I, O = StringCtor>
+pub struct LLMChain<I: InputCtor, O: OutputCtor = StringCtor>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub(super) prompt: PromptTemplate,
@@ -28,10 +26,8 @@ where
     pub(super) _phantom: std::marker::PhantomData<(I, O)>,
 }
 
-impl<I, O> LLMChain<I, O>
+impl<I: InputCtor, O: OutputCtor> LLMChain<I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub fn builder() -> LLMChainBuilder<I, O> {
@@ -74,15 +70,10 @@ where
 }
 
 #[async_trait]
-impl<I, O> Chain for LLMChain<I, O>
+impl<I: InputCtor, O: OutputCtor> Chain<I, O> for LLMChain<I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    type InputCtor = I;
-    type OutputCtor = O;
-
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
         let prompt = self.prompt.format(&input)?;
         let WithUsage { content, usage } = self.llm.generate(prompt.to_messages()).await?;
@@ -109,10 +100,8 @@ where
     }
 }
 
-impl<I, O> GetPrompt<&I::Target<'_>> for LLMChain<I, O>
+impl<I: InputCtor, O: OutputCtor> GetPrompt<&I::Target<'_>> for LLMChain<I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     fn get_prompt(&self, input: &I::Target<'_>) -> Result<Prompt, TemplateError> {

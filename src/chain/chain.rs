@@ -8,19 +8,13 @@ use crate::schemas::{InputCtor, OutputCtor, OutputTrace, StreamData, WithUsage};
 use super::ChainError;
 
 #[async_trait]
-pub trait Chain: Sync + Send {
-    type InputCtor: InputCtor;
-    type OutputCtor: OutputCtor;
-
-    async fn call<'a>(
-        &self,
-        input: <Self::InputCtor as InputCtor>::Target<'a>,
-    ) -> Result<WithUsage<<Self::OutputCtor as OutputCtor>::Target<'a>>, ChainError>;
+pub trait Chain<I: InputCtor, O: OutputCtor>: Sync + Send {
+    async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError>;
 
     async fn call_with_trace<'a>(
         &self,
-        input: <Self::InputCtor as InputCtor>::Target<'a>,
-    ) -> Result<OutputTrace<<Self::OutputCtor as OutputCtor>::Target<'a>>, ChainError> {
+        input: I::Target<'a>,
+    ) -> Result<OutputTrace<O::Target<'a>>, ChainError> {
         let output = self.call(input).await?;
 
         Ok(OutputTrace::single(output))
@@ -73,7 +67,7 @@ pub trait Chain: Sync + Send {
     ///
     async fn stream(
         &self,
-        _input: <Self::InputCtor as InputCtor>::Target<'_>,
+        _input: I::Target<'_>,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
     {
         unimplemented!("Streaming is not implemented for this chain")

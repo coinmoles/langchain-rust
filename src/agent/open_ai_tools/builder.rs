@@ -14,10 +14,8 @@ use super::{
     OpenAiToolAgent,
 };
 
-pub struct OpenAiToolAgentBuilder<'a, 'b, I, O>
+pub struct OpenAiToolAgentBuilder<'a, 'b, I: InputCtor, O: OutputCtor>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
@@ -28,10 +26,8 @@ where
     _phantom: std::marker::PhantomData<(I, O)>,
 }
 
-impl<'a, 'b, I, O> OpenAiToolAgentBuilder<'a, 'b, I, O>
+impl<'a, 'b, I: InputCtor, O: OutputCtor> OpenAiToolAgentBuilder<'a, 'b, I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {

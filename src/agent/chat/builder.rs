@@ -19,10 +19,12 @@ use super::{
     ConversationalAgent,
 };
 
-pub struct ConversationalAgentBuilder<'a, 'b, I = DefaultChainInputCtor, O = StringCtor>
-where
-    I: InputCtor,
-    O: OutputCtor,
+pub struct ConversationalAgentBuilder<
+    'a,
+    'b,
+    I: InputCtor = DefaultChainInputCtor,
+    O: OutputCtor = StringCtor,
+> where
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
@@ -34,10 +36,8 @@ where
     _phantom: std::marker::PhantomData<(I, O)>,
 }
 
-impl<'a, 'b, I, O> ConversationalAgentBuilder<'a, 'b, I, O>
+impl<'a, 'b, I: InputCtor, O: OutputCtor> ConversationalAgentBuilder<'a, 'b, I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {

@@ -18,10 +18,8 @@ use crate::{
 
 use super::{ConversationalChainBuilder, ConversationalChainInput, ConversationalChainInputCtor};
 
-pub struct ConversationalChain<I = DefaultChainInputCtor, O = StringCtor>
+pub struct ConversationalChain<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
@@ -31,10 +29,8 @@ where
 }
 
 //Conversational Chain is a simple chain to interact with ai as a string of messages
-impl<I, O> ConversationalChain<I, O>
+impl<I: InputCtor, O: OutputCtor> ConversationalChain<I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
@@ -44,16 +40,11 @@ where
 }
 
 #[async_trait]
-impl<I, O> Chain for ConversationalChain<I, O>
+impl<I: InputCtor, O: OutputCtor> Chain<I, O> for ConversationalChain<I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    type InputCtor = I;
-    type OutputCtor = O;
-
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
         let human_message = Message::new_human_message(input.to_string());
 
@@ -128,10 +119,8 @@ where
     }
 }
 
-impl<'a, I, O> GetPrompt<I::Target<'a>> for ConversationalChain<I, O>
+impl<'a, I: InputCtor, O: OutputCtor> GetPrompt<I::Target<'a>> for ConversationalChain<I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {

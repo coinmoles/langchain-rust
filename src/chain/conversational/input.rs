@@ -2,13 +2,8 @@ use std::{borrow::Cow, marker::PhantomData};
 
 use crate::schemas::{ChainInput, Ctor, DefaultChainInput, DefaultChainInputCtor, InputCtor};
 
-pub struct ConversationalChainInputCtor<I = DefaultChainInputCtor>(PhantomData<I>)
-where
-    I: InputCtor;
-impl<I> Ctor for ConversationalChainInputCtor<I>
-where
-    I: InputCtor,
-{
+pub struct ConversationalChainInputCtor<I: InputCtor = DefaultChainInputCtor>(PhantomData<I>);
+impl<I: InputCtor> Ctor for ConversationalChainInputCtor<I> {
     type Target<'a> = ConversationalChainInput<'a, I::Target<'a>>;
 }
 

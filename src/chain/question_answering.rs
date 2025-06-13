@@ -48,10 +48,7 @@ impl<'a> Default for CondenseQuestionPrompt<'a> {
     }
 }
 
-pub struct CondenseQuestionGeneratorChain<I = CondenseQuestionPromptCtor>
-where
-    I: InputCtor,
-{
+pub struct CondenseQuestionGeneratorChain<I: InputCtor = CondenseQuestionPromptCtor> {
     chain: LLMChain<I>,
 }
 
@@ -83,13 +80,7 @@ impl CondenseQuestionGeneratorChain<CondenseQuestionPromptCtor> {
 }
 
 #[async_trait]
-impl<I> Chain for CondenseQuestionGeneratorChain<I>
-where
-    I: InputCtor,
-{
-    type InputCtor = I;
-    type OutputCtor = StringCtor;
-
+impl<I: InputCtor> Chain<I, StringCtor> for CondenseQuestionGeneratorChain<I> {
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<String>, ChainError> {
         self.chain.call(input).await
     }

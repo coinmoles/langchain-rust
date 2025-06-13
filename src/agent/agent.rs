@@ -12,30 +12,25 @@ use crate::{
 use super::{AgentError, AgentExecutor, AgentInput};
 
 #[async_trait]
-pub trait Agent: Send + Sync {
-    type InputCtor: InputCtor;
-    type OutputCtor: OutputCtor;
-
+pub trait Agent<I: InputCtor, O: OutputCtor>: Send + Sync
+where
+    for<'any> I::Target<'any>: Display,
+    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
+{
     async fn plan<'a>(
         &self,
         steps: &[AgentStep],
-        input: &mut AgentInput<<Self::InputCtor as InputCtor>::Target<'a>>,
+        input: &mut AgentInput<I::Target<'a>>,
     ) -> Result<WithUsage<AgentOutput>, AgentError>;
 
     fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool>;
 
-    fn executor<'a>(self) -> AgentExecutor<'a, Self::InputCtor, Self::OutputCtor>
+    fn executor<'a>(self) -> AgentExecutor<'a, I, O>
     where
         Self: Sized + 'a,
-        for<'any> <Self::InputCtor as InputCtor>::Target<'any>: Display,
-        for<'any> <Self::OutputCtor as OutputCtor>::Target<'any>:
-            ChainOutput<<Self::InputCtor as InputCtor>::Target<'any>>,
     {
         AgentExecutor::from_agent(self)
     }
 
-    fn get_prompt(
-        &self,
-        input: &AgentInput<<Self::InputCtor as InputCtor>::Target<'_>>,
-    ) -> Result<Prompt, TemplateError>;
+    fn get_prompt(&self, input: &AgentInput<I::Target<'_>>) -> Result<Prompt, TemplateError>;
 }

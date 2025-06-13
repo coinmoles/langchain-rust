@@ -25,10 +25,8 @@ pub struct LogTools {
     pub tools: String,
 }
 
-pub struct OpenAiToolAgent<I = DefaultChainInputCtor, O = StringCtor>
+pub struct OpenAiToolAgent<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
@@ -38,10 +36,8 @@ where
     pub(super) _phantom: std::marker::PhantomData<O>,
 }
 
-impl<I, O> OpenAiToolAgent<I, O>
+impl<I: InputCtor, O: OutputCtor> OpenAiToolAgent<I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
@@ -63,16 +59,11 @@ where
 }
 
 #[async_trait]
-impl<I, O> Agent for OpenAiToolAgent<I, O>
+impl<I: InputCtor, O: OutputCtor> Agent<I, O> for OpenAiToolAgent<I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    type InputCtor = I;
-    type OutputCtor = O;
-
     async fn plan<'i>(
         &self,
         steps: &[AgentStep],
@@ -102,10 +93,8 @@ where
     }
 }
 
-impl<I, O> GetPrompt<I::Target<'_>> for OpenAiToolAgent<I, O>
+impl<I: InputCtor, O: OutputCtor> GetPrompt<I::Target<'_>> for OpenAiToolAgent<I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {

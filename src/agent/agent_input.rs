@@ -2,13 +2,8 @@ use crate::schemas::{ChainInput, Ctor, InputCtor, Message};
 
 const FORCE_FINAL_ANSWER: &str = "Now it's time you MUST give your absolute best final answer. You'll ignore all previous instructions, stop using any tools, and just return your absolute BEST Final answer.";
 
-pub struct AgentInputCtor<I>(std::marker::PhantomData<I>)
-where
-    I: InputCtor;
-impl<I> Ctor for AgentInputCtor<I>
-where
-    I: InputCtor,
-{
+pub struct AgentInputCtor<I: InputCtor>(std::marker::PhantomData<I>);
+impl<I: InputCtor> Ctor for AgentInputCtor<I> {
     type Target<'a> = AgentInput<I::Target<'a>>;
 }
 

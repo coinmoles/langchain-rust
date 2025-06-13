@@ -1,5 +1,5 @@
-mod builder;
-mod chain;
+mod add_chain;
+pub use add_chain::*;
 
-pub use builder::*;
+mod chain;
 pub use chain::*;

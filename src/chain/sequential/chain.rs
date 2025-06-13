@@ -15,12 +15,12 @@ where
     for<'any> M1::Target<'any>: Serialize + Clone + Into<M2::Target<'any>>,
     for<'any> O::Target<'any>: Serialize,
 {
-    pub first: Box<dyn Chain<InputCtor = I, OutputCtor = M1> + 'a>,
-    pub second: Box<dyn Chain<InputCtor = M2, OutputCtor = O> + 'a>,
+    pub first: Box<dyn Chain<I, M1> + 'a>,
+    pub second: Box<dyn Chain<M2, O> + 'a>,
 }
 
 #[async_trait]
-impl<I, M1, M2, O> Chain for SequentialChain<'_, I, M1, M2, O>
+impl<I, M1, M2, O> Chain<I, O> for SequentialChain<'_, I, M1, M2, O>
 where
     I: InputCtor,
     M1: OutputCtor,
@@ -29,9 +29,6 @@ where
     for<'any> M1::Target<'any>: Serialize + Clone + Into<M2::Target<'any>>,
     for<'any> O::Target<'any>: Serialize,
 {
-    type InputCtor = I;
-    type OutputCtor = O;
-
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
         let result1 = self.first.call(input).await?;
         let result2 = self.second.call(result1.content.into()).await?;
@@ -58,9 +55,12 @@ where
 
 #[macro_export]
 macro_rules! sequential_chain {
-    ( $( $chain:expr ),* $(,)? ) => {
+    () => {
+        $crate::chain::empty::EmptyChain
+    };
+    ( $first:expr $(, $chain:expr )* $(,)? ) => {
         {
-            let chain = $crate::chain::SequentialChainBuilder::new();
+            let chain = $first;
             $(
                 let chain = $crate::chain::AddChain::add_chain(chain, $chain);
             )*

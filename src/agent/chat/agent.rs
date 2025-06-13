@@ -17,10 +17,8 @@ use crate::{
 
 use super::ConversationalAgentBuilder;
 
-pub struct ConversationalAgent<I = DefaultChainInputCtor, O = StringCtor>
+pub struct ConversationalAgent<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
@@ -30,10 +28,8 @@ where
     pub(super) _phantom: std::marker::PhantomData<O>,
 }
 
-impl<I, O> ConversationalAgent<I, O>
+impl<I: InputCtor, O: OutputCtor> ConversationalAgent<I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
@@ -68,16 +64,11 @@ where
 }
 
 #[async_trait]
-impl<I, O> Agent for ConversationalAgent<I, O>
+impl<I: InputCtor, O: OutputCtor> Agent<I, O> for ConversationalAgent<I, O>
 where
-    I: InputCtor,
-    O: OutputCtor,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    type InputCtor = I;
-    type OutputCtor = O;
-
     async fn plan<'i>(
         &self,
         steps: &[AgentStep],
@@ -102,10 +93,7 @@ where
         None
     }
 
-    fn get_prompt(
-        &self,
-        input: &AgentInput<<Self::InputCtor as InputCtor>::Target<'_>>,
-    ) -> Result<Prompt, TemplateError> {
+    fn get_prompt(&self, input: &AgentInput<I::Target<'_>>) -> Result<Prompt, TemplateError> {
         self.llm_chain.get_prompt(input)
     }
 }
