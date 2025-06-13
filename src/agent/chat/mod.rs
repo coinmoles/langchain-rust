@@ -4,5 +4,3 @@ mod prompt;
 
 pub use agent::*;
 pub use builder::*;
-
-pub mod instructor;

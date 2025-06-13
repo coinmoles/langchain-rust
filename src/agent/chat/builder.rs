@@ -1,11 +1,9 @@
 use std::{collections::HashMap, fmt::Display, sync::Arc};
 
 use crate::{
-    agent::{
-        create_prompt,
-        instructor::{BoxInstructorExt, DefaultInstructor, Instructor},
-    },
+    agent::create_prompt,
     chain::{ChainOutput, DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor, StringCtor},
+    instructor::{BoxInstructorExt, DefaultInstructor, Instructor},
     llm::LLM,
     schemas::BuilderError,
     tools::{ListTools, Tool, Toolbox},

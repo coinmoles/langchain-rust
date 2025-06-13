@@ -4,8 +4,8 @@ use serde_json::Value;
 use crate::{
     agent::AgentOutput,
     output_parser::{
-        extract_from_codeblock, extract_from_tag, is_malformed_event, is_malformed_event_str,
-        parse_partial_json, remove_thought, OutputParseError,
+        extract_from_codeblock, extract_from_tag, flatten_final_answer, is_malformed_event,
+        is_malformed_event_str, parse_partial_json, remove_thought, OutputParseError,
     },
     schemas::ToolCall,
     tools::Tool,
@@ -73,11 +73,7 @@ impl Qwen3Instructor {
             let tool_call = ToolCall::new(id, name, arguments);
             Ok(AgentOutput::Action(vec![tool_call]))
         } else if let Some(final_answer) = final_answer {
-            let final_answer = match final_answer {
-                Value::String(value) => value,
-                other => serde_json::to_string_pretty(&other)?,
-            };
-            Ok(AgentOutput::Finish(final_answer))
+            Ok(AgentOutput::Finish(flatten_final_answer(final_answer)?))
         } else {
             Err(serde_json::Error::missing_field("action or final_answer"))
         }
