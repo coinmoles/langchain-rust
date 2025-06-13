@@ -1,25 +1,24 @@
 use std::fmt::{self, Display};
 
 use async_openai::types::{ChatCompletionResponseMessage, Role};
-use serde::{de::Error, Deserialize, Serialize};
+use macros::Ctor;
+use serde::{Deserialize, Serialize};
 
-use crate::language_models::LLMError;
+use crate::{language_models::LLMError, schemas::ChainOutput};
 
 use super::ToolCall;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Ctor)]
 pub enum LLMOutput {
     Text(String),
     ToolCall(Vec<ToolCall>),
-    Refusal(String),
 }
 
 impl LLMOutput {
-    pub fn into_text(self) -> Result<String, LLMError> {
+    pub fn into_text(self) -> Result<String, serde_json::Error> {
         let text = match self {
             LLMOutput::Text(text) => text,
             LLMOutput::ToolCall(t) => serde_json::to_string_pretty(&t)?,
-            LLMOutput::Refusal(refusal) => refusal,
         };
         Ok(text)
     }
@@ -27,13 +26,27 @@ impl LLMOutput {
 
 impl Default for LLMOutput {
     fn default() -> Self {
-        LLMOutput::Text(String::new())
+        LLMOutput::Text("".into())
+    }
+}
+
+impl<T> ChainOutput<T> for LLMOutput {
+    fn construct_from_text(
+        text: impl Into<String>,
+    ) -> Result<Self, crate::output_parser::OutputParseError> {
+        Ok(LLMOutput::Text(text.into()))
+    }
+
+    fn construct_from_tool_call(
+        tool_calls: Vec<ToolCall>,
+    ) -> Result<Self, crate::output_parser::OutputParseError> {
+        Ok(LLMOutput::ToolCall(tool_calls))
     }
 }
 
 // Convert to async-openai type
 impl TryFrom<ChatCompletionResponseMessage> for LLMOutput {
-    type Error = serde_json::Error;
+    type Error = LLMError;
 
     fn try_from(value: ChatCompletionResponseMessage) -> Result<Self, Self::Error> {
         #[allow(deprecated)]
@@ -49,11 +62,11 @@ impl TryFrom<ChatCompletionResponseMessage> for LLMOutput {
         } else if let Some(content) = value.content {
             Ok(LLMOutput::Text(content))
         } else if let Some(refusal) = value.refusal {
-            Ok(LLMOutput::Refusal(refusal))
+            Err(LLMError::Refused(refusal))
         } else {
             // TODO: Add other cases (Audio, etc.)
-            Err(serde_json::Error::custom(
-                "Can't convert to GenerateResultContent",
+            Err(LLMError::OtherError(
+                "Cannot convert LLM generation result to LLMOutput".into(),
             ))
         }
     }
@@ -84,14 +97,6 @@ impl TryFrom<LLMOutput> for ChatCompletionResponseMessage {
                         .map(ToolCall::try_into)
                         .collect::<Result<Vec<_>, _>>()?,
                 ),
-                function_call: None,
-            }),
-            LLMOutput::Refusal(refusal) => Ok(ChatCompletionResponseMessage {
-                content: None,
-                refusal: Some(refusal),
-                role: Role::Assistant,
-                audio: None,
-                tool_calls: None,
                 function_call: None,
             }),
         }
@@ -132,7 +137,6 @@ impl Display for LLMOutput {
                 }
                 Ok(())
             }
-            LLMOutput::Refusal(refusal) => write!(f, "Refused: {}", refusal),
         }
     }
 }

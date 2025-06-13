@@ -41,3 +41,7 @@ pub struct StringCtor;
 impl Ctor for StringCtor {
     type Target<'a> = String;
 }
+
+impl Ctor for () {
+    type Target<'a> = ();
+}

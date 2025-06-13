@@ -1,15 +1,14 @@
 use regex::Regex;
+use serde::{de::Error, Deserialize};
 use serde_json::Value;
 
 use crate::{
-    agent::{
-        chat::parse_helper::{
-            extract_from_codeblock, fix_text, is_malformed_event, is_malformed_event_str,
-            parse_partial_json, remove_thought, take_action, take_final_answer,
-        },
-        AgentError,
+    agent::AgentOutput,
+    output_parser::{
+        extract_from_codeblock, fix_text, is_malformed_event, is_malformed_event_str,
+        parse_partial_json, remove_thought, OutputParseError,
     },
-    schemas::{AgentEvent, ToolCall},
+    schemas::ToolCall,
     tools::Tool,
     utils::helper::normalize_tool_name,
 };
@@ -56,50 +55,66 @@ const ACTION_INPUT_KEY: &str = "action_input";
 const FINAL_ANSWER_KEY: &str = "final_answer";
 const VALID_KEYS: &[&[&str]] = &[&[ACTION_KEY, ACTION_INPUT_KEY], &[FINAL_ANSWER_KEY]];
 
-pub struct DefaultInstructor {}
-
-impl Default for DefaultInstructor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+#[derive(Default)]
+pub struct DefaultInstructor;
 
 impl DefaultInstructor {
-    pub fn new() -> Self {
-        DefaultInstructor {}
+    fn value_to_agent_event(&self, value: Value) -> Result<AgentOutput, serde_json::Error> {
+        #[derive(Deserialize)]
+        struct AgentEventHelp {
+            #[serde(default)]
+            id: Option<String>,
+            #[serde(default)]
+            action: Option<String>,
+            #[serde(default)]
+            action_input: Option<Value>,
+            #[serde(default)]
+            final_answer: Option<Value>,
+        }
+
+        let AgentEventHelp {
+            id,
+            action,
+            action_input,
+            final_answer,
+        } = serde_json::from_value(value)?;
+
+        if let Some(name) = action {
+            let id = id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+            let arguments = action_input.unwrap_or(Value::Null);
+
+            let tool_call = ToolCall {
+                id,
+                name,
+                arguments,
+            };
+            Ok(AgentOutput::Action(vec![tool_call]))
+        } else if let Some(final_answer) = final_answer {
+            let final_answer = match final_answer {
+                Value::String(value) => value,
+                other => serde_json::to_string_pretty(&other)?,
+            };
+            Ok(AgentOutput::Finish(final_answer))
+        } else {
+            Err(serde_json::Error::missing_field("action or final_answer"))
+        }
     }
 
-    fn value_to_agent_event(&self, value: Value) -> Option<AgentEvent> {
-        let Value::Object(mut obj) = value else {
-            return None;
-        };
-
-        take_action(&mut obj, ACTION_KEY, ACTION_INPUT_KEY)
-            .map(|(id, name, arguments)| {
-                AgentEvent::Action(vec![ToolCall {
-                    id,
-                    name,
-                    arguments,
-                }])
-            })
-            .or_else(|| take_final_answer(&mut obj, FINAL_ANSWER_KEY).map(AgentEvent::Finish))
-    }
-
-    fn parse_with_regex(&self, text: &str) -> Option<AgentEvent> {
+    fn parse_with_regex(&self, text: &str) -> Option<AgentOutput> {
         let final_answer_re = Regex::new(r#"(?m)"final_answer"\s*:\s*"(.*)"\s*\n"#).unwrap();
         let action_regex = Regex::new(r#"(?m)"action"\s*:\s*"(.*)"\s*\n"#).unwrap();
         let action_input_regex = Regex::new(r#"(?m)"action_input"\s*:\s*"(.*)"\s*\n"#).unwrap();
 
         if let Some(final_answer) = final_answer_re.captures(text) {
             let final_answer = final_answer.get(1)?.as_str();
-            Some(AgentEvent::Finish(fix_text(final_answer)))
+            Some(AgentOutput::Finish(fix_text(final_answer)))
         } else if let (Some(action), Some(action_input)) = (
             action_regex.captures(text),
             action_input_regex.captures(text),
         ) {
             let action = action.get(1)?.as_str();
             let action_input = action_input.get(1)?.as_str();
-            Some(AgentEvent::Action(vec![ToolCall {
+            Some(AgentOutput::Action(vec![ToolCall {
                 id: uuid::Uuid::new_v4().to_string(),
                 name: fix_text(action),
                 arguments: serde_json::from_str(action_input).ok()?,
@@ -127,24 +142,24 @@ impl Instructor for DefaultInstructor {
             .replace("{{tools}}", &tool_string)
     }
 
-    fn parse_output(&self, output: &str) -> Result<AgentEvent, AgentError> {
-        let text = remove_thought(output);
+    fn parse_from_text(&self, output: String) -> Result<AgentOutput, OutputParseError> {
+        let text = remove_thought(&output);
         let text = extract_from_codeblock(text);
 
         let json = parse_partial_json(text, false);
 
         let is_malformed_event = match json.as_ref() {
-            Some(json) => is_malformed_event(json, VALID_KEYS),
-            None => is_malformed_event_str(text, VALID_KEYS),
+            Ok(json) => is_malformed_event(json, VALID_KEYS),
+            Err(_) => is_malformed_event_str(text, VALID_KEYS),
         };
 
         match json
             .and_then(|json| self.value_to_agent_event(json))
-            .or_else(|| self.parse_with_regex(text))
+            .or_else(|e| self.parse_with_regex(text).ok_or(e))
         {
-            Some(agent_event) => Ok(agent_event),
-            None if !is_malformed_event => Ok(AgentEvent::Finish(text.into())),
-            _ => Err(AgentError::InvalidFormatError(text.into())),
+            Ok(agent_event) => Ok(agent_event),
+            Err(_) if !is_malformed_event => Ok(AgentOutput::Finish(text.into())),
+            Err(e) => Err(e.into()),
         }
     }
 }
@@ -166,10 +181,10 @@ mod tests {
             ```
         "#};
 
-        let parsed_output = DefaultInstructor::new().parse_output(test_output);
+        let parsed_output = DefaultInstructor.parse_from_text(test_output.into());
 
         match parsed_output {
-            Ok(AgentEvent::Action(tool_calls)) => {
+            Ok(AgentOutput::Action(tool_calls)) => {
                 assert!(tool_calls.len() == 1);
                 let tool_call = &tool_calls[0];
                 assert_eq!(tool_call.name, "generate");
@@ -186,10 +201,10 @@ mod tests {
             ```
         "#};
 
-        let parsed_output = DefaultInstructor::new().parse_output(test_final_answer);
+        let parsed_output = DefaultInstructor.parse_from_text(test_final_answer.into());
 
         match parsed_output {
-            Ok(AgentEvent::Finish(final_answer)) => {
+            Ok(AgentOutput::Finish(final_answer)) => {
                 assert_eq!(final_answer, "Goodbye, world!");
             }
             _ => panic!("Expected AgentEvent::Finish, got {:#?}", parsed_output),
@@ -228,10 +243,10 @@ mod tests {
             ```
         "#};
 
-        let result = DefaultInstructor::new().parse_output(test_final_answer);
+        let result = DefaultInstructor.parse_from_text(test_final_answer.into());
 
         match result {
-            Ok(AgentEvent::Finish(final_answer)) => {
+            Ok(AgentOutput::Finish(final_answer)) => {
                 println!("{}", final_answer);
             }
             _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
@@ -248,10 +263,10 @@ mod tests {
             ```
         "#};
 
-        let result = DefaultInstructor::new().parse_output(test_final_answer);
+        let result = DefaultInstructor.parse_from_text(test_final_answer.into());
 
         match result {
-            Ok(AgentEvent::Finish(final_answer)) => {
+            Ok(AgentOutput::Finish(final_answer)) => {
                 println!("{}", final_answer);
             }
             _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
@@ -266,10 +281,10 @@ mod tests {
             }
         "#};
 
-        let result = DefaultInstructor::new().parse_output(test_final_answer);
+        let result = DefaultInstructor.parse_from_text(test_final_answer.into());
 
         match result {
-            Ok(AgentEvent::Finish(final_answer)) => {
+            Ok(AgentOutput::Finish(final_answer)) => {
                 println!("{}", final_answer);
             }
             _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
@@ -286,9 +301,9 @@ mod tests {
             }
         "#};
 
-        let result = DefaultInstructor::new().parse_output(text).unwrap();
+        let result = DefaultInstructor.parse_from_text(text.into()).unwrap();
         match result {
-            AgentEvent::Action(tool_calls) => {
+            AgentOutput::Action(tool_calls) => {
                 assert_eq!(tool_calls.len(), 1);
                 let tool_call = &tool_calls[0];
                 assert_eq!(tool_call.name, "generate");
@@ -309,9 +324,9 @@ mod tests {
         The precise mechanisms linking CDK inhibition to NF-κB activation remain incompletely understood but likely involve complex interactions between multiple signalling pathways. While the precise molecular details are still under investigation, potential mechanisms include altered regulation of upstream kinases (such as RIP1 and IKK) involved in NF-κB activation, and/or modulation of NF-κB transcriptional activity itself. A comprehensive understanding of these mechanisms is crucial not only for elucidating the immunological consequences of CDK inhibitor therapy, but also for developing strategies to mitigate potential immune-related toxicities and maximize therapeutic benefit. Further investigation into the underlying mechanisms is therefore warranted and will be a focus of current research."
         }"#};
 
-        let result = DefaultInstructor::new().parse_output(text).unwrap();
+        let result = DefaultInstructor.parse_from_text(text.into()).unwrap();
         match result {
-            AgentEvent::Finish(final_answer) => {
+            AgentOutput::Finish(final_answer) => {
                 println!("{}", final_answer);
             }
             _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
@@ -323,10 +338,10 @@ mod tests {
         let text = indoc! {"
         My final answer is 5"};
 
-        let result = DefaultInstructor::new().parse_output(text).unwrap();
+        let result = DefaultInstructor.parse_from_text(text.into()).unwrap();
 
         match result {
-            AgentEvent::Finish(final_answer) => assert_eq!(final_answer, "My final answer is 5"),
+            AgentOutput::Finish(final_answer) => assert_eq!(final_answer, "My final answer is 5"),
             _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
         }
     }
@@ -354,10 +369,10 @@ mod tests {
             ]
             ```"#};
 
-        let result = DefaultInstructor::new().parse_output(text).unwrap();
+        let result = DefaultInstructor.parse_from_text(text.into()).unwrap();
 
         match result {
-            AgentEvent::Finish(final_answer) => {
+            AgentOutput::Finish(final_answer) => {
                 println!("{}", final_answer);
             }
             _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
@@ -376,7 +391,7 @@ mod tests {
         }
         "#;
 
-        let result = DefaultInstructor::new().parse_output(text);
+        let result = DefaultInstructor.parse_from_text(text.into());
 
         assert!(result.is_err(), "Expected err, got {:#?}", result);
     }

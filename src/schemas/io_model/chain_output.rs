@@ -1,31 +1,36 @@
 pub use macros::ChainOutput;
 
-use serde::Serialize;
+use crate::{output_parser::OutputParseError, schemas::ToolCall};
 
-pub trait ChainOutput<I>: Serialize + Clone + Send + Sync {
-    fn parse_output(input: I, response: impl Into<String>) -> Result<Self, OutputParseError>;
+pub trait ChainOutput<I>: Sized + Send + Sync {
+    fn construct_from_text(_text: impl Into<String>) -> Result<Self, OutputParseError> {
+        Err(OutputParseError::InputRequired)
+    }
+
+    fn construct_from_text_and_input(
+        _input: I,
+        text: impl Into<String>,
+    ) -> Result<Self, OutputParseError> {
+        match Self::construct_from_text(text) {
+            Err(OutputParseError::InputRequired) => unimplemented!(),
+            other => other,
+        }
+    }
+
+    fn construct_from_tool_call(tool_calls: Vec<ToolCall>) -> Result<Self, OutputParseError> {
+        Err(OutputParseError::UnexpectedToolCall(tool_calls))
+    }
+
+    fn construct_from_tool_call_and_input(
+        _input: I,
+        tool_calls: Vec<ToolCall>,
+    ) -> Result<Self, OutputParseError> {
+        Self::construct_from_tool_call(tool_calls)
+    }
 }
 
 impl<T> ChainOutput<T> for String {
-    fn parse_output(_input: T, output: impl Into<String>) -> Result<Self, OutputParseError> {
-        let original: String = output.into();
-        Ok(original)
+    fn construct_from_text(output: impl Into<String>) -> Result<Self, OutputParseError> {
+        Ok(output.into())
     }
 }
-
-#[derive(Debug)]
-pub struct OutputParseError {
-    pub original: String,
-    pub error: Option<Box<dyn std::error::Error + Send + Sync>>,
-}
-
-impl std::fmt::Display for OutputParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(err) = &self.error {
-            writeln!(f, "{err}")?;
-        }
-        write!(f, "Original response:\n{}", self.original)
-    }
-}
-
-impl std::error::Error for OutputParseError {}

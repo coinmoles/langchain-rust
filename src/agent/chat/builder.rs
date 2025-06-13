@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt::Display, sync::Arc};
 use crate::{
     agent::{
         create_prompt,
-        instructor::{DefaultInstructor, Instructor},
+        instructor::{BoxInstructorExt, DefaultInstructor, Instructor},
     },
     chain::LLMChain,
     language_models::llm::LLM,
@@ -102,7 +102,7 @@ where
 
         let instructor = self
             .instructor
-            .unwrap_or_else(|| Box::new(DefaultInstructor::new()));
+            .unwrap_or_else(|| Box::new(DefaultInstructor));
 
         let system_prompt = {
             let body = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
@@ -119,6 +119,7 @@ where
         let llm_chain = LLMChain::builder()
             .prompt(prompt)
             .llm(llm)
+            .output_parser(instructor.into_parser())
             .build()
             .map_err(|e| BuilderError::Inner("llm_chain", Box::new(e)))?;
 
@@ -126,7 +127,6 @@ where
             llm_chain,
             tools,
             toolboxes,
-            instructor,
             _phantom: std::marker::PhantomData,
         })
     }

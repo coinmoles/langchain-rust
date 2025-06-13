@@ -1,6 +1,6 @@
 use crate::{
     language_models::llm::LLM,
-    output_parsers::{OutputParser, SimpleParser},
+    output_parser::{OutputParser, SimpleParser},
     schemas::{BuilderError, ChainOutput, InputCtor, OutputCtor},
     template::PromptTemplate,
 };
@@ -15,7 +15,7 @@ where
 {
     prompt: Option<PromptTemplate>,
     llm: Option<Box<dyn LLM>>,
-    output_parser: Option<Box<dyn OutputParser>>,
+    output_parser: Option<Box<dyn OutputParser<I, O>>>,
     _phantom: std::marker::PhantomData<(I, O)>,
 }
 
@@ -44,7 +44,7 @@ where
         self
     }
 
-    pub fn output_parser<P: Into<Box<dyn OutputParser>>>(mut self, output_parser: P) -> Self {
+    pub fn output_parser<P: Into<Box<dyn OutputParser<I, O>>>>(mut self, output_parser: P) -> Self {
         self.output_parser = Some(output_parser.into());
         self
     }
@@ -52,13 +52,14 @@ where
     pub fn build(self) -> Result<LLMChain<I, O>, BuilderError> {
         let prompt = self.prompt.ok_or(BuilderError::MissingField("prompt"))?;
         let llm = self.llm.ok_or(BuilderError::MissingField("llm"))?;
+        let output_parser = self
+            .output_parser
+            .unwrap_or_else(|| Box::new(SimpleParser::default()));
 
         let chain = LLMChain {
             prompt,
             llm,
-            output_parser: self
-                .output_parser
-                .unwrap_or_else(|| Box::new(SimpleParser::default())),
+            output_parser,
             _phantom: std::marker::PhantomData,
         };
 

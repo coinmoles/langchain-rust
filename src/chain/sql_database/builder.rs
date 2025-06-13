@@ -1,10 +1,9 @@
 use crate::{
-    chain::LLMChain,
+    chain::{LLMChain, SqlChainLLMChainInputCtor},
     language_models::{llm::LLM, options::CallOptions},
-    output_parsers::OutputParser,
+    output_parser::OutputParser,
     prompt_template,
-    schemas::BuilderError,
-    schemas::MessageType,
+    schemas::{BuilderError, MessageType, StringCtor},
     template::{MessageTemplate, PromptTemplate},
     tools::SQLDatabase,
 };
@@ -20,7 +19,7 @@ pub struct SQLDatabaseChainBuilder<'b> {
     top_k: Option<usize>,
     database: Option<SQLDatabase>,
     output_key: Option<&'b str>,
-    output_parser: Option<Box<dyn OutputParser>>,
+    output_parser: Option<Box<dyn OutputParser<SqlChainLLMChainInputCtor, StringCtor>>>,
 }
 
 impl<'b> SQLDatabaseChainBuilder<'b> {
@@ -47,7 +46,10 @@ impl<'b> SQLDatabaseChainBuilder<'b> {
         self
     }
 
-    pub fn output_parser(mut self, output_parser: impl Into<Box<dyn OutputParser>>) -> Self {
+    pub fn output_parser(
+        mut self,
+        output_parser: impl Into<Box<dyn OutputParser<SqlChainLLMChainInputCtor, StringCtor>>>,
+    ) -> Self {
         self.output_parser = Some(output_parser.into());
         self
     }

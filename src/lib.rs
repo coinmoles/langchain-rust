@@ -5,7 +5,7 @@ pub mod embedding;
 pub mod language_models;
 pub mod llm;
 pub mod memory;
-pub mod output_parsers;
+pub mod output_parser;
 pub mod schemas;
 pub mod semantic_router;
 pub mod template;

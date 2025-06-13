@@ -1,6 +1,34 @@
-use crate::{agent::AgentError, schemas::AgentEvent, tools::Tool};
+use crate::{
+    agent::{AgentOutput, AgentOutputCtor},
+    output_parser::{OutputParseError, OutputParser},
+    schemas::{InputCtor, OutputCtor},
+    tools::Tool,
+};
 
 pub trait Instructor: Send + Sync {
     fn create_suffix(&self, tools: &[&dyn Tool]) -> String;
-    fn parse_output(&self, output: &str) -> Result<AgentEvent, AgentError>;
+
+    fn parse_from_text(&self, output: String) -> Result<AgentOutput, OutputParseError>;
+}
+
+pub trait BoxInstructorExt {
+    fn into_parser<I: InputCtor>(self) -> Box<dyn OutputParser<I, AgentOutputCtor>>;
+}
+
+impl BoxInstructorExt for Box<dyn Instructor> {
+    fn into_parser<I: InputCtor>(self) -> Box<dyn OutputParser<I, AgentOutputCtor>> {
+        Box::new(InstructParser(self))
+    }
+}
+
+#[repr(transparent)]
+pub struct InstructParser(Box<dyn Instructor>);
+
+impl<I: InputCtor> OutputParser<I, AgentOutputCtor> for InstructParser {
+    fn parse_from_text<'a>(
+        &self,
+        output: String,
+    ) -> Result<<AgentOutputCtor as OutputCtor>::Target<'a>, OutputParseError> {
+        self.0.parse_from_text(output)
+    }
 }

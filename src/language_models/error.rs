@@ -4,7 +4,7 @@ use serde_json::Error as SerdeJsonError;
 use thiserror::Error;
 use tokio::time::error::Elapsed;
 
-use crate::{llm::AnthropicError, tools::ToolError};
+use crate::llm::AnthropicError;
 
 #[derive(Error, Debug)]
 pub enum LLMError {
@@ -23,9 +23,6 @@ pub enum LLMError {
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
 
-    #[error("Tool error: {0}")]
-    ToolError(#[from] ToolError),
-
     #[error("Operation timed out")]
     Timeout(#[from] Elapsed),
 
@@ -34,6 +31,9 @@ pub enum LLMError {
 
     #[error("Content not found in response: Expected at {0}")]
     ContentNotFound(String),
+
+    #[error("LLM refused to answer: {0}")]
+    Refused(String),
 
     #[error("Error: {0}")]
     OtherError(String),

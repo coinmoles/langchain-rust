@@ -13,6 +13,12 @@ pub trait ChainInput: Send + Sync {
     }
 }
 
+impl ChainInput for () {
+    fn text_replacements(&self) -> TextReplacements {
+        HashMap::new()
+    }
+}
+
 impl ChainInput for HashMap<String, String> {
     fn text_replacements(&self) -> TextReplacements {
         self.iter()

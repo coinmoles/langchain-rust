@@ -3,11 +3,11 @@ use std::{fmt::Display, sync::Arc};
 use tokio::sync::RwLock;
 
 use crate::{
-    chain::LLMChain,
+    chain::{ConversationalChainInputCtor, LLMChain},
     language_models::llm::LLM,
     memory::{Memory, SimpleMemory},
-    output_parsers::OutputParser,
-    schemas::{BuilderError, ChainOutput, InputCtor, MessageType, OutputCtor},
+    output_parser::OutputParser,
+    schemas::{BuilderError, ChainOutput, InputCtor, LLMOutputCtor, MessageType, OutputCtor},
     template::{MessageTemplate, PromptTemplate},
 };
 
@@ -22,7 +22,7 @@ where
 {
     llm: Option<Box<dyn LLM>>,
     memory: Option<Arc<RwLock<dyn Memory>>>,
-    output_parser: Option<Box<dyn OutputParser>>,
+    output_parser: Option<Box<dyn OutputParser<ConversationalChainInputCtor<I>, LLMOutputCtor>>>,
     prompt: Option<PromptTemplate>,
     _phantom: std::marker::PhantomData<(I, O)>,
 }
@@ -54,7 +54,10 @@ where
         self
     }
 
-    pub fn output_parser(mut self, output_parser: impl Into<Box<dyn OutputParser>>) -> Self {
+    pub fn output_parser(
+        mut self,
+        output_parser: impl Into<Box<dyn OutputParser<ConversationalChainInputCtor<I>, LLMOutputCtor>>>,
+    ) -> Self {
         self.output_parser = Some(output_parser.into());
         self
     }

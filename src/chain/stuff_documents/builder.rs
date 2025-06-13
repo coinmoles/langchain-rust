@@ -1,7 +1,7 @@
 use crate::{
     chain::LLMChain,
     language_models::llm::LLM,
-    output_parsers::OutputParser,
+    output_parser::OutputParser,
     schemas::BuilderError,
     schemas::{ChainOutput, InputCtor, MessageType, OutputCtor},
     template::{MessageTemplate, PromptTemplate},
@@ -17,7 +17,7 @@ where
 {
     llm: Option<Box<dyn LLM>>,
     output_key: Option<&'a str>,
-    output_parser: Option<Box<dyn OutputParser>>,
+    output_parser: Option<Box<dyn OutputParser<I, O>>>,
     prompt: Option<PromptTemplate>,
     _phantom: std::marker::PhantomData<(I, O)>,
 }

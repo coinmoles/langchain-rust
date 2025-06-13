@@ -3,7 +3,8 @@ use std::fmt::Display;
 use async_trait::async_trait;
 
 use crate::{
-    schemas::{AgentEvent, AgentStep, ChainOutput, InputCtor, OutputCtor, Prompt, WithUsage},
+    agent::{AgentOutput, AgentStep},
+    schemas::{ChainOutput, InputCtor, OutputCtor, Prompt, WithUsage},
     template::TemplateError,
     tools::Tool,
 };
@@ -15,11 +16,11 @@ pub trait Agent: Send + Sync {
     type InputCtor: InputCtor;
     type OutputCtor: OutputCtor;
 
-    async fn plan<'i>(
+    async fn plan<'a>(
         &self,
         steps: &[AgentStep],
-        input: &mut AgentInput<<Self::InputCtor as InputCtor>::Target<'i>>,
-    ) -> Result<WithUsage<AgentEvent>, AgentError>;
+        input: &mut AgentInput<<Self::InputCtor as InputCtor>::Target<'a>>,
+    ) -> Result<WithUsage<AgentOutput>, AgentError>;
 
     fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool>;
 

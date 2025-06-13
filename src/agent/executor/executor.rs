@@ -6,19 +6,14 @@ use async_trait::async_trait;
 use indoc::formatdoc;
 use tokio::sync::RwLock;
 
-use crate::agent::{AgentError, AgentInput};
+use crate::agent::{AgentError, AgentInput, AgentOutput, AgentStep};
 use crate::chain::Chain;
 use crate::schemas::{
     ChainOutput, GetPrompt, InputCtor, IntoWithUsage, OutputCtor, Prompt, WithUsage,
 };
 use crate::template::TemplateError;
 use crate::utils::helper::normalize_tool_name;
-use crate::{
-    agent::Agent,
-    chain::ChainError,
-    memory::Memory,
-    schemas::{agent_plan::AgentEvent, AgentStep, TokenUsage},
-};
+use crate::{agent::Agent, chain::ChainError, memory::Memory, schemas::TokenUsage};
 
 use super::ExecutorOptions;
 
@@ -125,7 +120,7 @@ where
             total_usage = TokenUsage::merge_options([&total_usage, &usage]);
 
             match content {
-                AgentEvent::Action(tool_calls) => {
+                AgentOutput::Action(tool_calls) => {
                     if options
                         .max_iterations
                         .is_some_and(|max_iterations| steps.len() >= max_iterations)
@@ -194,7 +189,7 @@ where
                         consecutive_fails = 0;
                     }
                 }
-                AgentEvent::Finish(final_answer) => {
+                AgentOutput::Finish(final_answer) => {
                     if let Some(validator) = &options.final_answer_validator {
                         if !validator.validate_final_answer(&final_answer, &steps) {
                             log::warn!(
@@ -224,7 +219,8 @@ where
 
                     log::debug!("\nAgent finished with result:\n{}", &final_answer);
 
-                    let final_answer = O::Target::parse_output(input.inner, final_answer)?;
+                    let final_answer =
+                        O::Target::construct_from_text_and_input(input.inner, final_answer)?;
                     return Ok(final_answer.with_usage(total_usage));
                 }
             }

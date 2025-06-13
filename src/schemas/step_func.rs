@@ -1,6 +1,6 @@
 use std::{error::Error, future::Future, pin::Pin};
 
-use super::AgentStep;
+use crate::agent::AgentStep;
 
 pub type OnStepFunc = dyn FnMut(
         &AgentStep,

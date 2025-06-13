@@ -6,10 +6,10 @@ use futures::{Stream, TryStreamExt};
 use crate::{
     chain::{Chain, ChainError},
     language_models::llm::LLM,
-    output_parsers::OutputParser,
+    output_parser::OutputParser,
     schemas::{
-        ChainOutput, GetPrompt, InputCtor, LLMOutput, OutputCtor, Prompt, StreamData, StringCtor,
-        WithUsage,
+        ChainOutput, GetPrompt, InputCtor, IntoWithUsage, LLMOutput, OutputCtor, Prompt,
+        StreamData, StringCtor, WithUsage,
     },
     template::{PromptTemplate, TemplateError},
 };
@@ -24,7 +24,7 @@ where
 {
     pub(super) prompt: PromptTemplate,
     pub(super) llm: Box<dyn LLM>,
-    pub(super) output_parser: Box<dyn OutputParser>,
+    pub(super) output_parser: Box<dyn OutputParser<I, O>>,
     pub(super) _phantom: std::marker::PhantomData<(I, O)>,
 }
 
@@ -38,23 +38,24 @@ where
         LLMChainBuilder::new()
     }
 
-    pub async fn call_llm(
+    pub(crate) async fn call_with_reference(
         &self,
         input: &I::Target<'_>,
-    ) -> Result<WithUsage<LLMOutput>, ChainError> {
-        let prompt = self.prompt.format(input.borrow())?;
-        let mut output = self.llm.generate(prompt.to_messages()).await?;
+    ) -> Result<WithUsage<O::Target<'static>>, ChainError> {
+        let prompt = self.prompt.format(input)?;
+        let WithUsage { content, usage } = self.llm.generate(prompt.to_messages()).await?;
 
-        if let LLMOutput::Text(content) = &mut output.content {
-            *content = self.output_parser.parse(content).await?;
+        log::trace!("\nLLM output:\n{content}");
+        if let Some(usage) = &usage {
+            log::trace!("\nToken usage:\n{usage}");
         }
 
-        log::trace!("\nLLM output:\n{}", output.content);
-        if let Some(ref usage) = output.usage {
-            log::trace!("\nToken usage:\n{}", usage);
-        }
+        let content = match content {
+            LLMOutput::Text(text) => self.output_parser.parse_from_text(text),
+            LLMOutput::ToolCall(tool_calls) => O::Target::construct_from_tool_call(tool_calls),
+        }?;
 
-        Ok(output)
+        Ok(content.with_usage(usage))
     }
 
     pub async fn stream_llm(
@@ -83,14 +84,20 @@ where
     type OutputCtor = O;
 
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
-        let llm_output = self.call_llm(&input).await?;
-        let content = llm_output.content.into_text()?;
-        let content = O::Target::parse_output(input, content)?;
+        let prompt = self.prompt.format(&input)?;
+        let WithUsage { content, usage } = self.llm.generate(prompt.to_messages()).await?;
 
-        Ok(WithUsage {
-            content,
-            usage: llm_output.usage,
-        })
+        log::trace!("\nLLM output:\n{content}");
+        if let Some(usage) = &usage {
+            log::trace!("\nToken usage:\n{usage}");
+        }
+
+        let content = match content {
+            LLMOutput::Text(text) => self.output_parser.parse_from_text_and_input(input, text),
+            LLMOutput::ToolCall(tool_calls) => O::Target::construct_from_tool_call(tool_calls),
+        }?;
+
+        Ok(content.with_usage(usage))
     }
 
     async fn stream(

@@ -8,11 +8,10 @@ use tokio::sync::{Mutex, RwLock};
 
 use crate::{
     chain::{Chain, ChainError, LLMChain},
-    language_models::LLMError,
     memory::Memory,
     schemas::{
         messages::Message, ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, IntoWithUsage,
-        LLMOutput, OutputCtor, Prompt, StreamData, StringCtor, WithUsage,
+        LLMOutput, LLMOutputCtor, OutputCtor, Prompt, StreamData, StringCtor, WithUsage,
     },
     template::TemplateError,
 };
@@ -26,7 +25,7 @@ where
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    pub(super) llm_chain: LLMChain<ConversationalChainInputCtor<I>>,
+    pub(super) llm_chain: LLMChain<ConversationalChainInputCtor<I>, LLMOutputCtor>,
     pub memory: Arc<RwLock<dyn Memory>>,
     pub(super) _phantom: std::marker::PhantomData<O>,
 }
@@ -63,7 +62,7 @@ where
             memory.to_string()
         };
         let input = ConversationalChainInput::new(input).with_history(history);
-        let result = self.llm_chain.call_llm(&input).await?;
+        let result = self.llm_chain.call_with_reference(&input).await?;
 
         let mut memory = self.memory.write().await;
         memory.add_message(human_message);
@@ -71,13 +70,16 @@ where
         match &result.content {
             LLMOutput::Text(text) => memory.add_ai_message(text.clone()),
             LLMOutput::ToolCall(tool_calls) => memory.add_tool_call_message(tool_calls.clone()),
-            LLMOutput::Refusal(refusal) => return Err(LLMError::OtherError(refusal.into()).into()),
         }
 
-        Ok(
-            O::Target::parse_output(input.inner, result.content.into_text()?)?
-                .with_usage(result.usage),
-        )
+        let content = match result.content {
+            LLMOutput::Text(text) => O::Target::construct_from_text_and_input(input.inner, text)?,
+            LLMOutput::ToolCall(tool_calls) => {
+                O::Target::construct_from_tool_call_and_input(input.inner, tool_calls)?
+            }
+        };
+
+        Ok(content.with_usage(result.usage))
     }
 
     async fn stream(

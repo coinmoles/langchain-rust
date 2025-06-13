@@ -3,19 +3,17 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Display;
 
-use crate::agent::{AgentInput, AgentInputCtor};
-use crate::chain::LLMChain;
-use crate::schemas::{
-    AgentStep, ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, IntoWithUsage, LLMOutput,
-    OutputCtor, Prompt, StringCtor, WithUsage,
-};
-use crate::template::TemplateError;
-use crate::tools::Toolbox;
 use crate::{
-    agent::{Agent, AgentError},
-    language_models::LLMError,
-    schemas::{agent_plan::AgentEvent, Message},
-    tools::Tool,
+    agent::{
+        Agent, AgentError, AgentInput, AgentInputCtor, AgentOutput, AgentOutputCtor, AgentStep,
+    },
+    chain::LLMChain,
+    schemas::{
+        ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, Message, OutputCtor, Prompt,
+        StringCtor, WithUsage,
+    },
+    template::TemplateError,
+    tools::{Tool, Toolbox},
 };
 
 use super::OpenAiToolAgentBuilder;
@@ -34,7 +32,7 @@ where
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    pub(super) llm_chain: LLMChain<AgentInputCtor<I>>,
+    pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
     pub(super) tools: HashMap<String, Box<dyn Tool>>,
     pub(super) toolboxes: Vec<Box<dyn Toolbox>>,
     pub(super) _phantom: std::marker::PhantomData<O>,
@@ -79,23 +77,10 @@ where
         &self,
         steps: &[AgentStep],
         input: &mut AgentInput<I::Target<'i>>,
-    ) -> Result<WithUsage<AgentEvent>, AgentError> {
-        let scratchpad = self.construct_scratchpad(steps);
-        input.set_agent_scratchpad(scratchpad);
-        let output = self.llm_chain.call_llm(input).await?;
-
-        let content = match output.content {
-            LLMOutput::Text(text) => AgentEvent::Finish(text),
-            LLMOutput::ToolCall(tool_calls) => AgentEvent::Action(tool_calls),
-            LLMOutput::Refusal(refusal) => {
-                return Err(AgentError::LLMError(LLMError::OtherError(format!(
-                    "LLM refused to answer: {refusal}"
-                ))));
-            }
-        };
-        let usage = output.usage;
-
-        Ok(content.with_usage(usage))
+    ) -> Result<WithUsage<AgentOutput>, AgentError> {
+        input.set_agent_scratchpad(self.construct_scratchpad(steps));
+        let result = self.llm_chain.call_with_reference(input).await?;
+        Ok(result)
     }
 
     fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool> {

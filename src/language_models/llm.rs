@@ -14,9 +14,10 @@ pub trait LLM: Sync + Send + LLMClone {
     async fn invoke(&self, prompt: &str) -> Result<String, LLMError> {
         let result = self
             .generate(vec![Message::new_human_message(prompt)])
-            .await?;
-
-        result.content.into_text()
+            .await?
+            .content
+            .into_text()?;
+        Ok(result)
     }
 
     async fn stream(

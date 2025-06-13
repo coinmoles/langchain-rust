@@ -3,11 +3,13 @@ use std::{collections::HashMap, fmt::Display, sync::Arc};
 use async_trait::async_trait;
 
 use crate::{
-    agent::{instructor::Instructor, Agent, AgentError, AgentInput, AgentInputCtor},
+    agent::{
+        Agent, AgentError, AgentInput, AgentInputCtor, AgentOutput, AgentOutputCtor, AgentStep,
+    },
     chain::LLMChain,
     schemas::{
-        AgentEvent, AgentStep, ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor,
-        IntoWithUsage, Message, OutputCtor, Prompt, StringCtor, WithUsage,
+        ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, Message, OutputCtor, Prompt,
+        StringCtor, WithUsage,
     },
     template::TemplateError,
     tools::{Tool, Toolbox},
@@ -22,10 +24,9 @@ where
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    pub(super) llm_chain: LLMChain<AgentInputCtor<I>>,
+    pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
     pub(super) tools: HashMap<String, Box<dyn Tool>>,
     pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
-    pub(super) instructor: Box<dyn Instructor>,
     pub(super) _phantom: std::marker::PhantomData<O>,
 }
 
@@ -37,16 +38,14 @@ where
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub fn new(
-        llm_chain: LLMChain<AgentInputCtor<I>>,
+        llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
         tools: HashMap<String, Box<dyn Tool>>,
         toolboxes: Vec<Arc<dyn Toolbox>>,
-        instructor: Box<dyn Instructor>,
     ) -> Self {
         Self {
             llm_chain,
             tools,
             toolboxes,
-            instructor,
             _phantom: std::marker::PhantomData,
         }
     }
@@ -83,14 +82,10 @@ where
         &self,
         steps: &[AgentStep],
         input: &mut AgentInput<I::Target<'i>>,
-    ) -> Result<WithUsage<AgentEvent>, AgentError> {
+    ) -> Result<WithUsage<AgentOutput>, AgentError> {
         input.set_agent_scratchpad(self.construct_scratchpad(steps));
-        let output = self.llm_chain.call_llm(input).await?;
-
-        let content = self.instructor.parse_output(&output.content.into_text()?)?;
-        let usage = output.usage;
-
-        Ok(content.with_usage(usage))
+        let result = self.llm_chain.call_with_reference(input).await?;
+        Ok(result)
     }
 
     fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool> {
@@ -180,9 +175,8 @@ mod tests {
 
         let input = DefaultChainInput::new("cuanta es la edad de luis +10 y que estudia");
         match executor.call(input).await {
-            Ok(result) => {
-                println!("Result: {:?}", result.content);
-            }
+            Ok(result) => println!("Result: {:?}", result.content),
+
             Err(e) => panic!("Error invoking LLMChain: {:?}", e),
         }
     }

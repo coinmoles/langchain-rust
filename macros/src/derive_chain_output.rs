@@ -8,7 +8,7 @@ use crate::{
         SerdeStructAttrs, extract_attr, get_chain_struct_attrs, get_langchain_field_attrs,
         get_serde_field_attrs, get_serde_struct_attrs,
     },
-    crate_path::{default_crate_path, default_serde_json_path, default_serde_path},
+    crate_path::{default_crate_path, default_serde_path},
     helpers::{get_fields, get_renamed_key},
     rename::RenameAll,
 };
@@ -94,7 +94,6 @@ struct ChainOutputStructSpec {
     from_input: Option<syn::Type>,
     crate_path: syn::Path,
     serde_path: syn::Path,
-    serde_json_path: syn::Path,
 }
 
 impl ChainOutputStructSpec {
@@ -106,16 +105,12 @@ impl ChainOutputStructSpec {
             .crate_path
             .or(langchain_attrs.serde_path)
             .unwrap_or_else(default_serde_path);
-        let serde_json_path = langchain_attrs
-            .serde_json_path
-            .unwrap_or_else(default_serde_json_path);
 
         Self {
             rename_all: serde_attrs.rename_all,
             from_input: langchain_attrs.from_input,
             crate_path,
             serde_path,
-            serde_json_path,
         }
     }
 }
@@ -132,7 +127,6 @@ pub fn derive_chain_output(
         from_input,
         crate_path,
         serde_path,
-        serde_json_path,
     } = ChainOutputStructSpec::new(
         extract_attr(&input.attrs, get_chain_struct_attrs)?,
         extract_attr(&input.attrs, get_serde_struct_attrs)?,
@@ -174,28 +168,39 @@ pub fn derive_chain_output(
     let deser_struct = deser_struct(&field_specs, &serde_path, &rename_all);
     let field_initializers = field_initializers(&field_specs, &rename_all);
 
+    let fn_body = quote! {
+        #deser_struct
+
+        let original = text.into();
+        let deserialized = #crate_path::output_parser::parse_partial_json(&original, false)?;
+        Ok(Self {
+            #(#field_initializers),*
+        })
+    };
+
+    let fn_construct = if field_specs
+        .iter()
+        .any(|f| f.output_source == ChainOutputSource::Input)
+    {
+        quote! {
+            fn construct_from_text_and_input(input: #from_input, text: impl Into<String>) -> Result<Self, #crate_path::output_parser::OutputParseError> {
+                #fn_body
+            }
+        }
+    } else {
+        quote! {
+            fn construct_from_text(text: impl Into<String>) -> Result<Self, #crate_path::output_parser::OutputParseError> {
+                #fn_body
+            }
+        }
+    };
+
     let expanded = quote! {
         #[automatically_derived]
         impl #impl_generics #crate_path::schemas::ChainOutput<#from_input> for #struct_name #ty_generics
         #where_clause
         {
-            fn parse_output(input: #from_input, output: impl Into<String>) -> Result<Self, #crate_path::schemas::OutputParseError> {
-                #deser_struct
-
-                let original: String = output.into();
-                let deserialized = match #serde_json_path::from_str::<InputDeserialize>(&original) {
-                    Ok(deserialized) => deserialized,
-                    Err(e) => {
-                        return Err(#crate_path::schemas::OutputParseError {
-                            original,
-                            error: Some(Box::new(e)),
-                        });
-                    }
-                };
-                Ok(Self {
-                    #(#field_initializers),*
-                })
-            }
+            #fn_construct
         }
     };
 
