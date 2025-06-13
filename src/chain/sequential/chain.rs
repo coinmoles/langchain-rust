@@ -56,7 +56,7 @@ where
 #[macro_export]
 macro_rules! sequential_chain {
     () => {
-        $crate::chain::empty::EmptyChain
+        $crate::chain::EmptyChain
     };
     ( $first:expr $(, $chain:expr )* $(,)? ) => {
         {
