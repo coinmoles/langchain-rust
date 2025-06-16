@@ -35,3 +35,18 @@ pub fn get_renamed_key(
         }
     }
 }
+
+pub(crate) trait BoolExt {
+    // fn otherwise<T>(self, f: impl FnOnce() -> T) -> Option<T>;
+    fn otherwise_some<T>(self, t: T) -> Option<T>;
+}
+
+impl BoolExt for bool {
+    // fn otherwise<T>(self, f: impl FnOnce() -> T) -> Option<T> {
+    //     if self { None } else { Some(f()) }
+    // }
+
+    fn otherwise_some<T>(self, t: T) -> Option<T> {
+        if self { None } else { Some(t) }
+    }
+}

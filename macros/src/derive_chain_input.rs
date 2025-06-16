@@ -9,11 +9,12 @@ use crate::{
         get_serde_field_attrs, get_serde_struct_attrs,
     },
     check_type::{
-        extract_option_inner_type, is_cow_str_type, is_message_slice_type, is_str_type,
-        is_string_type, is_vec_message_type,
+        extract_array_slice_inner_type, extract_cow_array_inner_type, extract_option_inner_type,
+        extract_vec_inner_type, is_cow_str_type, is_message_slice_type, is_str_type,
+        is_string_like_type, is_string_type, is_vec_message_type,
     },
     crate_path::default_crate_path,
-    helpers::{get_fields, get_renamed_key},
+    helpers::{BoolExt, get_fields, get_renamed_key},
     rename::RenameAll,
 };
 
@@ -21,22 +22,53 @@ fn generate_text_replacement_conversion(field: &Field) -> proc_macro2::TokenStre
     let ident = field.ident.as_ref().unwrap();
 
     if let Some(ty) = extract_option_inner_type(&field.ty) {
-        if is_str_type(ty) {
-            return quote! { std::borrow::Cow::Borrowed(self.#ident.unwrap_or("")) };
-        } else if is_string_type(ty) || is_cow_str_type(ty) {
-            return quote! { std::borrow::Cow::Borrowed(self.#ident.as_deref().unwrap_or("")) };
-        } else {
-            return quote! { std::borrow::Cow::Owned(self.#ident.map_or_else(|| String::new(), |s| s.to_string())) };
+        if is_str_type(ty) || is_string_type(ty) || is_cow_str_type(ty) {
+            let maybe_as_deref = is_str_type(ty).otherwise_some(quote! { .as_deref() });
+            return quote! { std::borrow::Cow::Borrowed(self.#ident #maybe_as_deref .unwrap_or("")) };
         }
+        if let Some(inner_ty) = extract_vec_inner_type(ty)
+            .or_else(|| extract_cow_array_inner_type(ty))
+            .or_else(|| extract_array_slice_inner_type(ty))
+        {
+            let maybe_as_deref = extract_array_slice_inner_type(ty).map(|_| quote! { .as_deref() });
+            let maybe_map_to_string =
+                is_string_like_type(inner_ty).otherwise_some(quote! { .map(|a| a.to_string()) });
+            return quote! {
+                std::borrow::Cow::Owned(
+                    self.#ident
+                        #maybe_as_deref
+                        .unwrap_or(&[])
+                        .iter()
+                        #maybe_map_to_string
+                        .collect::<Vec<_>>
+                        .join(", ")
+                )
+            };
+        }
+        return quote! { std::borrow::Cow::Owned(self.#ident.map_or_else(|| String::new(), |s| s.to_string())) };
     }
 
     if is_str_type(&field.ty) {
-        quote! { std::borrow::Cow::Borrowed(self.#ident) }
-    } else if is_string_type(&field.ty) || is_cow_str_type(&field.ty) {
-        quote! { std::borrow::Cow::Borrowed(self.#ident.as_ref()) }
-    } else {
-        quote! { std::borrow::Cow::Owned(self.#ident.to_string()) }
+        let maybe_as_ref = is_str_type(&field.ty).otherwise_some(quote! { .as_ref() });
+        return quote! { std::borrow::Cow::Borrowed(self.#ident #maybe_as_ref) };
     }
+    if let Some(inner_ty) = extract_vec_inner_type(&field.ty)
+        .or_else(|| extract_cow_array_inner_type(&field.ty))
+        .or_else(|| extract_array_slice_inner_type(&field.ty))
+    {
+        let maybe_map_to_string =
+            is_string_like_type(inner_ty).otherwise_some(quote! { .map(|a| a.to_string()) });
+        return quote! {
+            std::borrow::Cow::Owned(
+                self.#ident
+                    .iter()
+                    #maybe_map_to_string
+                    .collect::<Vec<_>>
+                    .join(", ")
+            )
+        };
+    }
+    quote! { std::borrow::Cow::Owned(self.#ident.to_string()) }
 }
 
 fn generate_text_replacement(
