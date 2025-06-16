@@ -1,5 +1,5 @@
 use regex::Regex;
-use serde::{de::Error, Deserialize};
+use serde::Deserialize;
 use serde_json::Value;
 
 use crate::{
@@ -60,40 +60,40 @@ pub struct DefaultInstructor;
 
 impl DefaultInstructor {
     fn value_to_agent_event(&self, value: Value) -> Result<AgentOutput, serde_json::Error> {
-        #[derive(Deserialize)]
-        struct AgentEventHelp {
-            #[serde(default)]
-            id: Option<String>,
-            #[serde(default)]
-            action: Option<String>,
-            #[serde(default)]
-            action_input: Option<Value>,
-            #[serde(default)]
-            final_answer: Option<Value>,
+        println!("Parsing value: {value:#?}");
+
+        #[derive(Debug, Deserialize)]
+        #[serde(untagged)]
+        enum AgentOutputHelp {
+            Action {
+                #[serde(default)]
+                id: Option<String>,
+                action: String,
+                #[serde(default)]
+                action_input: Option<Value>,
+            },
+            FinalAnswer {
+                final_answer: Value,
+            },
         }
 
-        let AgentEventHelp {
-            id,
-            action,
-            action_input,
-            final_answer,
-        } = serde_json::from_value(value)?;
-
-        if let Some(name) = action {
-            let id = id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-            let arguments = action_input.unwrap_or(Value::Null);
-
-            let tool_call = ToolCall {
+        let helper: AgentOutputHelp = serde_json::from_value(value)?;
+        let agent_output = match helper {
+            AgentOutputHelp::Action {
                 id,
-                name,
-                arguments,
-            };
-            Ok(AgentOutput::Action(vec![tool_call]))
-        } else if let Some(final_answer) = final_answer {
-            Ok(AgentOutput::Finish(flatten_final_answer(final_answer)?))
-        } else {
-            Err(serde_json::Error::missing_field("action or final_answer"))
-        }
+                action,
+                action_input,
+            } => AgentOutput::Action(vec![ToolCall {
+                id: id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
+                name: action,
+                arguments: action_input.unwrap_or(Value::Null),
+            }]),
+            AgentOutputHelp::FinalAnswer { final_answer } => {
+                AgentOutput::Finish(flatten_final_answer(final_answer)?)
+            }
+        };
+
+        Ok(agent_output)
     }
 
     fn parse_with_regex(&self, text: &str) -> Option<AgentOutput> {
@@ -390,5 +390,16 @@ mod tests {
         let result = DefaultInstructor.parse_from_text(text.into());
 
         assert!(result.is_err(), "Expected err, got {:#?}", result);
+    }
+
+    #[test]
+    fn the_fuck() {
+        let text = r#"["`hypoxia` AND `endothelial mitotic activity` AND `vascular remodeling` AND `cellular response`", "`regulatory motifs` AND `hypoxia` AND `gene regulation` AND `DNA binding`", "`vascular responses` AND `genomic data` AND `hypoxia` AND `molecular mechanisms`"]
+"#;
+
+        // let result = parse_partial_json(text, false);
+        let result = DefaultInstructor.parse_from_text(text.into());
+
+        println!("{result:#?}");
     }
 }

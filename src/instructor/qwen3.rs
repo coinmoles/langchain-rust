@@ -1,4 +1,4 @@
-use serde::{de::Error, Deserialize};
+use serde::Deserialize;
 use serde_json::Value;
 
 use crate::{
@@ -47,36 +47,37 @@ impl Default for Qwen3Instructor {
 impl Qwen3Instructor {
     fn value_to_agent_event(&self, value: Value) -> Result<AgentOutput, serde_json::Error> {
         #[derive(Deserialize)]
-        struct AgentEventHelp {
-            #[serde(default)]
-            id: Option<String>,
-            #[serde(default)]
-            #[serde(alias = "action")]
-            name: Option<String>,
-            #[serde(default)]
-            #[serde(alias = "action_input")]
-            arguments: Option<Value>,
-            #[serde(default)]
-            final_answer: Option<Value>,
+        enum AgentOutputHelp {
+            Action {
+                #[serde(default)]
+                id: Option<String>,
+                #[serde(alias = "action")]
+                name: String,
+                #[serde(default)]
+                #[serde(alias = "action_input")]
+                arguments: Option<Value>,
+            },
+            FinalAnswer {
+                final_answer: Value,
+            },
         }
 
-        let AgentEventHelp {
-            id,
-            name: action,
-            arguments: action_input,
-            final_answer,
-        } = serde_json::from_value(value)?;
-
-        if let Some(name) = action {
-            let id = id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-            let arguments = action_input.unwrap_or(Value::Null);
-            let tool_call = ToolCall::new(id, name, arguments);
-            Ok(AgentOutput::Action(vec![tool_call]))
-        } else if let Some(final_answer) = final_answer {
-            Ok(AgentOutput::Finish(flatten_final_answer(final_answer)?))
-        } else {
-            Err(serde_json::Error::missing_field("action or final_answer"))
-        }
+        let helper: AgentOutputHelp = serde_json::from_value(value)?;
+        let agent_output = match helper {
+            AgentOutputHelp::Action {
+                id,
+                name,
+                arguments,
+            } => AgentOutput::Action(vec![ToolCall::new(
+                id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
+                name,
+                arguments.unwrap_or(Value::Null),
+            )]),
+            AgentOutputHelp::FinalAnswer { final_answer } => {
+                AgentOutput::Finish(flatten_final_answer(final_answer)?)
+            }
+        };
+        Ok(agent_output)
     }
 }
 
