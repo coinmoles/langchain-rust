@@ -4,13 +4,7 @@ use crate::{
     schemas::ToolCall,
 };
 
-pub struct AgentOutputCtor;
-
-impl Ctor for AgentOutputCtor {
-    type Target<'a> = AgentOutput;
-}
-
-#[derive(Debug)]
+#[derive(Debug, Ctor)]
 pub enum AgentOutput {
     Action(Vec<ToolCall>),
     Finish(String),

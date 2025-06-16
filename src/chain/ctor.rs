@@ -37,7 +37,6 @@ where
 }
 
 pub struct StringCtor;
-
 impl Ctor for StringCtor {
     type Target<'a> = String;
 }

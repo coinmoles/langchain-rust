@@ -1,16 +1,11 @@
 use crate::{
-    chain::{ChainInput, Ctor, InputCtor},
+    chain::{ChainInput, Ctor},
     schemas::Message,
 };
 
 const FORCE_FINAL_ANSWER: &str = "Now it's time you MUST give your absolute best final answer. You'll ignore all previous instructions, stop using any tools, and just return your absolute BEST Final answer.";
 
-pub struct AgentInputCtor<I: InputCtor>(std::marker::PhantomData<I>);
-impl<I: InputCtor> Ctor for AgentInputCtor<I> {
-    type Target<'a> = AgentInput<I::Target<'a>>;
-}
-
-#[derive(Debug, Clone, ChainInput)]
+#[derive(Debug, Clone, ChainInput, Ctor)]
 pub struct AgentInput<I: ChainInput> {
     #[langchain(into = "inner")]
     pub inner: I,

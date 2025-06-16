@@ -1,13 +1,8 @@
-use std::{borrow::Cow, marker::PhantomData};
+use std::borrow::Cow;
 
-use crate::chain::{ChainInput, Ctor, DefaultChainInput, DefaultChainInputCtor, InputCtor};
+use crate::chain::{ChainInput, Ctor, DefaultChainInput};
 
-pub struct ConversationalChainInputCtor<I: InputCtor = DefaultChainInputCtor>(PhantomData<I>);
-impl<I: InputCtor> Ctor for ConversationalChainInputCtor<I> {
-    type Target<'a> = ConversationalChainInput<'a, I::Target<'a>>;
-}
-
-#[derive(Clone, ChainInput)]
+#[derive(Clone, ChainInput, Ctor)]
 pub struct ConversationalChainInput<'a, I: ChainInput = DefaultChainInput<'a>> {
     #[langchain(into = "inner")]
     pub inner: I,
