@@ -175,16 +175,22 @@ pub fn derive_chain_output(
         ));
     };
 
-    let deser_struct = deser_struct(&field_specs, &serde_path, &rename_all);
+    let deserialized = field_specs
+        .iter()
+        .any(|f| f.output_source == ChainOutputSource::ResponseJson)
+        .then(|| {
+            let deser_struct = deser_struct(&field_specs, &serde_path, &rename_all);
+            quote! {
+                #deser_struct
+                let value = #crate_path::output_parser::parse_partial_json(&original, false)?;
+                let deserialized: InputDeserialize = #serde_json_path::from_value(value)?;
+            }
+        });
     let field_initializers = field_initializers(&field_specs, &rename_all);
 
     let fn_body = quote! {
-        #deser_struct
-
         let original = text.into();
-        println!("{original}");
-        let value = #crate_path::output_parser::parse_partial_json(&original, false)?;
-        let deserialized: InputDeserialize = #serde_json_path::from_value(value)?;
+        #deserialized
         Ok(Self {
             #(#field_initializers),*
         })
