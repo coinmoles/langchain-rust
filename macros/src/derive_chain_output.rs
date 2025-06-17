@@ -196,21 +196,13 @@ pub fn derive_chain_output(
         })
     };
 
-    let fn_construct = if field_specs
+    let fn_signature = if field_specs
         .iter()
         .any(|f| f.output_source == ChainOutputSource::Input)
     {
-        quote! {
-            fn construct_from_text_and_input(input: #from_input, text: impl Into<String>) -> Result<Self, #crate_path::output_parser::OutputParseError> {
-                #fn_body
-            }
-        }
+        quote! { fn construct_from_text_and_input(input: #from_input, text: impl Into<String>) -> Result<Self, #crate_path::output_parser::OutputParseError> }
     } else {
-        quote! {
-            fn construct_from_text(text: impl Into<String>) -> Result<Self, #crate_path::output_parser::OutputParseError> {
-                #fn_body
-            }
-        }
+        quote! { fn construct_from_text(text: impl Into<String>) -> Result<Self, #crate_path::output_parser::OutputParseError> }
     };
 
     let expanded = quote! {
@@ -218,7 +210,9 @@ pub fn derive_chain_output(
         impl #impl_generics #crate_path::chain::ChainOutput<#from_input> for #struct_name #ty_generics
         #where_clause
         {
-            #fn_construct
+            #fn_signature {
+                #fn_body
+            }
         }
     };
 
