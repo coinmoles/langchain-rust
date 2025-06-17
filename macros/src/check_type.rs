@@ -110,9 +110,9 @@ pub fn is_cow_str_type(ty: &Type) -> bool {
     })
 }
 
-pub fn is_string_like_type(ty: &Type) -> bool {
-    is_str_type(ty) || is_string_type(ty) || is_cow_str_type(ty)
-}
+// pub fn is_string_like_type(ty: &Type) -> bool {
+//     is_str_type(ty) || is_string_type(ty) || is_cow_str_type(ty)
+// }
 
 pub fn is_vec_message_type(ty: &Type) -> bool {
     let Some(ty) = extract_vec_inner_type(ty) else {
