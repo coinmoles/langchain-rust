@@ -11,12 +11,24 @@ use crate::{
     check_type::{
         extract_array_slice_inner_type, extract_cow_array_inner_type, extract_option_inner_type,
         extract_vec_inner_type, is_cow_str_type, is_message_slice_type, is_str_type,
-        is_string_like_type, is_string_type, is_vec_message_type,
+        is_string_type, is_vec_message_type,
     },
     crate_path::default_crate_path,
     helpers::{BoolExt, get_fields, get_renamed_key},
     rename::RenameAll,
 };
+
+fn map_to_str(ty: &syn::Type) -> proc_macro2::TokenStream {
+    if is_str_type(ty) {
+        quote! { .map(|s| *s)}
+    } else if is_string_type(ty) {
+        quote! { .map(|s| s.as_str()) }
+    } else if is_cow_str_type(ty) {
+        quote! { .map(|s| s.as_ref()) }
+    } else {
+        quote! { .map(|s| s.to_string()) }
+    }
+}
 
 fn generate_text_replacement_conversion(field: &Field) -> proc_macro2::TokenStream {
     let ident = field.ident.as_ref().unwrap();
@@ -31,16 +43,15 @@ fn generate_text_replacement_conversion(field: &Field) -> proc_macro2::TokenStre
             .or_else(|| extract_array_slice_inner_type(ty))
         {
             let maybe_as_deref = extract_array_slice_inner_type(ty).map(|_| quote! { .as_deref() });
-            let maybe_map_to_string =
-                is_string_like_type(inner_ty).otherwise_some(quote! { .map(|a| a.to_string()) });
+            let map_to_str = map_to_str(inner_ty);
             return quote! {
                 std::borrow::Cow::Owned(
                     self.#ident
                         #maybe_as_deref
                         .unwrap_or(&[])
                         .iter()
-                        #maybe_map_to_string
-                        .collect::<Vec<_>>
+                        #map_to_str
+                        .collect::<Vec<_>>()
                         .join(", ")
                 )
             };
@@ -56,14 +67,13 @@ fn generate_text_replacement_conversion(field: &Field) -> proc_macro2::TokenStre
         .or_else(|| extract_cow_array_inner_type(&field.ty))
         .or_else(|| extract_array_slice_inner_type(&field.ty))
     {
-        let maybe_map_to_string =
-            is_string_like_type(inner_ty).otherwise_some(quote! { .map(|a| a.to_string()) });
+        let map_to_str = map_to_str(inner_ty);
         return quote! {
             std::borrow::Cow::Owned(
                 self.#ident
                     .iter()
-                    #maybe_map_to_string
-                    .collect::<Vec<_>>
+                    #map_to_str
+                    .collect::<Vec<_>>()
                     .join(", ")
             )
         };
