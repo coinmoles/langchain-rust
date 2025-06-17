@@ -47,14 +47,14 @@ impl Default for Qwen3Instructor {
 impl Qwen3Instructor {
     fn value_to_agent_event(&self, value: Value) -> Result<AgentOutput, serde_json::Error> {
         #[derive(Deserialize)]
+        #[serde(untagged)]
         enum AgentOutputHelp {
             Action {
                 #[serde(default)]
                 id: Option<String>,
                 #[serde(alias = "action")]
                 name: String,
-                #[serde(default)]
-                #[serde(alias = "action_input")]
+                #[serde(default, alias = "action_input")]
                 arguments: Option<Value>,
             },
             FinalAnswer {
