@@ -393,11 +393,10 @@ mod tests {
     }
 
     #[test]
-    fn the_fuck() {
+    fn test_parse_list() {
         let text = r#"["`hypoxia` AND `endothelial mitotic activity` AND `vascular remodeling` AND `cellular response`", "`regulatory motifs` AND `hypoxia` AND `gene regulation` AND `DNA binding`", "`vascular responses` AND `genomic data` AND `hypoxia` AND `molecular mechanisms`"]
 "#;
 
-        // let result = parse_partial_json(text, false);
         let result = DefaultInstructor.parse_from_text(text.into());
 
         println!("{result:#?}");
