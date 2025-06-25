@@ -35,6 +35,9 @@ pub enum LLMError {
     #[error("LLM refused to answer: {0}")]
     Refused(String),
 
+    #[error("LLM returned an empty tool call")]
+    EmptyToolCall,
+
     #[error("Error: {0}")]
     OtherError(String),
 }

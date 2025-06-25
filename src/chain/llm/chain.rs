@@ -5,7 +5,7 @@ use futures::{Stream, TryStreamExt};
 
 use crate::{
     chain::{Chain, ChainError, ChainOutput, InputCtor, OutputCtor, StringCtor},
-    llm::{LLMOutput, LLM},
+    llm::{LLMError, LLMOutput, LLM},
     output_parser::OutputParser,
     schemas::{GetPrompt, IntoWithUsage, Prompt, StreamData, WithUsage},
     template::{PromptTemplate, TemplateError},
@@ -74,6 +74,10 @@ where
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
         let prompt = self.prompt.format(&input)?;
         let WithUsage { content, usage } = self.llm.generate(prompt.to_messages()).await?;
+
+        if matches!(&content, LLMOutput::ToolCall(tool_calls) if tool_calls.is_empty()) {
+            return Err(LLMError::EmptyToolCall.into());
+        }
 
         log::trace!("\nLLM output:\n{content}");
         if let Some(usage) = &usage {

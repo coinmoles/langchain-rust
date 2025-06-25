@@ -47,26 +47,30 @@ impl TryFrom<ChatCompletionResponseMessage> for LLMOutput {
     type Error = LLMError;
 
     fn try_from(value: ChatCompletionResponseMessage) -> Result<Self, Self::Error> {
-        #[allow(deprecated)]
         if let Some(tool_calls) = value.tool_calls {
-            Ok(LLMOutput::ToolCall(
-                tool_calls
-                    .into_iter()
-                    .map(TryInto::try_into)
-                    .collect::<Result<Vec<_>, _>>()?,
-            ))
-        } else if let Some(function_call) = value.function_call {
-            Ok(LLMOutput::ToolCall(vec![function_call.try_into()?]))
-        } else if let Some(content) = value.content {
-            Ok(LLMOutput::Text(content))
-        } else if let Some(refusal) = value.refusal {
-            Err(LLMError::Refused(refusal))
-        } else {
-            // TODO: Add other cases (Audio, etc.)
-            Err(LLMError::OtherError(
-                "Cannot convert LLM generation result to LLMOutput".into(),
-            ))
+            if !tool_calls.is_empty() {
+                return Ok(LLMOutput::ToolCall(
+                    tool_calls
+                        .into_iter()
+                        .map(TryInto::try_into)
+                        .collect::<Result<Vec<_>, _>>()?,
+                ));
+            }
         }
+        #[allow(deprecated)]
+        if let Some(function_call) = value.function_call {
+            return Ok(LLMOutput::ToolCall(vec![function_call.try_into()?]));
+        }
+        if let Some(content) = value.content {
+            return Ok(LLMOutput::Text(content));
+        }
+        if let Some(refusal) = value.refusal {
+            return Err(LLMError::Refused(refusal));
+        }
+        // TODO: Add other cases (Audio, etc.)
+        Err(LLMError::OtherError(
+            "Cannot convert LLM generation result to LLMOutput".into(),
+        ))
     }
 }
 
