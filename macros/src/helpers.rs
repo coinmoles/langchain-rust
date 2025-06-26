@@ -1,10 +1,10 @@
 use proc_macro_error::{Diagnostic, Level};
-use syn::{Data, DeriveInput, Fields, FieldsNamed, LitStr};
+use syn::{Data, Fields, FieldsNamed, LitStr};
 
 use crate::rename::RenameAll;
 
-pub fn get_fields(input: &DeriveInput) -> Result<&FieldsNamed, Diagnostic> {
-    match &input.data {
+pub fn get_fields(input: &Data) -> Result<&FieldsNamed, Diagnostic> {
+    match input {
         Data::Struct(data_struct) => match &data_struct.fields {
             Fields::Named(fields_named) => Ok(fields_named),
             _ => Err(Diagnostic::new(

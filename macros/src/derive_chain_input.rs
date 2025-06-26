@@ -169,7 +169,7 @@ impl ChainInputStructSpec {
 
 pub fn derive_chain_input(input: syn::DeriveInput) -> Result<proc_macro2::TokenStream, Diagnostic> {
     let struct_name = &input.ident;
-    let fields = &get_fields(&input)?.named;
+    let fields = &get_fields(&input.data)?.named;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     let ChainInputStructSpec {

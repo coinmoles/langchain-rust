@@ -1,6 +1,6 @@
 use proc_macro_error::{Diagnostic, Level};
 use quote::{ToTokens, format_ident, quote};
-use syn::{LitStr, spanned::Spanned};
+use syn::{LitStr, parse_quote_spanned, spanned::Spanned};
 
 use crate::{
     attr::{
@@ -8,6 +8,7 @@ use crate::{
         SerdeStructAttrs, extract_attr, get_chain_struct_attrs, get_langchain_field_attrs,
         get_serde_field_attrs, get_serde_struct_attrs,
     },
+    check_type::is_cow_str_type,
     crate_path::{default_crate_path, default_serde_json_path, default_serde_path},
     helpers::{get_fields, get_renamed_key},
     rename::RenameAll,
@@ -25,7 +26,12 @@ fn deser_struct(
         .filter(|f| f.output_source == ChainOutputSource::ResponseJson)
         .map(|f| {
             let ident = f.field.ident.as_ref().unwrap();
-            let ty = &f.field.ty;
+            let ty = if is_cow_str_type(&f.field.ty) {
+                parse_quote_spanned! { f.field.ty.span() => String }
+            } else {
+                f.field.ty.clone()
+            };
+
             let rename_attr = f.rename.as_ref().map(|r| {
                 quote! {
                     #[serde(rename = #r)]
@@ -128,8 +134,7 @@ pub fn derive_chain_output(
     input: syn::DeriveInput,
 ) -> Result<proc_macro2::TokenStream, proc_macro_error::Diagnostic> {
     let struct_name = &input.ident;
-    let fields = &get_fields(&input)?.named;
-    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+    let fields = &get_fields(&input.data)?.named;
 
     let ChainOutputStructSpec {
         rename_all,
@@ -168,11 +173,29 @@ pub fn derive_chain_output(
         ));
     }
 
-    let Some(from_input) = from_input else {
+    if from_input.is_none()
+        && field_specs
+            .iter()
+            .any(|f| f.output_source == ChainOutputSource::Input)
+    {
         return Err(Diagnostic::new(
             Level::Error,
-            "ChainOutput struct must have a `#[langchain(from_input = \"...\")]` attribute".into(),
+            "ChainOutput struct must have a `#[langchain(from_input = \"...\")]` attribute when it has fields with `#[langchain(from = \"input\")]`".into(),
         ));
+    }
+
+    let mut generics_with_in = input.generics.clone();
+    let ((impl_generics, ty_generics, where_clause), co_generic) = match from_input.clone() {
+        Some(co_generic) => (input.generics.split_for_impl(), co_generic),
+        None => {
+            generics_with_in.params.push(syn::parse_quote!(IN));
+            let (_, ty_generics, _) = input.generics.split_for_impl();
+            let (impl_generics, _, where_clause) = generics_with_in.split_for_impl();
+            (
+                (impl_generics, ty_generics, where_clause),
+                syn::parse_quote!(IN),
+            )
+        }
     };
 
     let deserialized = field_specs
@@ -207,7 +230,7 @@ pub fn derive_chain_output(
 
     let expanded = quote! {
         #[automatically_derived]
-        impl #impl_generics #crate_path::chain::ChainOutput<#from_input> for #struct_name #ty_generics
+        impl #impl_generics #crate_path::chain::ChainOutput<#co_generic> for #struct_name #ty_generics
         #where_clause
         {
             #fn_signature {
