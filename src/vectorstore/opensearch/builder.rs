@@ -1,7 +1,7 @@
 use crate::embedding::Embedder;
+use crate::schemas::BuilderError;
 use crate::vectorstore::opensearch::Store;
 use opensearch::OpenSearch;
-use std::error::Error;
 use std::sync::Arc;
 
 pub struct StoreBuilder {
