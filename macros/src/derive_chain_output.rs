@@ -8,7 +8,7 @@ use crate::{
         SerdeStructAttrs, extract_attr, get_chain_struct_attrs, get_langchain_field_attrs,
         get_serde_field_attrs, get_serde_struct_attrs,
     },
-    check_type::is_cow_str_type,
+    check_type::{is_cow_str_type, is_string_type},
     crate_path::{default_crate_path, default_serde_json_path, default_serde_path},
     helpers::{get_fields, get_renamed_key},
     rename::RenameAll,
@@ -73,7 +73,14 @@ fn field_initializers(
                 let key_ident = format_ident!("{key}");
                 quote! { #ident: input.#key_ident.into() }
             }
-            ChainOutputSource::Response => quote! { #ident: original.into() },
+            ChainOutputSource::Response => {
+                if is_string_type(&f.field.ty) || is_cow_str_type(&f.field.ty) {
+                    quote! { #ident: original.into() }
+                } else {
+                    let ty = &f.field.ty;
+                    quote! { #ident: serde_json::from_str::<#ty>(&original)? }
+                }
+            }
             ChainOutputSource::ResponseJson => quote! { #ident: deserialized.#ident.into() },
         }
     })
