@@ -60,8 +60,6 @@ pub struct DefaultInstructor;
 
 impl DefaultInstructor {
     fn value_to_agent_event(&self, value: Value) -> Result<AgentOutput, serde_json::Error> {
-        println!("Parsing value: {value:#?}");
-
         #[derive(Debug, Deserialize)]
         #[serde(untagged)]
         enum AgentOutputHelp {
