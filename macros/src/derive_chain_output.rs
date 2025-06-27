@@ -223,16 +223,21 @@ pub fn derive_chain_output(
         .any(|f| f.output_source == ChainOutputSource::ResponseJson)
         .then(|| {
             let deser_struct = deser_struct(&field_specs, &serde_path, &rename_all);
+            let err = if use_input {
+                quote! { (input, e.into()) }
+            } else {
+                quote! { e.into() }
+            };
             quote! {
                 #deser_struct
-                let (input, value) = #crate_path::output_parser::InputResultExt::with_input(
-                    #crate_path::output_parser::parse_partial_json(&original, false),
-                    input
-                );
-                let (input, deserialized) = #crate_path::output_parser::InputResultExt::with_input(
-                    #serde_json_path::from_value::<InputDeserialize>(value),
-                    input
-                );
+                let value = match #crate_path::output_parser::parse_partial_json(&original, false) {
+                    Ok(value) => value,
+                    Err(e) => return Err(#err),
+                };
+                let deserialized = match #serde_json_path::from_value::<InputDeserialize>(value) {
+                    Ok(deserialized) => deserialized,
+                    Err(e) => return Err(#err),
+                };
             }
         });
     let field_initializers =
