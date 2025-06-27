@@ -52,7 +52,7 @@ where
         &self,
         input: I::Target<'a>,
         output: String,
-    ) -> Result<O::Target<'a>, OutputParseError> {
+    ) -> Result<O::Target<'a>, (I::Target<'a>, OutputParseError)> {
         if self.trim {
             O::Target::construct_from_text_and_input(input, output.trim())
         } else {

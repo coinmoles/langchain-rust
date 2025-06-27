@@ -1,7 +1,10 @@
 use async_trait::async_trait;
 use regex::Regex;
 
-use crate::chain::{ChainOutput, InputCtor, OutputCtor};
+use crate::{
+    chain::{ChainOutput, InputCtor, OutputCtor},
+    output_parser::ParseResultExt,
+};
 
 use super::{OutputParseError, OutputParser};
 
@@ -68,8 +71,9 @@ where
         &self,
         input: I::Target<'a>,
         output: String,
-    ) -> Result<O::Target<'a>, OutputParseError> {
-        O::Target::construct_from_text_and_input(input, self.sanitize(&output)?)
+    ) -> Result<O::Target<'a>, (I::Target<'a>, OutputParseError)> {
+        let (input, sanitized_output) = self.sanitize(&output).with_input(input)?;
+        O::Target::construct_from_text_and_input(input, sanitized_output)
     }
 
     fn parse_from_text<'a>(&self, output: String) -> Result<O::Target<'a>, OutputParseError> {

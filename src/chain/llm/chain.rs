@@ -85,9 +85,9 @@ where
         }
 
         let content = match content {
-            LLMOutput::Text(text) => self.output_parser.parse_from_text_and_input(input, text),
-            LLMOutput::ToolCall(tool_calls) => O::Target::construct_from_tool_call(tool_calls),
-        }?;
+            LLMOutput::Text(text) => self.output_parser.parse_from_text_and_input(input, text)?,
+            LLMOutput::ToolCall(tool_calls) => O::Target::construct_from_tool_call(tool_calls)?,
+        };
 
         Ok(content.with_usage(usage))
     }

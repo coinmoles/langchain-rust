@@ -24,3 +24,9 @@ pub enum ChainError {
     #[error("Error: {0}")]
     OtherError(String),
 }
+
+impl<I> From<(I, OutputParseError)> for ChainError {
+    fn from((_, err): (I, OutputParseError)) -> Self {
+        ChainError::OutputParseError(err)
+    }
+}

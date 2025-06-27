@@ -191,6 +191,22 @@ where
                             continue 'step;
                         }
                     }
+                    log::debug!("\nAgent finished with result:\n{}", &final_answer);
+
+                    let answer = match O::Target::construct_from_text_and_input(
+                        input.inner,
+                        final_answer.clone(),
+                    ) {
+                        Ok(answer) => answer,
+                        Err((returned_input, e)) => {
+                            log::warn!(
+                                "Failed to construct output from final answer: {e}  ({consecutive_fails} consecutive fails)\nOriginal: {final_answer}",
+                            );
+                            consecutive_fails += 1;
+                            input.inner = returned_input;
+                            continue 'step;
+                        }
+                    };
 
                     if let Some(memory) = &self.memory {
                         let mut memory = memory.write().await;
@@ -205,14 +221,10 @@ where
                             );
                         }
 
-                        memory.add_ai_message(final_answer.clone());
+                        memory.add_ai_message(final_answer);
                     }
 
-                    log::debug!("\nAgent finished with result:\n{}", &final_answer);
-
-                    let final_answer =
-                        O::Target::construct_from_text_and_input(input.inner, final_answer)?;
-                    return Ok(final_answer.with_usage(total_usage));
+                    return Ok(answer.with_usage(total_usage));
                 }
             }
         }

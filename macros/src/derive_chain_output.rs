@@ -62,26 +62,39 @@ fn deser_struct(
 
 fn field_initializers(
     field_specs: &[ChainOutputFieldSpec<'_>],
+    serde_json_path: &syn::Path,
     rename_all: &Option<RenameAll>,
+    use_input: bool,
 ) -> impl Iterator<Item = proc_macro2::TokenStream> {
-    field_specs.iter().map(|f| {
+    field_specs.iter().map(move |f| {
         let ident = f.field.ident.as_ref().unwrap();
-        let key = get_renamed_key(f.field, &f.rename, rename_all);
 
         match f.output_source {
             ChainOutputSource::Input => {
+                let key = get_renamed_key(f.field, &f.rename, rename_all);
                 let key_ident = format_ident!("{key}");
                 quote! { #ident: input.#key_ident.into() }
             }
+            ChainOutputSource::ResponseJson => quote! { #ident: deserialized.#ident.into() },
+            ChainOutputSource::Response
+                if is_string_type(&f.field.ty) || is_cow_str_type(&f.field.ty) =>
+            {
+                quote! { #ident: original.into() }
+            }
             ChainOutputSource::Response => {
-                if is_string_type(&f.field.ty) || is_cow_str_type(&f.field.ty) {
-                    quote! { #ident: original.into() }
+                let ty = &f.field.ty;
+                let err = if use_input {
+                    quote! { (input, e.into()) }
                 } else {
-                    let ty = &f.field.ty;
-                    quote! { #ident: serde_json::from_str::<#ty>(&original)? }
+                    quote! { e.into() }
+                };
+                quote! {
+                    #ident: match #serde_json_path::from_str::<#ty>(&original) {
+                        Ok(value) => value,
+                        Err(e) => return Err(#err),
+                    }
                 }
             }
-            ChainOutputSource::ResponseJson => quote! { #ident: deserialized.#ident.into() },
         }
     })
 }
@@ -167,6 +180,10 @@ pub fn derive_chain_output(
         })
         .collect::<Result<Vec<_>, _>>()?;
 
+    let use_input = field_specs
+        .iter()
+        .any(|f| f.output_source == ChainOutputSource::Input);
+
     if let Some(f) = {
         field_specs
             .iter()
@@ -180,27 +197,23 @@ pub fn derive_chain_output(
         ));
     }
 
-    if from_input.is_none()
-        && field_specs
-            .iter()
-            .any(|f| f.output_source == ChainOutputSource::Input)
-    {
+    if use_input && from_input.is_none() {
         return Err(Diagnostic::new(
             Level::Error,
-            "ChainOutput struct must have a `#[langchain(from_input = \"...\")]` attribute when it has fields with `#[langchain(from = \"input\")]`".into(),
+            "ChainOutput struct must have a `#[langchain(from_input = \"...\")]` attribute when it has fields with `#[langchain(from = \"input\")]` attribute".into(),
         ));
     }
 
     let mut generics_with_in = input.generics.clone();
-    let ((impl_generics, ty_generics, where_clause), co_generic) = match from_input.clone() {
-        Some(co_generic) => (input.generics.split_for_impl(), co_generic),
+    let ((impl_generics, ty_generics, where_clause), input_ty) = match from_input.clone() {
+        Some(input_ty) => (input.generics.split_for_impl(), input_ty),
         None => {
-            generics_with_in.params.push(syn::parse_quote!(IN));
+            generics_with_in.params.push(syn::parse_quote! { IN });
             let (_, ty_generics, _) = input.generics.split_for_impl();
             let (impl_generics, _, where_clause) = generics_with_in.split_for_impl();
             (
                 (impl_generics, ty_generics, where_clause),
-                syn::parse_quote!(IN),
+                syn::parse_quote! { IN },
             )
         }
     };
@@ -212,11 +225,18 @@ pub fn derive_chain_output(
             let deser_struct = deser_struct(&field_specs, &serde_path, &rename_all);
             quote! {
                 #deser_struct
-                let value = #crate_path::output_parser::parse_partial_json(&original, false)?;
-                let deserialized: InputDeserialize = #serde_json_path::from_value(value)?;
+                let (input, value) = #crate_path::output_parser::InputResultExt::with_input(
+                    #crate_path::output_parser::parse_partial_json(&original, false),
+                    input
+                );
+                let (input, deserialized) = #crate_path::output_parser::InputResultExt::with_input(
+                    #serde_json_path::from_value::<InputDeserialize>(value),
+                    input
+                );
             }
         });
-    let field_initializers = field_initializers(&field_specs, &rename_all);
+    let field_initializers =
+        field_initializers(&field_specs, &serde_json_path, &rename_all, use_input);
 
     let fn_body = quote! {
         let original = text.into();
@@ -226,18 +246,15 @@ pub fn derive_chain_output(
         })
     };
 
-    let fn_signature = if field_specs
-        .iter()
-        .any(|f| f.output_source == ChainOutputSource::Input)
-    {
-        quote! { fn construct_from_text_and_input(input: #from_input, text: impl Into<String>) -> Result<Self, #crate_path::output_parser::OutputParseError> }
+    let fn_signature = if use_input {
+        quote! { fn construct_from_text_and_input(input: #from_input, text: impl Into<String>) -> Result<Self, (#input_ty, #crate_path::output_parser::OutputParseError)> }
     } else {
         quote! { fn construct_from_text(text: impl Into<String>) -> Result<Self, #crate_path::output_parser::OutputParseError> }
     };
 
     let expanded = quote! {
         #[automatically_derived]
-        impl #impl_generics #crate_path::chain::ChainOutput<#co_generic> for #struct_name #ty_generics
+        impl #impl_generics #crate_path::chain::ChainOutput<#input_ty> for #struct_name #ty_generics
         #where_clause
         {
             #fn_signature {

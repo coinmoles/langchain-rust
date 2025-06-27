@@ -8,12 +8,12 @@ pub trait ChainOutput<I>: Sized + Send + Sync {
     }
 
     fn construct_from_text_and_input(
-        _input: I,
+        input: I,
         text: impl Into<String>,
-    ) -> Result<Self, OutputParseError> {
+    ) -> Result<Self, (I, OutputParseError)> {
         match Self::construct_from_text(text) {
             Err(OutputParseError::InputRequired) => unimplemented!(),
-            other => other,
+            other => other.map_err(|e| (input, e)),
         }
     }
 
@@ -22,10 +22,10 @@ pub trait ChainOutput<I>: Sized + Send + Sync {
     }
 
     fn construct_from_tool_call_and_input(
-        _input: I,
+        input: I,
         tool_calls: Vec<ToolCall>,
-    ) -> Result<Self, OutputParseError> {
-        Self::construct_from_tool_call(tool_calls)
+    ) -> Result<Self, (I, OutputParseError)> {
+        Self::construct_from_tool_call(tool_calls).map_err(|e| (input, e))
     }
 }
 
