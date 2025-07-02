@@ -13,5 +13,5 @@ async fn main() {
 
     let embedder = OpenAiEmbedder::new(azure_config);
     let result = embedder.embed_query("Why is the sky blue?").await.unwrap();
-    println!("{:?}", result);
+    println!("{result:?}");
 }

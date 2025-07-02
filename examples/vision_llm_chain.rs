@@ -35,6 +35,6 @@ async fn main() {
         Ok(result) => {
             println!("Result: {:?}", result.content);
         }
-        Err(e) => panic!("Error invoking LLMChain: {:?}", e),
+        Err(e) => panic!("Error invoking LLMChain: {e:?}"),
     }
 }

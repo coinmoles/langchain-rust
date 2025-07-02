@@ -133,7 +133,7 @@ pub fn get_serde_field_attrs(attr: &Attribute) -> Result<Option<SerdeFieldAttrs>
         Diagnostic::spanned(
             e.span(),
             Level::Error,
-            format!("Failed to parse serde attribute: {}", e),
+            format!("Failed to parse serde attribute: {e}"),
         )
     })?;
 
@@ -177,7 +177,7 @@ pub fn get_chain_struct_attrs(
         Diagnostic::spanned(
             e.span(),
             Level::Error,
-            format!("Failed to parse serde attribute: {}", e),
+            format!("Failed to parse serde attribute: {e}"),
         )
     })?;
 
@@ -217,7 +217,7 @@ pub fn get_serde_struct_attrs(attr: &Attribute) -> Result<Option<SerdeStructAttr
         Diagnostic::spanned(
             e.span(),
             Level::Error,
-            format!("Failed to parse serde attribute: {}", e),
+            format!("Failed to parse serde attribute: {e}"),
         )
     })?;
 

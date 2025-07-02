@@ -103,7 +103,7 @@ where
                 Ok(agent_event) => agent_event,
                 Err(e) => {
                     consecutive_fails += 1;
-                    log::warn!("Error: {} ({} consecutive fails)", e, consecutive_fails);
+                    log::warn!("Error: {e} ({consecutive_fails} consecutive fails)");
                     continue 'step;
                 }
             };
@@ -184,9 +184,7 @@ where
                     if let Some(validator) = &options.final_answer_validator {
                         if !validator.validate_final_answer(&final_answer, &steps) {
                             log::warn!(
-                                "Final answer validation failed ({} consecutive fails)\nAnswer:{}",
-                                consecutive_fails,
-                                final_answer
+                                "Final answer validation failed ({consecutive_fails} consecutive fails)\nAnswer:{final_answer}"
                             );
                             continue 'step;
                         }

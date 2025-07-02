@@ -7,7 +7,7 @@ async fn main() {
     //OpenAI Example
     let open_ai = OpenAI::default();
     let response = open_ai.invoke("hola").await.unwrap();
-    println!("{}", response);
+    println!("{response}");
 
     //or we can set config as
     let open_ai = OpenAI::builder()
@@ -19,5 +19,5 @@ async fn main() {
         .build();
 
     let response = open_ai.invoke("hola").await.unwrap();
-    println!("{}", response);
+    println!("{response}");
 }

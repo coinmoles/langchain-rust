@@ -253,7 +253,7 @@ mod tests {
             .await
             .unwrap();
 
-        println!("{:?}", routes);
+        println!("{routes:?}");
         assert_eq!(routes.unwrap().route, "temperature");
     }
 }

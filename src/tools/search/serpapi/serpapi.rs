@@ -193,6 +193,6 @@ mod tests {
             .simple_search("Who is the President of Peru")
             .await
             .unwrap();
-        println!("{}", s);
+        println!("{s}");
     }
 }

@@ -39,9 +39,9 @@ async fn main() {
     let input = chain.prompt_builder().query(input.trim());
     match chain.call(input).await {
         Ok(result) => {
-            println!("Result: {:?}", result);
+            println!("Result: {result:?}");
         }
-        Err(e) => panic!("Error invoking LLMChain: {:?}", e),
+        Err(e) => panic!("Error invoking LLMChain: {e:?}"),
     }
 }
 

@@ -136,7 +136,7 @@ mod tests {
         );
 
         if let Ok(output) = result {
-            println!("{:?}", output);
+            println!("{output:?}");
         }
     }
 }

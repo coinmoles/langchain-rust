@@ -154,14 +154,14 @@ mod tests {
             Ok(result) => {
                 println!("Result: {:?}", result.content);
             }
-            Err(e) => panic!("Error invoking LLMChain: {:?}", e),
+            Err(e) => panic!("Error invoking LLMChain: {e:?}"),
         }
 
         let input = DefaultChainInput::new("cuanta es la edad de luis +10 y que estudia");
         match executor.call(input).await {
             Ok(result) => println!("Result: {:?}", result.content),
 
-            Err(e) => panic!("Error invoking LLMChain: {:?}", e),
+            Err(e) => panic!("Error invoking LLMChain: {e:?}"),
         }
     }
 }

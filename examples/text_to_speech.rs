@@ -18,7 +18,7 @@ async fn main() {
     let output_path = "output.mp3";
 
     // Use reqwest to fetch the raw HTML content.
-    println!("Fetching URL: {}\n", url);
+    println!("Fetching URL: {url}\n");
     let html = reqwest::get(url).await.unwrap().text().await.unwrap();
 
     // Use HtmlLoader to load the HTML content and extract plain text without html tags.
@@ -66,7 +66,7 @@ async fn main() {
             .unwrap();
 
         let path = std::path::Path::new(&path).canonicalize().unwrap();
-        println!("Chunk file saved at: {:?}\n\n", path);
+        println!("Chunk file saved at: {path:?}\n\n");
     }
 
     // Use ffmpeg to concatenate all the audio chunks into a single audio file.
@@ -113,7 +113,7 @@ async fn main() {
                 break;
             }
             let output = String::from_utf8_lossy(&buffer[..size]);
-            print!("FFmpeg STDOUT: {}", output);
+            print!("FFmpeg STDOUT: {output}");
         }
     });
 
@@ -124,7 +124,7 @@ async fn main() {
                 break;
             }
             let error = String::from_utf8_lossy(&buffer[..size]);
-            eprint!("FFmpeg STDERR: {}", error);
+            eprint!("FFmpeg STDERR: {error}");
         }
     });
 
@@ -132,10 +132,7 @@ async fn main() {
     stdout_handle.await.unwrap();
     stderr_handle.await.unwrap();
 
-    println!(
-        "FFmpeg process finished with exit status {}",
-        ffmpeg_exit_status
-    );
+    println!("FFmpeg process finished with exit status {ffmpeg_exit_status}");
 
     println!("Cleaning up intermediate audio chunk files...");
     for (i, _) in text_chunks.iter().enumerate() {
@@ -147,5 +144,5 @@ async fn main() {
     println!("Cleaning up intermediate audio chunk files complete.");
 
     let path = std::path::Path::new(&output_path).canonicalize().unwrap();
-    println!("Final audio saved at: {:?}", path);
+    println!("Final audio saved at: {path:?}");
 }

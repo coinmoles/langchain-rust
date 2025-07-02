@@ -141,8 +141,7 @@ mod tests {
         });
 
         let result = tool.call(input).await.unwrap();
-
-        println!("{}", result);
+        println!("{result}");
     }
 
     #[tokio::test]
@@ -154,7 +153,6 @@ mod tests {
         });
 
         let result = tool.call(input).await.unwrap();
-
-        println!("{}", result);
+        println!("{result}");
     }
 }

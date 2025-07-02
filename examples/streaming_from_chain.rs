@@ -32,7 +32,7 @@ async fn main() {
     while let Some(result) = stream.next().await {
         match result {
             Ok(value) => value.to_stdout().unwrap(),
-            Err(e) => panic!("Error invoking LLMChain: {:?}", e),
+            Err(e) => panic!("Error invoking LLMChain: {e:?}"),
         }
     }
 }

@@ -112,7 +112,7 @@ mod test {
             args: vec![],
         }]);
         let result = tool.run(input).await.unwrap();
-        println!("Res: {}", result);
+        println!("Res: {result}");
     }
 
     #[test]

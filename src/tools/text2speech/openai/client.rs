@@ -125,6 +125,6 @@ mod tests {
             .call(Value::String("Hola como estas".to_string()))
             .await
             .unwrap();
-        println!("{}", s);
+        println!("{s}");
     }
 }

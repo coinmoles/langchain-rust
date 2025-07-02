@@ -94,7 +94,7 @@ impl McpServiceExt for Arc<McpService> {
                 match tools.remove(&tool_name) {
                     Some(tool) => Some((tool_name, tool)),
                     None => {
-                        log::warn!("Tool {} not found", tool_name);
+                        log::warn!("Tool {tool_name} not found");
                         None
                     }
                 }

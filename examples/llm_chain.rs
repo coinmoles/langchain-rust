@@ -17,7 +17,7 @@ async fn main() {
 
     //Once you've installed and initialized the LLM of your choice, we can try using it! Let's ask it what LangSmith is - this is something that wasn't present in the training data so it shouldn't have a very good response.
     let resp = open_ai.invoke("What is rust").await.unwrap();
-    println!("{}", resp);
+    println!("{resp}");
 
     // We can also guide it's response with a prompt template. Prompt templates are used to convert raw user input to a better input to the LLM.
     let prompt = prompt_template![
@@ -42,9 +42,9 @@ async fn main() {
         .await
     {
         Ok(result) => {
-            println!("Result: {:?}", result);
+            println!("Result: {result:?}");
         }
-        Err(e) => panic!("Error invoking LLMChain: {:?}", e),
+        Err(e) => panic!("Error invoking LLMChain: {e:?}"),
     }
 
     //If you want to prompt to have a list of messages you could use the `fmt_placeholder` macro

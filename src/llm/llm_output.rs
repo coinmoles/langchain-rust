@@ -131,11 +131,11 @@ impl<'de> Deserialize<'de> for LLMOutput {
 impl Display for LLMOutput {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            LLMOutput::Text(text) => write!(f, "{}", text),
+            LLMOutput::Text(text) => write!(f, "{text}"),
             LLMOutput::ToolCall(tool_calls) => {
                 writeln!(f, "Structured tool call:")?;
                 for tool_call in tool_calls {
-                    writeln!(f, "{}", tool_call)?;
+                    writeln!(f, "{tool_call}")?;
                 }
                 Ok(())
             }

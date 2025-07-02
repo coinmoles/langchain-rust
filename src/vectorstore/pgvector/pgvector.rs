@@ -55,7 +55,7 @@ pub enum PgLit {
 impl Display for PgLit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PgLit::LitStr(str) => write!(f, "'{}'", str),
+            PgLit::LitStr(str) => write!(f, "'{str}'"),
             PgLit::JsonField(path) => write!(f, "cmetadata#>>'{{{}}}'", path.join(",")),
             PgLit::RawJson(value) => write!(
                 f,
@@ -69,14 +69,14 @@ impl Display for PgLit {
 impl Display for PgFilter {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            PgFilter::Eq(a, b) => write!(f, "{} = {}", a, b),
+            PgFilter::Eq(a, b) => write!(f, "{a} = {b}"),
             PgFilter::Cmp(ordering, a, b) => {
                 let op = match ordering {
                     std::cmp::Ordering::Less => "<",
                     std::cmp::Ordering::Greater => ">",
                     std::cmp::Ordering::Equal => "=",
                 };
-                write!(f, "{} {} {}", a, op, b)
+                write!(f, "{a} {op} {b}")
             }
             PgFilter::In(a, values) => write!(
                 f,

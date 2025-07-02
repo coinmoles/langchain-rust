@@ -6,5 +6,5 @@ async fn main() {
 
     let response = openai.embed_query("What is the sky blue?").await.unwrap();
 
-    println!("{:?}", response);
+    println!("{response:?}");
 }

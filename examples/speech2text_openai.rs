@@ -26,5 +26,5 @@ async fn main() {
         .call(Value::String("Hi, My name is Luis".to_string()))
         .await
         .unwrap();
-    println!("Path: {}", path);
+    println!("Path: {path}");
 }

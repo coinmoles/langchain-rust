@@ -12,7 +12,7 @@ async fn main() {
         .build();
 
     let response = ollama.invoke("Hi").await.unwrap();
-    println!("{}", response);
+    println!("{response}");
 }
 
 #[cfg(not(feature = "ollama"))]

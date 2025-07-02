@@ -27,8 +27,8 @@ async fn main() {
 
     match executor.call(input).await {
         Ok(result) => {
-            println!("Result: {:?}", result);
+            println!("Result: {result:?}");
         }
-        Err(e) => panic!("Error invoking LLMChain: {:?}", e),
+        Err(e) => panic!("Error invoking LLMChain: {e:?}"),
     }
 }

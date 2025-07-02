@@ -41,7 +41,7 @@ impl Index for MemoryIndex {
 
     async fn delete(&mut self, router_name: &str) -> Result<(), IndexError> {
         if self.routers.remove(router_name).is_none() {
-            log::warn!("Router {} not found in the index", router_name);
+            log::warn!("Router {router_name} not found in the index");
         }
         Ok(())
     }

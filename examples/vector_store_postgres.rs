@@ -47,7 +47,7 @@ async fn main() {
 
     // Add documents to the database
     let _ = add_documents!(store, &documents).await.map_err(|e| {
-        println!("Error adding documents: {:?}", e);
+        println!("Error adding documents: {e:?}");
     });
 
     // Get the input to search
@@ -62,7 +62,7 @@ async fn main() {
     let data = similarity_search!(store, search_input, 10)
         .await
         .map_err(|e| {
-            println!("Error searching documents: {:?}", e);
+            println!("Error searching documents: {e:?}");
         })
         .unwrap();
 

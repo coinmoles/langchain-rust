@@ -187,7 +187,7 @@ mod tests {
                 let content = content.to_owned();
                 async move {
                     let mut message_complete_lock = message_complete.lock().await;
-                    println!("Content: {:?}", content);
+                    println!("Content: {content:?}");
                     message_complete_lock.push_str(&content);
                     Ok(())
                 }
@@ -207,12 +207,12 @@ mod tests {
         match open_ai.invoke("hola").await {
             Ok(result) => {
                 // Print the response from the generate function
-                println!("Generate Result: {:?}", result);
+                println!("Generate Result: {result:?}");
                 println!("Message Complete: {:?}", message_complete.lock().await);
             }
             Err(e) => {
                 // Handle any errors
-                eprintln!("Error calling generate: {:?}", e);
+                eprintln!("Error calling generate: {e:?}");
             }
         }
     }
@@ -235,7 +235,7 @@ mod tests {
                         return Ok(());
                     }
                     let mut message_complete_lock = message_complete.lock().await;
-                    println!("Content: {:?}", content);
+                    println!("Content: {content:?}");
                     message_complete_lock.push_str(&content.delta.content.unwrap());
                     Ok(())
                 }
@@ -257,12 +257,12 @@ mod tests {
         match open_ai.generate(messages).await {
             Ok(result) => {
                 // Print the response from the generate function
-                println!("Generate Result: {:?}", result);
+                println!("Generate Result: {result:?}");
                 println!("Message Complete: {:?}", message_complete.lock().await);
             }
             Err(e) => {
                 // Handle any errors
-                eprintln!("Error calling generate: {:?}", e);
+                eprintln!("Error calling generate: {e:?}");
             }
         }
     }
@@ -300,7 +300,7 @@ mod tests {
             .invoke("Use the command line to create a new rust project. Execute the first command.")
             .await
             .unwrap();
-        println!("{}", response)
+        println!("{response}")
     }
 
     #[test]
@@ -324,6 +324,6 @@ mod tests {
 
         // Call the generate function
         let response = open_ai.generate(messages).await.unwrap();
-        println!("Response: {:?}", response);
+        println!("Response: {response:?}");
     }
 }

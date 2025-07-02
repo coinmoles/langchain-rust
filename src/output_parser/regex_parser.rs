@@ -98,7 +98,7 @@ fn main() {
 ```
 "#;
         let result = parser.parse_from_text_and_input((), markdown_content.into());
-        println!("{:?}", result);
+        println!("{result:?}");
 
         let correct = r#"fn main() {
     println!("Hello, world!");

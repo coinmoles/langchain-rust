@@ -169,7 +169,6 @@ mod tests {
             .question("How old is luis and whats his favorite text editor");
 
         let output = chain.call(input).await.unwrap().content;
-
-        println!("{}", output);
+        println!("{output}");
     }
 }

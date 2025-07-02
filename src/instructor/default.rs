@@ -184,7 +184,7 @@ mod tests {
                 assert_eq!(tool_call.name, "generate");
                 assert_eq!(tool_call.arguments, "Hello, world!");
             }
-            _ => panic!("Expected AgentEvent::Action, got {:#?}", parsed_output),
+            _ => panic!("Expected AgentEvent::Action, got {parsed_output:#?}"),
         }
 
         let test_final_answer = indoc! {r#"
@@ -201,7 +201,7 @@ mod tests {
             Ok(AgentOutput::Finish(final_answer)) => {
                 assert_eq!(final_answer, "Goodbye, world!");
             }
-            _ => panic!("Expected AgentEvent::Finish, got {:#?}", parsed_output),
+            _ => panic!("Expected AgentEvent::Finish, got {parsed_output:#?}"),
         }
     }
 
@@ -241,9 +241,9 @@ mod tests {
 
         match result {
             Ok(AgentOutput::Finish(final_answer)) => {
-                println!("{}", final_answer);
+                println!("{final_answer}");
             }
-            _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
+            _ => panic!("Expected AgentEvent::Finish, got {result:#?}"),
         }
     }
 
@@ -261,9 +261,9 @@ mod tests {
 
         match result {
             Ok(AgentOutput::Finish(final_answer)) => {
-                println!("{}", final_answer);
+                println!("{final_answer}");
             }
-            _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
+            _ => panic!("Expected AgentEvent::Finish, got {result:#?}"),
         }
     }
 
@@ -279,9 +279,9 @@ mod tests {
 
         match result {
             Ok(AgentOutput::Finish(final_answer)) => {
-                println!("{}", final_answer);
+                println!("{final_answer}");
             }
-            _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
+            _ => panic!("Expected AgentEvent::Finish, got {result:#?}"),
         }
     }
 
@@ -303,7 +303,7 @@ mod tests {
                 assert_eq!(tool_call.name, "generate");
                 assert_eq!(tool_call.arguments, "Hello, world!");
             }
-            _ => panic!("Expected AgentEvent::Action, got {:#?}", result),
+            _ => panic!("Expected AgentEvent::Action, got {result:#?}"),
         }
     }
 
@@ -321,9 +321,9 @@ mod tests {
         let result = DefaultInstructor.parse_from_text(text.into()).unwrap();
         match result {
             AgentOutput::Finish(final_answer) => {
-                println!("{}", final_answer);
+                println!("{final_answer}");
             }
-            _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
+            _ => panic!("Expected AgentEvent::Finish, got {result:#?}"),
         }
     }
 
@@ -336,7 +336,7 @@ mod tests {
 
         match result {
             AgentOutput::Finish(final_answer) => assert_eq!(final_answer, "My final answer is 5"),
-            _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
+            _ => panic!("Expected AgentEvent::Finish, got {result:#?}"),
         }
     }
 
@@ -367,9 +367,9 @@ mod tests {
 
         match result {
             AgentOutput::Finish(final_answer) => {
-                println!("{}", final_answer);
+                println!("{final_answer}");
             }
-            _ => panic!("Expected AgentEvent::Finish, got {:#?}", result),
+            _ => panic!("Expected AgentEvent::Finish, got {result:#?}"),
         }
     }
 
@@ -387,7 +387,7 @@ mod tests {
 
         let result = DefaultInstructor.parse_from_text(text.into());
 
-        assert!(result.is_err(), "Expected err, got {:#?}", result);
+        assert!(result.is_err(), "Expected err, got {result:#?}");
     }
 
     #[test]

@@ -272,7 +272,7 @@ mod tests {
             .await
             .unwrap();
 
-        println!("{:?}", res)
+        println!("{res:?}")
     }
 
     #[test]
@@ -286,7 +286,7 @@ mod tests {
         while let Some(data) = stream.next().await {
             match data {
                 Ok(value) => value.to_stdout().unwrap(),
-                Err(e) => panic!("Error invoking LLMChain: {:?}", e),
+                Err(e) => panic!("Error invoking LLMChain: {e:?}"),
             }
         }
     }

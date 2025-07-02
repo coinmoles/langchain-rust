@@ -52,7 +52,7 @@ async fn main() {
                     .await
                     .unwrap();
             }
-            Err(e) => panic!("Error fetching git commits {:?}", e),
+            Err(e) => panic!("Error fetching git commits {e:?}"),
         }
     }
 

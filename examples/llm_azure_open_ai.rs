@@ -13,5 +13,5 @@ async fn main() {
 
     let open_ai = OpenAI::builder().with_api_config(azure_config).build();
     let response = open_ai.invoke("Why is the sky blue?").await.unwrap();
-    println!("{}", response);
+    println!("{response}");
 }

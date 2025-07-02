@@ -164,7 +164,7 @@ mod tests {
 
         // Optionally, if you want to print the successful result, you can do so like this:
         if let Ok(result) = result_first {
-            println!("Result: {:?}", result);
+            println!("Result: {result:?}");
         }
 
         let input = DefaultChainInput::new("Cuales son platos tipicos de mi pais");
@@ -178,7 +178,7 @@ mod tests {
 
         // Optionally, if you want to print the successful result, you can do so like this:
         if let Ok(result) = result_second {
-            println!("Result: {:?}", result);
+            println!("Result: {result:?}");
         }
     }
 }

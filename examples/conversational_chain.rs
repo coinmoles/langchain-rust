@@ -47,7 +47,7 @@ async fn main() {
                 stdout().flush().unwrap();
             }
             Err(e) => {
-                println!("Error: {:?}", e);
+                println!("Error: {e:?}");
             }
         }
     }
@@ -58,6 +58,6 @@ async fn main() {
             println!("\n");
             println!("Result: {}", result.content);
         }
-        Err(e) => panic!("Error invoking LLMChain: {:?}", e),
+        Err(e) => panic!("Error invoking LLMChain: {e:?}"),
     }
 }
