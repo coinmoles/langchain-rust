@@ -2,6 +2,9 @@
 mod chain;
 pub use chain::*;
 
+mod pure_chain;
+pub use pure_chain::*;
+
 mod ctor;
 pub use ctor::*;
 
