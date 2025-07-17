@@ -38,7 +38,7 @@ impl<S: AsRef<str>> From<S> for ImageContent {
 /// let system_message = Message::new_system_message("System Alert");
 /// let ai_message = Message::new_ai_message("AI Response");
 /// ```
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone,  Serialize)]
 pub struct Message {
     pub content: String,
     pub message_type: MessageType,
