@@ -1,8 +1,10 @@
 use std::fmt;
 
+use serde::Serialize;
+
 use super::messages::Message;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Prompt {
     messages: Vec<Message>,
 }
