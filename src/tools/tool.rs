@@ -112,7 +112,7 @@ pub trait Tool: sealed::Sealed + Send + Sync {
 #[async_trait]
 pub trait ToolFunction: Send + Sync {
     type Input: JsonSchema + DeserializeOwned + Send + Sync;
-    type Result: Display + Send + Sync;
+    type Output: Display + Send + Sync;
 
     fn name(&self) -> String;
 
@@ -148,7 +148,7 @@ pub trait ToolFunction: Send + Sync {
     async fn run(
         &self,
         input: Self::Input,
-    ) -> Result<Self::Result, Box<dyn std::error::Error + Send + Sync>>;
+    ) -> Result<Self::Output, Box<dyn std::error::Error + Send + Sync>>;
 
     /// Parses the input string, which could be a JSON value or a raw string, depending on the LLM model.
     ///

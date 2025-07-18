@@ -83,7 +83,7 @@ impl DuckDuckGoSearch {
 #[async_trait]
 impl ToolFunction for DuckDuckGoSearch {
     type Input = DuckDuckGoSearchInput;
-    type Result = FormattedVec<Article>;
+    type Output = FormattedVec<Article>;
 
     fn name(&self) -> String {
         "DuckDuckGo Search".into()

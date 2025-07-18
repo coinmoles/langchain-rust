@@ -49,7 +49,7 @@ where
     T: Toolbox + ?Sized,
 {
     type Input = ();
-    type Result = String;
+    type Output = String;
 
     fn name(&self) -> String {
         format!("List tools in {}", self.0.name())

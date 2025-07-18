@@ -18,7 +18,7 @@ struct Date {}
 #[async_trait]
 impl ToolFunction for Date {
     type Input = ();
-    type Result = String;
+    type Output = String;
 
     fn name(&self) -> String {
         "Date".to_string()

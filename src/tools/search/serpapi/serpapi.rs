@@ -150,7 +150,7 @@ fn get_organic_result(result: &Value) -> String {
 #[async_trait]
 impl ToolFunction for SerpApi {
     type Input = DefaultToolInput;
-    type Result = String;
+    type Output = String;
 
     fn name(&self) -> String {
         "Google Search".into()
@@ -164,7 +164,7 @@ impl ToolFunction for SerpApi {
             .into()
     }
 
-    async fn run(&self, input: Self::Input) -> Result<Self::Result, Box<dyn Error + Send + Sync>> {
+    async fn run(&self, input: Self::Input) -> Result<Self::Output, Box<dyn Error + Send + Sync>> {
         self.simple_search(&input.0).await
     }
 }

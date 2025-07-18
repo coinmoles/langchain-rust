@@ -117,7 +117,7 @@ mod tests {
     #[async_trait]
     impl ToolFunction for Calc {
         type Input = String;
-        type Result = i128;
+        type Output = i128;
 
         fn name(&self) -> String {
             "Calculator".to_string()

@@ -114,7 +114,7 @@ impl Default for Wolfram {
 #[async_trait]
 impl ToolFunction for Wolfram {
     type Input = DefaultToolInput;
-    type Result = String;
+    type Output = String;
 
     fn name(&self) -> String {
         "Wolfram".into()
@@ -131,7 +131,7 @@ impl ToolFunction for Wolfram {
     async fn run(
         &self,
         input: Self::Input,
-    ) -> Result<Self::Result, Box<dyn std::error::Error + Send + Sync>> {
+    ) -> Result<Self::Output, Box<dyn std::error::Error + Send + Sync>> {
         let mut url = format!(
             "https://api.wolframalpha.com/v2/query?appid={}&input={}&output=JSON&format=plaintext&podstate=Result__Step-by-step+solution",
             &self.app_id,

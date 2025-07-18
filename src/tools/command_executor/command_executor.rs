@@ -49,7 +49,7 @@ pub struct CommandExecutorInput(pub Vec<Command>);
 #[async_trait]
 impl ToolFunction for CommandExecutor {
     type Input = CommandExecutorInput;
-    type Result = String;
+    type Output = String;
 
     fn name(&self) -> String {
         "Command Executor".into()
@@ -69,7 +69,7 @@ impl ToolFunction for CommandExecutor {
         true
     }
 
-    async fn run(&self, input: Self::Input) -> Result<Self::Result, Box<dyn Error + Send + Sync>> {
+    async fn run(&self, input: Self::Input) -> Result<Self::Output, Box<dyn Error + Send + Sync>> {
         let commands = input.0;
         let mut result = String::new();
 

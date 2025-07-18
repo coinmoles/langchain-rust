@@ -72,7 +72,7 @@ impl Default for Text2SpeechOpenAI<OpenAIConfig> {
 #[async_trait]
 impl<C: Config + Send + Sync> ToolFunction for Text2SpeechOpenAI<C> {
     type Input = DefaultToolInput;
-    type Result = String;
+    type Output = String;
 
     fn name(&self) -> String {
         "Text2SpeechOpenAI".into()
@@ -86,7 +86,7 @@ impl<C: Config + Send + Sync> ToolFunction for Text2SpeechOpenAI<C> {
             .into()
     }
 
-    async fn run(&self, input: Self::Input) -> Result<Self::Result, Box<dyn Error + Send + Sync>> {
+    async fn run(&self, input: Self::Input) -> Result<Self::Output, Box<dyn Error + Send + Sync>> {
         let client = Client::new();
         let response_format: SpeechResponseFormat = self.response_format;
 

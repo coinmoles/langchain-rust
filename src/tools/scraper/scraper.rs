@@ -18,7 +18,7 @@ pub struct WebScrapper {}
 #[async_trait]
 impl ToolFunction for WebScrapper {
     type Input = WebScrapperInput;
-    type Result = String;
+    type Output = String;
 
     fn name(&self) -> String {
         "Web Scraper".into()

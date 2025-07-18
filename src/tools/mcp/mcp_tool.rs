@@ -43,7 +43,7 @@ impl McpTool {
 #[async_trait]
 impl ToolFunction for McpTool {
     type Input = Value;
-    type Result = FormattedVec<String>;
+    type Output = FormattedVec<String>;
 
     fn name(&self) -> String {
         self.name.to_string()
@@ -61,7 +61,7 @@ impl ToolFunction for McpTool {
         false
     }
 
-    async fn run(&self, input: Self::Input) -> Result<Self::Result, Box<dyn Error + Send + Sync>> {
+    async fn run(&self, input: Self::Input) -> Result<Self::Output, Box<dyn Error + Send + Sync>> {
         let input = match input {
             Value::Object(obj) => obj,
             _ => {
