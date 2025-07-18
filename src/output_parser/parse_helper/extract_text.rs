@@ -10,13 +10,20 @@ pub fn remove_thought(text: &str) -> &str {
 }
 
 pub fn extract_from_codeblock(json_markdown: &str) -> &str {
-    let re = Regex::new(r"```(?:(?:[\w+-]\s*)+)?\s*\n\s*([\s\S]+?)\s*```").unwrap();
-    if let Some(caps) = re.captures(json_markdown) {
-        if let Some(json_str) = caps.get(1) {
-            return json_str.as_str().trim();
-        }
-    }
-    json_markdown
+    let re_single_start = Regex::new(r"^\s*```[\w+-]*").unwrap();
+    let re_single_end = Regex::new(r"```\s*$").unwrap();
+
+    let start = re_single_start
+        .find_iter(json_markdown)
+        .find_map(|m| (m.start() == 0).then_some(m.end()))
+        .unwrap_or(0);
+
+    let end = re_single_end
+        .find_iter(json_markdown)
+        .find_map(|m| (m.end() == json_markdown.len()).then_some(m.start()))
+        .unwrap_or(json_markdown.len());
+
+    json_markdown[start..end].trim()
 }
 
 pub fn extract_from_tag<'a>(text: &'a str, tag: &str) -> &'a str {
@@ -44,6 +51,51 @@ mod tests {
     use indoc::indoc;
 
     use super::*;
+
+    #[test]
+    fn test_extract_from_codeblock() {
+        let text = indoc! {r#"
+        ```json
+        {
+            "key": "value"
+        }
+        ```
+        "#};
+        let result = extract_from_codeblock(text);
+        let expected = indoc! {r#"
+            {
+                "key": "value"
+            }"#
+        };
+        assert_eq!(result, expected);
+
+        let text = indoc! {r#"
+        ```json
+        {
+            "key": "value"
+        }
+        "#};
+        let result = extract_from_codeblock(text);
+        let expected = indoc! {r#"
+            {
+                "key": "value"
+            }"#
+        };
+        assert_eq!(result, expected);
+
+        let text = indoc! {r#"
+        {
+            "key": "value"
+        }
+        ```"#};
+        let expected = indoc! {r#"
+            {
+                "key": "value"
+            }"#
+        };
+        let result = extract_from_codeblock(text);
+        assert_eq!(result, expected);
+    }
 
     #[test]
     fn test_extract_from_tag() {
