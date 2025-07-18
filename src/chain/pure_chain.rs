@@ -22,8 +22,14 @@ impl<O: DeserializeOwned + Send + Sync + 'static> PureOutput<O> {
 impl<T, O: DeserializeOwned + Send + Sync> ChainOutput<T> for PureOutput<O> {
     fn construct_from_text(output: impl Into<String>) -> Result<Self, OutputParseError> {
         let original: String = output.into();
-        let value = parse_partial_json(&original, false)?;
-        let deserialized = serde_json::from_value::<O>(value)?;
+        let value = match parse_partial_json(&original, false) {
+            Ok(value) => value,
+            Err(e) => return Err(OutputParseError::Deserialize(e, original)),
+        };
+        let deserialized = match serde_json::from_value::<O>(value) {
+            Ok(deserialized) => deserialized,
+            Err(e) => return Err(OutputParseError::Deserialize(e, original)),
+        };
         Ok(PureOutput(deserialized))
     }
 }

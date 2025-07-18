@@ -4,8 +4,8 @@ use crate::schemas::ToolCall;
 
 #[derive(Debug, Error)]
 pub enum OutputParseError {
-    #[error("Deserialization error: {0}")]
-    Deserialize(#[from] serde_json::Error),
+    #[error("Deserialization error: {0}\nOriginal: {1}")]
+    Deserialize(serde_json::Error, String),
 
     #[error("Unexpected tool call {0:?}")]
     UnexpectedToolCall(Vec<ToolCall>),

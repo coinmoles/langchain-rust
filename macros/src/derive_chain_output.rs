@@ -62,6 +62,7 @@ fn deser_struct(
 
 fn field_initializers(
     field_specs: &[ChainOutputFieldSpec<'_>],
+    crate_path: &syn::Path,
     serde_json_path: &syn::Path,
     rename_all: &Option<RenameAll>,
     use_input: bool,
@@ -84,9 +85,9 @@ fn field_initializers(
             ChainOutputSource::Response => {
                 let ty = &f.field.ty;
                 let err = if use_input {
-                    quote! { (input, e.into()) }
+                    quote! { (input, #crate_path::output_parser::OutputParseError::Deserialize(e, original)) }
                 } else {
-                    quote! { e.into() }
+                    quote! { #crate_path::output_parser::OutputParseError::Deserialize(e, original) }
                 };
                 quote! {
                     #ident: match #serde_json_path::from_str::<#ty>(&original) {
@@ -224,9 +225,9 @@ pub fn derive_chain_output(
         .then(|| {
             let deser_struct = deser_struct(&field_specs, &serde_path, &rename_all);
             let err = if use_input {
-                quote! { (input, e.into()) }
+                quote! { (input, #crate_path::output_parser::OutputParseError::Deserialize(e, original)) }
             } else {
-                quote! { e.into() }
+                quote! { #crate_path::output_parser::OutputParseError::Deserialize(e, original) }
             };
             quote! {
                 #deser_struct
@@ -240,8 +241,13 @@ pub fn derive_chain_output(
                 };
             }
         });
-    let field_initializers =
-        field_initializers(&field_specs, &serde_json_path, &rename_all, use_input);
+    let field_initializers = field_initializers(
+        &field_specs,
+        &crate_path,
+        &serde_json_path,
+        &rename_all,
+        use_input,
+    );
 
     let fn_body = quote! {
         let original = text.into();

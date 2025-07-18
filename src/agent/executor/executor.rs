@@ -198,7 +198,7 @@ where
                         Ok(answer) => answer,
                         Err((returned_input, e)) => {
                             log::warn!(
-                                "Failed to construct output from final answer: {e}  ({consecutive_fails} consecutive fails)\nOriginal: {final_answer}",
+                                "Failed to construct output from final answer: {e}  ({consecutive_fails} consecutive fails)",
                             );
                             consecutive_fails += 1;
                             input.inner = returned_input;

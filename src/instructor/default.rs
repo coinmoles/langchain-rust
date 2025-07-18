@@ -153,7 +153,7 @@ impl Instructor for DefaultInstructor {
         {
             Ok(agent_event) => Ok(agent_event),
             Err(_) if !is_malformed_event => Ok(AgentOutput::Finish(text.into())),
-            Err(e) => Err(e.into()),
+            Err(e) => Err(OutputParseError::Deserialize(e, text.into())),
         }
     }
 }
