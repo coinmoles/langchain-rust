@@ -40,17 +40,17 @@ impl<C: Config> OpenAI<C> {
     }
 
     fn process_prompt(&self, prompt: Vec<Message>) -> Vec<Message> {
-        if self.call_options.system_is_assistant {
-            prompt
-                .into_iter()
-                .map(|message| match message.message_type {
-                    MessageType::System => Message::new_ai_message(message.content.clone()),
-                    _ => message.clone(),
-                })
-                .collect::<Vec<Message>>()
-        } else {
-            prompt.to_vec()
-        }
+        prompt
+            .into_iter()
+            .filter(|message| !message.content.is_empty())
+            .map(|message| match message.message_type {
+                MessageType::System if self.call_options.system_is_assistant => Message {
+                    message_type: MessageType::Ai,
+                    ..message
+                },
+                _ => message,
+            })
+            .collect()
     }
 }
 
