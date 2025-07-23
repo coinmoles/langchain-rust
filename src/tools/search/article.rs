@@ -36,9 +36,3 @@ impl From<Article> for ToolOutput {
         ToolOutput::Text(article.to_string())
     }
 }
-
-impl From<Vec<Article>> for ToolOutput {
-    fn from(articles: Vec<Article>) -> Self {
-        ToolOutput::List(articles.into_iter().map(|a| a.to_string()).collect())
-    }
-}

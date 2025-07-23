@@ -1,10 +1,7 @@
-use std::collections::HashMap;
-
 #[derive(Debug, Clone)]
 pub enum ToolOutput {
     Text(String),
     List(Vec<String>),
-    Map(HashMap<String, String>),
 }
 
 impl std::fmt::Display for ToolOutput {
@@ -20,15 +17,6 @@ impl std::fmt::Display for ToolOutput {
                 }
                 Ok(())
             }
-            ToolOutput::Map(map) => {
-                for (i, (key, value)) in map.iter().enumerate() {
-                    if i > 0 {
-                        writeln!(f, "\n---")?;
-                    }
-                    write!(f, "{key}:\n{value}")?;
-                }
-                Ok(())
-            }
         }
     }
 }
@@ -39,14 +27,18 @@ impl From<String> for ToolOutput {
     }
 }
 
-impl From<Vec<String>> for ToolOutput {
-    fn from(value: Vec<String>) -> Self {
-        ToolOutput::List(value)
-    }
-}
-
-impl From<HashMap<String, String>> for ToolOutput {
-    fn from(value: HashMap<String, String>) -> Self {
-        ToolOutput::Map(value)
+impl<T> From<Vec<T>> for ToolOutput
+where
+    ToolOutput: From<T>,
+{
+    fn from(value: Vec<T>) -> Self {
+        let list = value
+            .into_iter()
+            .flat_map(|v| match ToolOutput::from(v) {
+                ToolOutput::Text(text) => vec![text],
+                ToolOutput::List(list) => list,
+            })
+            .collect();
+        ToolOutput::List(list)
     }
 }
