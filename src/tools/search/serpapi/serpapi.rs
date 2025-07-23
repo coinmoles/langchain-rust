@@ -3,7 +3,7 @@ use std::error::Error;
 use async_trait::async_trait;
 use serde_json::Value;
 
-use crate::tools::{input::DefaultToolInput, ToolFunction};
+use crate::tools::{tool_input::DefaultToolInput, ToolFunction};
 
 pub struct SerpApi {
     api_key: String,

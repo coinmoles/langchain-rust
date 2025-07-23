@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::tools::{input::DefaultToolInput, ToolFunction};
+use crate::tools::{tool_input::DefaultToolInput, ToolFunction};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 struct WolframError {

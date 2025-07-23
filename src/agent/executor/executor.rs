@@ -93,7 +93,6 @@ where
 
         if let Some(memory) = &self.memory {
             input.set_chat_history(memory.read().await.messages());
-            // TODO: Possibly implement messages parsing
         }
 
         'step: loop {
@@ -126,14 +125,11 @@ where
 
                     for tool_call in tool_calls {
                         log::debug!("\nTool call:\n{tool_call}");
-
                         let tool_name = normalize_tool_name(&tool_call.name);
                         let Some(tool) = self.agent.get_tool(&tool_name) else {
                             consecutive_fails += 1;
                             log::warn!(
-                                "Agent tried to use nonexistent tool {}, retrying ({} consecutive fails)",
-                                tool_call.name,
-                                consecutive_fails
+                                "Agent tried to use nonexistent tool '{tool_name}', retrying ({consecutive_fails} consecutive fails)",
                             );
                             continue 'step;
                         };
@@ -144,10 +140,8 @@ where
                             if *count > usage_limit {
                                 consecutive_fails += 1;
                                 log::warn!(
-                                    "Agent repeatedly using tool {} (usage limit: {}), preventing further use ({} consecutive fails)",
-                                    tool_call.name,
-                                    usage_limit,
-                                    consecutive_fails
+                                    "Agent repeatedly using tool '{tool_name}' (usage limit: {usage_limit}), \
+                                    preventing further use ({consecutive_fails} consecutive fails)",
                                 );
                                 continue 'step;
                             }
@@ -156,18 +150,13 @@ where
                         let result = match tool.call(tool_call.arguments.clone()).await {
                             Ok(result) => result,
                             Err(e) => {
-                                log::warn!(
-                                    "Tool '{}' encountered an error: {}",
-                                    &tool_call.name,
-                                    e
-                                );
+                                log::warn!("Tool '{tool_name}' encountered an error: {e}");
                                 if options.break_if_tool_error {
                                     return Err(ChainError::AgentError(AgentError::ToolError(e)));
-                                } else {
-                                    formatdoc! {"
-                                        Tool call failed: {e}
-                                        If the error doesn't make sense to you, it means that the tool is broken. DO NOT use this tool again."
-                                    }
+                                }
+                                formatdoc! {"
+                                    Tool call failed: {e}
+                                    If the error doesn't make sense to you, it means that the tool is broken. DO NOT use this tool again."
                                 }
                             }
                         };

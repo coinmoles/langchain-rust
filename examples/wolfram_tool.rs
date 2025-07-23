@@ -1,4 +1,4 @@
-use langchain_rust::tools::{input::DefaultToolInput, ToolFunction, Wolfram};
+use langchain_rust::tools::{DefaultToolInput, ToolFunction, Wolfram};
 
 #[tokio::main]
 async fn main() {

@@ -215,7 +215,7 @@ mod tests {
     use indoc::indoc;
     use schemars::{schema_for, JsonSchema};
 
-    use crate::tools::input::DefaultToolInput;
+    use crate::tools::tool_input::DefaultToolInput;
 
     use super::*;
 

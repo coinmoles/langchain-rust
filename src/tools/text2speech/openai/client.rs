@@ -8,7 +8,7 @@ pub use async_openai::{
 };
 use async_trait::async_trait;
 
-use crate::tools::{input::DefaultToolInput, SpeechStorage, ToolFunction};
+use crate::tools::{tool_input::DefaultToolInput, SpeechStorage, ToolFunction};
 
 #[derive(Clone)]
 pub struct Text2SpeechOpenAI<C: Config> {
