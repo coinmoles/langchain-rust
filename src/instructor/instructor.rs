@@ -2,11 +2,11 @@ use crate::{
     agent::{AgentOutput, AgentOutputCtor},
     chain::{InputCtor, OutputCtor},
     output_parser::{OutputParseError, OutputParser},
-    tools::Tool,
+    tools::ToolInternal,
 };
 
 pub trait Instructor: Send + Sync {
-    fn create_suffix(&self, tools: &[&dyn Tool]) -> String;
+    fn create_suffix(&self, tools: &[&dyn ToolInternal]) -> String;
 
     fn parse_from_text(&self, output: String) -> Result<AgentOutput, OutputParseError>;
 }

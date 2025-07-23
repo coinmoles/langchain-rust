@@ -148,7 +148,7 @@ where
                         }
 
                         let result = match tool.call(tool_call.arguments.clone()).await {
-                            Ok(result) => result,
+                            Ok(result) => result.to_string(),
                             Err(e) => {
                                 log::warn!("Tool '{tool_name}' encountered an error: {e}");
                                 if options.break_if_tool_error {

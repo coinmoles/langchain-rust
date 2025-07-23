@@ -6,7 +6,7 @@ use std::{
 use async_trait::async_trait;
 use serde_json::Value;
 
-use crate::tools::ToolFunction;
+use crate::tools::Tool;
 
 use super::Toolbox;
 
@@ -44,7 +44,7 @@ where
 }
 
 #[async_trait]
-impl<T> ToolFunction for ListTools<T>
+impl<T> Tool for ListTools<T>
 where
     T: Toolbox + ?Sized,
 {

@@ -5,7 +5,7 @@ use crate::{
     chain::{ChainOutput, InputCtor, LLMChain, OutputCtor},
     llm::{options::CallOptions, LLM},
     schemas::BuilderError,
-    tools::{Tool, Toolbox},
+    tools::{ToolInternal, Toolbox},
     utils::helper::normalize_tool_name,
 };
 
@@ -19,7 +19,7 @@ where
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    tools: Option<Vec<Box<dyn Tool>>>,
+    tools: Option<Vec<Box<dyn ToolInternal>>>,
     toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     system_prompt: Option<&'a str>,
     initial_prompt: Option<&'b str>,
@@ -41,7 +41,7 @@ where
         }
     }
 
-    pub fn tools(mut self, tools: impl IntoIterator<Item = impl Into<Box<dyn Tool>>>) -> Self {
+    pub fn tools(mut self, tools: impl IntoIterator<Item = impl Into<Box<dyn ToolInternal>>>) -> Self {
         self.tools = Some(tools.into_iter().map(Into::into).collect());
         self
     }

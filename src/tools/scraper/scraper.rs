@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 use regex::Regex;
 use schemars::JsonSchema;
-use scraper::{ElementRef, Html, Selector};
+use scraper::{ElementRef, Html, Node, Selector};
 use serde::Deserialize;
 use std::error::Error;
 
-use crate::tools::ToolFunction;
+use crate::tools::Tool;
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -16,9 +16,9 @@ pub struct WebScrapperInput(pub String);
 pub struct WebScrapper {}
 
 #[async_trait]
-impl ToolFunction for WebScrapper {
+impl Tool for WebScrapper {
     type Input = WebScrapperInput;
-    type Output = String;
+    type Output = Vec<String>;
 
     fn name(&self) -> String {
         "Web Scraper".into()
@@ -32,45 +32,41 @@ impl ToolFunction for WebScrapper {
         true
     }
 
-    async fn run(&self, input: Self::Input) -> Result<String, Box<dyn Error + Send + Sync>> {
+    async fn run(&self, input: Self::Input) -> Result<Self::Output, Box<dyn Error + Send + Sync>> {
         let url = input.0;
-        match scrape_url(&url).await {
-            Ok(content) => Ok(content),
-            Err(e) => Ok(format!("Error scraping {url}: {e}")),
-        }
+        scrape_url(&url).await
     }
 }
 
-async fn scrape_url(url: &str) -> Result<String, Box<dyn Error>> {
+async fn scrape_url(url: &str) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
     let res = reqwest::get(url).await?.text().await?;
 
     let document = Html::parse_document(&res);
     let body_selector = Selector::parse("body").unwrap();
 
-    let mut text = Vec::new();
-    for element in document.select(&body_selector) {
-        collect_text_not_in_script(&element, &mut text);
-    }
-
-    let joined_text = text.join(" ");
-    let cleaned_text = joined_text.replace(['\n', '\t'], " ");
     let re = Regex::new(r"\s+").unwrap();
-    let final_text = re.replace_all(&cleaned_text, " ");
-    Ok(final_text.to_string())
+
+    let result = document
+        .select(&body_selector)
+        .flat_map(text_not_in_script)
+        .map(|text| {
+            let cleaned = text.replace(['\n', '\t'], " ");
+            re.replace_all(&cleaned, " ").trim().to_owned()
+        })
+        .collect::<Vec<_>>();
+    Ok(result)
 }
 
-fn collect_text_not_in_script(element: &ElementRef, text: &mut Vec<String>) {
-    for node in element.children() {
-        if node.value().is_element() {
-            let tag_name = node.value().as_element().unwrap().name();
-            if tag_name == "script" {
-                continue;
-            }
-            collect_text_not_in_script(&ElementRef::wrap(node).unwrap(), text);
-        } else if node.value().is_text() {
-            text.push(node.value().as_text().unwrap().text.to_string());
-        }
-    }
+fn text_not_in_script(element: ElementRef) -> Vec<String> {
+    element
+        .children()
+        .flat_map(|node| match node.value() {
+            Node::Element(elem) if elem.name() == "script" => vec![],
+            Node::Element(_) => text_not_in_script(ElementRef::wrap(node).unwrap()), // `unwrap` is safe here as it is guaranteed to be an ElementRef
+            Node::Text(text_node) => vec![text_node.text.to_string()],
+            _ => vec![],
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -105,7 +101,8 @@ mod tests {
         // Assert that the result is Ok and contains "Hello World"
         assert!(result.is_ok());
         let content = result.unwrap();
-        assert_eq!(content.trim(), "Hello World");
+        assert_eq!(content.len(), 1);
+        assert_eq!(content[0], "Hello World");
 
         // Verify that the mock was called as expected
         mock.assert();

@@ -1,4 +1,4 @@
-use langchain_rust::tools::{DefaultToolInput, ToolFunction, Wolfram};
+use langchain_rust::tools::{DefaultToolInput, Tool, Wolfram};
 
 #[tokio::main]
 async fn main() {
@@ -6,5 +6,5 @@ async fn main() {
     let input = DefaultToolInput::new("Solve x^2 - 2x + 1 = 0");
     let result = wolfram.run(input).await;
 
-    println!("{}", result.unwrap());
+    println!("{:?}", result.unwrap());
 }

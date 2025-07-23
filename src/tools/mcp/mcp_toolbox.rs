@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::HashMap, error::Error, sync::Arc};
 
 use async_trait::async_trait;
 
-use crate::tools::{Tool, ToolError, Toolbox};
+use crate::tools::{ToolInternal, ToolError, Toolbox};
 
 use super::{McpService, McpServiceExt, McpTool};
 
@@ -43,11 +43,11 @@ impl Toolbox for McpToolbox {
         self.name.to_string()
     }
 
-    fn get_tools(&self) -> Result<HashMap<&str, &dyn Tool>, ToolError> {
+    fn get_tools(&self) -> Result<HashMap<&str, &dyn ToolInternal>, ToolError> {
         let tools = self
             .tools
             .iter()
-            .map(|(k, v)| (k.as_str(), v as &dyn Tool))
+            .map(|(k, v)| (k.as_str(), v as &dyn ToolInternal))
             .collect();
 
         Ok(tools)

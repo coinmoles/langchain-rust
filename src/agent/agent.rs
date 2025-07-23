@@ -7,7 +7,7 @@ use crate::{
     chain::{ChainOutput, InputCtor, OutputCtor},
     schemas::{Prompt, WithUsage},
     template::TemplateError,
-    tools::Tool,
+    tools::ToolInternal,
 };
 
 use super::{AgentError, AgentExecutor, AgentInput};
@@ -24,7 +24,7 @@ where
         input: &mut AgentInput<I::Target<'a>>,
     ) -> Result<WithUsage<AgentOutput>, AgentError>;
 
-    fn get_tool(&self, tool_name: &str) -> Option<&dyn Tool>;
+    fn get_tool(&self, tool_name: &str) -> Option<&dyn ToolInternal>;
 
     fn executor<'a>(self) -> AgentExecutor<'a, I, O>
     where

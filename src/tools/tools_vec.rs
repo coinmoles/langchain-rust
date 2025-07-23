@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! tools_vec {
     ($($tool:expr),* $(,)?) => {
-        vec![$(Box::new($tool) as Box<dyn Tool>),*]
+        vec![$(::std::boxed::Box::new($tool) as ::std::boxed::Box<dyn $crate::tools::ToolInternal>),*]
     };
 }

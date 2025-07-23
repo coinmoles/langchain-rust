@@ -5,7 +5,7 @@ use serde_json::Value;
 
 use std::{borrow::Cow, error::Error, sync::Arc};
 
-use crate::tools::{FormattedVec, ToolError, ToolFunction};
+use crate::tools::{ToolError, Tool};
 
 use super::{parse_mcp_response, McpService, McpServiceExt};
 
@@ -41,9 +41,9 @@ impl McpTool {
 }
 
 #[async_trait]
-impl ToolFunction for McpTool {
+impl Tool for McpTool {
     type Input = Value;
-    type Output = FormattedVec<String>;
+    type Output = Vec<String>;
 
     fn name(&self) -> String {
         self.name.to_string()
@@ -86,7 +86,7 @@ impl ToolFunction for McpTool {
         if tool_result.is_error.unwrap_or(false) {
             Err(content.join("\n").into())
         } else {
-            Ok(FormattedVec(content))
+            Ok(content)
         }
     }
 }

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::tools::{tool_input::DefaultToolInput, ToolFunction};
+use crate::tools::{tool_input::DefaultToolInput, Tool};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 struct WolframError {
@@ -112,9 +112,9 @@ impl Default for Wolfram {
 }
 
 #[async_trait]
-impl ToolFunction for Wolfram {
+impl Tool for Wolfram {
     type Input = DefaultToolInput;
-    type Output = String;
+    type Output = Vec<String>;
 
     fn name(&self) -> String {
         "Wolfram".into()
@@ -163,7 +163,7 @@ impl ToolFunction for Wolfram {
             .filter(|s| !s.is_empty())
             .collect();
 
-        Ok(format!(r#"{{ "pods": [{}] }}"#, pods_str.join(",")))
+        Ok(pods_str)
     }
 }
 
@@ -179,6 +179,6 @@ mod tests {
         let result = wolfram.run(input.into()).await;
 
         assert!(result.is_ok());
-        println!("{}", result.unwrap());
+        println!("{:?}", result.unwrap());
     }
 }

@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 
-use crate::tools::{search::article::Article, FormattedVec, ToolFunction};
+use crate::tools::{search::article::Article, Tool};
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -29,10 +29,7 @@ impl DuckDuckGoSearch {
         self
     }
 
-    pub async fn search(
-        &self,
-        query: &str,
-    ) -> Result<FormattedVec<Article>, Box<dyn Error + Send + Sync>> {
+    pub async fn search(&self, query: &str) -> Result<Vec<Article>, Box<dyn Error + Send + Sync>> {
         let mut url = Url::parse(&self.url)?;
 
         let query_params = HashMap::from([("q", query)]);
@@ -76,14 +73,14 @@ impl DuckDuckGoSearch {
             .take(self.max_results)
             .collect::<Vec<_>>();
 
-        Ok(FormattedVec(results))
+        Ok(results)
     }
 }
 
 #[async_trait]
-impl ToolFunction for DuckDuckGoSearch {
+impl Tool for DuckDuckGoSearch {
     type Input = DuckDuckGoSearchInput;
-    type Output = FormattedVec<Article>;
+    type Output = Vec<Article>;
 
     fn name(&self) -> String {
         "DuckDuckGo Search".into()
@@ -111,7 +108,7 @@ impl ToolFunction for DuckDuckGoSearch {
     async fn run(
         &self,
         input: DuckDuckGoSearchInput,
-    ) -> Result<FormattedVec<Article>, Box<dyn Error + Send + Sync>> {
+    ) -> Result<Vec<Article>, Box<dyn Error + Send + Sync>> {
         self.search(&input.query).await
     }
 }
@@ -129,7 +126,7 @@ impl Default for DuckDuckGoSearch {
 #[cfg(test)]
 mod tests {
     use super::DuckDuckGoSearch;
-    use crate::tools::Tool;
+    use crate::tools::ToolInternal;
     use serde_json::json;
 
     #[tokio::test]

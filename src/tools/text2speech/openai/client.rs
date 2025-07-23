@@ -8,7 +8,7 @@ pub use async_openai::{
 };
 use async_trait::async_trait;
 
-use crate::tools::{tool_input::DefaultToolInput, SpeechStorage, ToolFunction};
+use crate::tools::{tool_input::DefaultToolInput, SpeechStorage, Tool};
 
 #[derive(Clone)]
 pub struct Text2SpeechOpenAI<C: Config> {
@@ -70,7 +70,7 @@ impl Default for Text2SpeechOpenAI<OpenAIConfig> {
 }
 
 #[async_trait]
-impl<C: Config + Send + Sync> ToolFunction for Text2SpeechOpenAI<C> {
+impl<C: Config + Send + Sync> Tool for Text2SpeechOpenAI<C> {
     type Input = DefaultToolInput;
     type Output = String;
 
@@ -115,7 +115,7 @@ impl<C: Config + Send + Sync> ToolFunction for Text2SpeechOpenAI<C> {
 mod tests {
     use serde_json::Value;
 
-    use crate::tools::{Text2SpeechOpenAI, Tool};
+    use crate::tools::{Text2SpeechOpenAI, ToolInternal};
 
     #[tokio::test]
     #[ignore]

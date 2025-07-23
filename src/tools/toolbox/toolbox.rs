@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use serde_json::Value;
 
 use crate::{
-    tools::{Tool, ToolError},
+    tools::{ToolError, ToolInternal, ToolOutput},
     utils::helper::normalize_tool_name,
 };
 
@@ -12,9 +12,9 @@ use crate::{
 pub trait Toolbox: Send + Sync {
     fn name(&self) -> String;
 
-    fn get_tools(&self) -> Result<HashMap<&str, &dyn Tool>, ToolError>;
+    fn get_tools(&self) -> Result<HashMap<&str, &dyn ToolInternal>, ToolError>;
 
-    fn get_tool(&self, tool_name: &str) -> Result<&dyn Tool, ToolError> {
+    fn get_tool(&self, tool_name: &str) -> Result<&dyn ToolInternal, ToolError> {
         let tool_name = normalize_tool_name(tool_name);
         let tools = self.get_tools()?;
 
@@ -24,7 +24,7 @@ pub trait Toolbox: Send + Sync {
             .ok_or(ToolError::ToolNotFound(tool_name))
     }
 
-    async fn call_tool(&self, tool_name: &str, input: Value) -> Result<String, ToolError> {
+    async fn call_tool(&self, tool_name: &str, input: Value) -> Result<ToolOutput, ToolError> {
         let tool = self.get_tool(tool_name)?;
 
         tool.call(input).await

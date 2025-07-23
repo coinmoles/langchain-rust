@@ -10,6 +10,9 @@ pub use toolbox::*;
 mod tool_input;
 pub use tool_input::*;
 
+mod tool_output;
+pub use tool_output::*;
+
 mod tools_vec;
 
 mod describe_parameters;
@@ -37,9 +40,6 @@ pub use text2speech::*;
 mod mcp;
 #[cfg(feature = "mcp")]
 pub use mcp::*;
-
-mod results;
-pub use results::*;
 
 mod error;
 pub use error::*;

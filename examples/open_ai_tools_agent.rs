@@ -6,7 +6,7 @@ use langchain_rust::{
     chain::{Chain, DefaultChainInput, DefaultChainInputCtor},
     llm::openai::OpenAI,
     memory::SimpleMemory,
-    tools::{CommandExecutor, DuckDuckGoSearch, SerpApi, Tool, ToolFunction},
+    tools::{CommandExecutor, DuckDuckGoSearch, SerpApi, Tool},
     tools_vec,
 };
 
@@ -16,7 +16,7 @@ use serde_json::Value;
 struct Date {}
 
 #[async_trait]
-impl ToolFunction for Date {
+impl Tool for Date {
     type Input = ();
     type Output = String;
 

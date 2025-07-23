@@ -6,7 +6,7 @@ use crate::{
     instructor::{BoxInstructorExt, DefaultInstructor, Instructor},
     llm::LLM,
     schemas::BuilderError,
-    tools::{ListTools, Tool, Toolbox},
+    tools::{ListTools, ToolInternal, Toolbox},
     utils::helper::normalize_tool_name,
 };
 
@@ -24,7 +24,7 @@ pub struct ConversationalAgentBuilder<
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    tools: Option<Vec<Box<dyn Tool>>>,
+    tools: Option<Vec<Box<dyn ToolInternal>>>,
     toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     system_prompt: Option<&'a str>,
     initial_prompt: Option<&'b str>,
@@ -48,7 +48,7 @@ where
         }
     }
 
-    pub fn tools(mut self, tools: impl IntoIterator<Item = impl Into<Box<dyn Tool>>>) -> Self {
+    pub fn tools(mut self, tools: impl IntoIterator<Item = impl Into<Box<dyn ToolInternal>>>) -> Self {
         self.tools = Some(tools.into_iter().map(Into::into).collect());
         self
     }
@@ -87,7 +87,7 @@ where
         let tools = {
             let toolbox_list_tools = toolboxes
                 .iter()
-                .map(|toolbox| Box::new(ListTools::new(toolbox)) as Box<dyn Tool>);
+                .map(|toolbox| Box::new(ListTools::new(toolbox)) as Box<dyn ToolInternal>);
             self.tools
                 .unwrap_or_default()
                 .into_iter()

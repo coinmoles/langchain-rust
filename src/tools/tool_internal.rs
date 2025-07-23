@@ -8,26 +8,33 @@ use indoc::formatdoc;
 use schemars::{schema::RootSchema, schema_for};
 use serde_json::Value;
 
-use crate::{tools::ToolFunction, utils::helper::normalize_tool_name};
+use crate::{
+    tools::{Tool, ToolOutput},
+    utils::helper::normalize_tool_name,
+};
 
 use super::{describe_parameters, tool_input::DefaultToolInput, ToolError};
 
 mod sealed {
-    /// A sealed trait to prevent external implementations of the `Tool` trait.
-    ///
-    /// To create your own tool, you must implement ToolFunction, which will automatically implement Tool via blanket impl.
+    /// A sealed trait to prevent external implementations of the `ToolInternal` trait.
     pub trait Sealed {}
 }
 
+/// A dyn-compatible, generic-less interface for tools.
+///
+/// This trait is "sealed", meaning it cannot be implemented outside of this module.
+/// This trait should only be implemented via a blanket impl, which automatically implements this trait for any type that implements `Tool`.
 #[async_trait]
-pub trait Tool: sealed::Sealed + Send + Sync {
+pub trait ToolInternal: sealed::Sealed + Send + Sync {
     /// Returns the name of the tool.
     fn name(&self) -> String;
 
     /// Provides a description of what the tool does and when to use it.
     fn description(&self) -> String;
 
-    /// Parameters for OpenAI function call.
+    /// JSON schema for the tool input parameters.
+    ///
+    /// Used for OpenAI function call.
     ///
     /// If not implemented, it will default to
     /// ```json
@@ -51,10 +58,7 @@ pub trait Tool: sealed::Sealed + Send + Sync {
     }
 
     /// Processes an input string and executes the tool's functionality, returning a `Result`.
-    ///
-    /// This function utilizes `parse_input` to parse the input and then calls `run`.
-    /// Its used by the Agent
-    async fn call(&self, input: Value) -> Result<String, ToolError>;
+    async fn call(&self, input: Value) -> Result<ToolOutput, ToolError>;
 
     fn usage_limit(&self) -> Option<usize> {
         None
@@ -109,12 +113,12 @@ pub trait Tool: sealed::Sealed + Send + Sync {
     }
 }
 
-impl<T> sealed::Sealed for T where T: ToolFunction {}
+impl<T> sealed::Sealed for T where T: Tool {}
 
 #[async_trait]
-impl<T> Tool for T
+impl<T> ToolInternal for T
 where
-    T: ToolFunction + sealed::Sealed,
+    T: Tool + sealed::Sealed,
 {
     fn name(&self) -> String {
         self.name()
@@ -132,10 +136,10 @@ where
         self.strict()
     }
 
-    async fn call(&self, input: Value) -> Result<String, ToolError> {
+    async fn call(&self, input: Value) -> Result<ToolOutput, ToolError> {
         let input = self.parse_input(input).await?;
         let result = self.run(input).await.map_err(ToolError::ExecutionError)?;
-        Ok(result.to_string())
+        Ok(result.into())
     }
 
     fn usage_limit(&self) -> Option<usize> {
@@ -143,9 +147,9 @@ where
     }
 }
 
-impl<'a, T> From<T> for Box<dyn Tool + 'a>
+impl<'a, T> From<T> for Box<dyn ToolInternal + 'a>
 where
-    T: Tool + 'a,
+    T: ToolInternal + 'a,
 {
     fn from(val: T) -> Self {
         Box::new(val)

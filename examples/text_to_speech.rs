@@ -5,7 +5,7 @@ use langchain_rust::{
     document_loaders::{HtmlLoader, Loader},
     schemas::Document,
     text_splitter::{PlainTextSplitter, PlainTextSplitterOptions, TextSplitter},
-    tools::{Text2SpeechOpenAI, Tool},
+    tools::{Text2SpeechOpenAI, ToolInternal},
 };
 use serde_json::Value;
 use tokio::{io::AsyncReadExt, process::Command};
@@ -63,7 +63,8 @@ async fn main() {
         let path = openai
             .call(Value::String(chunk.page_content.to_string()))
             .await
-            .unwrap();
+            .unwrap()
+            .to_string();
 
         let path = std::path::Path::new(&path).canonicalize().unwrap();
         println!("Chunk file saved at: {path:?}\n\n");

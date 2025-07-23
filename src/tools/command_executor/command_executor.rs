@@ -5,7 +5,7 @@ use indoc::formatdoc;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::tools::ToolFunction;
+use crate::tools::Tool;
 
 pub struct CommandExecutor {
     platform: String,
@@ -47,7 +47,7 @@ pub struct Command {
 pub struct CommandExecutorInput(pub Vec<Command>);
 
 #[async_trait]
-impl ToolFunction for CommandExecutor {
+impl Tool for CommandExecutor {
     type Input = CommandExecutorInput;
     type Output = String;
 
