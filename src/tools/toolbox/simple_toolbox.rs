@@ -1,16 +1,16 @@
 use std::collections::HashMap;
 
-use crate::tools::{ToolInternal, ToolError};
+use crate::tools::{ToolDyn, ToolError};
 
 use super::Toolbox;
 
 pub struct SimpleToolbox {
     name: String,
-    tools: HashMap<String, Box<dyn ToolInternal>>,
+    tools: HashMap<String, Box<dyn ToolDyn>>,
 }
 
 impl SimpleToolbox {
-    pub fn new<S>(name: S, tools: HashMap<String, Box<dyn ToolInternal>>) -> Self
+    pub fn new<S>(name: S, tools: HashMap<String, Box<dyn ToolDyn>>) -> Self
     where
         S: Into<String>,
     {
@@ -26,7 +26,7 @@ impl Toolbox for SimpleToolbox {
         self.name.clone()
     }
 
-    fn get_tools(&self) -> Result<HashMap<&str, &dyn ToolInternal>, ToolError> {
+    fn get_tools(&self) -> Result<HashMap<&str, &dyn ToolDyn>, ToolError> {
         Ok(self
             .tools
             .iter()

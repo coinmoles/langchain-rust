@@ -10,7 +10,7 @@ use crate::{
     chain::{ChainOutput, DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor, StringCtor},
     schemas::{GetPrompt, Message, Prompt, WithUsage},
     template::TemplateError,
-    tools::{ToolInternal, Toolbox},
+    tools::{ToolDyn, Toolbox},
 };
 
 use super::OpenAiToolAgentBuilder;
@@ -28,7 +28,7 @@ where
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
-    pub(super) tools: HashMap<String, Box<dyn ToolInternal>>,
+    pub(super) tools: HashMap<String, Box<dyn ToolDyn>>,
     pub(super) toolboxes: Vec<Box<dyn Toolbox>>,
     pub(super) _phantom: std::marker::PhantomData<O>,
 }
@@ -71,7 +71,7 @@ where
         Ok(result)
     }
 
-    fn get_tool(&self, tool_name: &str) -> Option<&dyn ToolInternal> {
+    fn get_tool(&self, tool_name: &str) -> Option<&dyn ToolDyn> {
         if let Some(tool) = self.tools.get(tool_name).map(|t| t.as_ref()) {
             return Some(tool);
         }

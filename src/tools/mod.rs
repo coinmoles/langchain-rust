@@ -1,8 +1,8 @@
 mod tool;
 pub use tool::*;
 
-mod tool_internal;
-pub use tool_internal::*;
+mod tool_dyn;
+pub use tool_dyn::*;
 
 mod toolbox;
 pub use toolbox::*;

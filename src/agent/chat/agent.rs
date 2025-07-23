@@ -9,7 +9,7 @@ use crate::{
     chain::{ChainOutput, DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor, StringCtor},
     schemas::{GetPrompt, Message, Prompt, WithUsage},
     template::TemplateError,
-    tools::{ToolInternal, Toolbox},
+    tools::{ToolDyn, Toolbox},
 };
 
 use super::ConversationalAgentBuilder;
@@ -20,7 +20,7 @@ where
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
-    pub(super) tools: HashMap<String, Box<dyn ToolInternal>>,
+    pub(super) tools: HashMap<String, Box<dyn ToolDyn>>,
     pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
     pub(super) _phantom: std::marker::PhantomData<O>,
 }
@@ -32,7 +32,7 @@ where
 {
     pub fn new(
         llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
-        tools: HashMap<String, Box<dyn ToolInternal>>,
+        tools: HashMap<String, Box<dyn ToolDyn>>,
         toolboxes: Vec<Arc<dyn Toolbox>>,
     ) -> Self {
         Self {
@@ -76,7 +76,7 @@ where
         Ok(result)
     }
 
-    fn get_tool(&self, tool_name: &str) -> Option<&dyn ToolInternal> {
+    fn get_tool(&self, tool_name: &str) -> Option<&dyn ToolDyn> {
         if let Some(tool) = self.tools.get(tool_name).map(|t| t.as_ref()) {
             return Some(tool);
         }

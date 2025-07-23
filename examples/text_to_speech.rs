@@ -5,7 +5,7 @@ use langchain_rust::{
     document_loaders::{HtmlLoader, Loader},
     schemas::Document,
     text_splitter::{PlainTextSplitter, PlainTextSplitterOptions, TextSplitter},
-    tools::{Text2SpeechOpenAI, ToolInternal},
+    tools::{Text2SpeechOpenAI, ToolDyn},
 };
 use serde_json::Value;
 use tokio::{io::AsyncReadExt, process::Command};

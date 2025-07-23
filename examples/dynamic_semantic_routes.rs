@@ -1,7 +1,7 @@
 use langchain_rust::{
     embedding::openai::OpenAiEmbedder,
     semantic_router::{AggregationMethod, RouteLayerBuilder, Router},
-    tools::{SerpApi, ToolInternal},
+    tools::{SerpApi, ToolDyn},
 };
 
 #[tokio::main]

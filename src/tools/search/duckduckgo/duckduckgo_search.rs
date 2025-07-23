@@ -126,7 +126,7 @@ impl Default for DuckDuckGoSearch {
 #[cfg(test)]
 mod tests {
     use super::DuckDuckGoSearch;
-    use crate::tools::ToolInternal;
+    use crate::tools::ToolDyn;
     use serde_json::json;
 
     #[tokio::test]

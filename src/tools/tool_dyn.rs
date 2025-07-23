@@ -25,7 +25,7 @@ mod sealed {
 /// This trait is "sealed", meaning it cannot be implemented outside of this module.
 /// This trait should only be implemented via a blanket impl, which automatically implements this trait for any type that implements `Tool`.
 #[async_trait]
-pub trait ToolInternal: sealed::Sealed + Send + Sync {
+pub trait ToolDyn: sealed::Sealed + Send + Sync {
     /// Returns the name of the tool.
     fn name(&self) -> String;
 
@@ -116,7 +116,7 @@ pub trait ToolInternal: sealed::Sealed + Send + Sync {
 impl<T> sealed::Sealed for T where T: Tool {}
 
 #[async_trait]
-impl<T> ToolInternal for T
+impl<T> ToolDyn for T
 where
     T: Tool + sealed::Sealed,
 {
@@ -147,9 +147,9 @@ where
     }
 }
 
-impl<'a, T> From<T> for Box<dyn ToolInternal + 'a>
+impl<'a, T> From<T> for Box<dyn ToolDyn + 'a>
 where
-    T: ToolInternal + 'a,
+    T: ToolDyn + 'a,
 {
     fn from(val: T) -> Self {
         Box::new(val)

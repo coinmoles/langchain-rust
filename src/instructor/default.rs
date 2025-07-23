@@ -9,7 +9,7 @@ use crate::{
         is_malformed_event_str, parse_partial_json, remove_thought, OutputParseError,
     },
     schemas::ToolCall,
-    tools::ToolInternal,
+    tools::ToolDyn,
     utils::helper::normalize_tool_name,
 };
 
@@ -120,7 +120,7 @@ impl DefaultInstructor {
 }
 
 impl Instructor for DefaultInstructor {
-    fn create_suffix(&self, tools: &[&dyn ToolInternal]) -> String {
+    fn create_suffix(&self, tools: &[&dyn ToolDyn]) -> String {
         let tool_names = tools
             .iter()
             .map(|tool| normalize_tool_name(&tool.name()))

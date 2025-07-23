@@ -115,7 +115,7 @@ impl<C: Config + Send + Sync> Tool for Text2SpeechOpenAI<C> {
 mod tests {
     use serde_json::Value;
 
-    use crate::tools::{Text2SpeechOpenAI, ToolInternal};
+    use crate::tools::{Text2SpeechOpenAI, ToolDyn};
 
     #[tokio::test]
     #[ignore]

@@ -8,7 +8,7 @@ use crate::{
         is_malformed_event_str, parse_partial_json, remove_thought, OutputParseError,
     },
     schemas::ToolCall,
-    tools::ToolInternal,
+    tools::ToolDyn,
 };
 
 use super::Instructor;
@@ -82,7 +82,7 @@ impl Qwen3Instructor {
 }
 
 impl Instructor for Qwen3Instructor {
-    fn create_suffix(&self, tools: &[&dyn ToolInternal]) -> String {
+    fn create_suffix(&self, tools: &[&dyn ToolDyn]) -> String {
         let tools_json = tools
             .iter()
             .map(|tool| {
