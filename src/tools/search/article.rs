@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-use crate::tools::ToolOutput;
+use crate::tools::ToolData;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Article {
@@ -31,8 +31,8 @@ impl Display for Article {
     }
 }
 
-impl From<Article> for ToolOutput {
+impl From<Article> for ToolData {
     fn from(article: Article) -> Self {
-        ToolOutput::Text(article.to_string())
+        ToolData::Text(article.to_string())
     }
 }

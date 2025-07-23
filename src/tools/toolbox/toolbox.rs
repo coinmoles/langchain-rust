@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use serde_json::Value;
 
 use crate::{
-    tools::{ToolError, ToolDyn, ToolOutput},
+    tools::{ToolDyn, ToolError, ToolOutput},
     utils::helper::normalize_tool_name,
 };
 

@@ -25,6 +25,7 @@ async fn main() {
     let path = openai
         .call(Value::String("Hi, My name is Luis".to_string()))
         .await
-        .unwrap();
+        .unwrap()
+        .data;
     println!("Path: {path}");
 }

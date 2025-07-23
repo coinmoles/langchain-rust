@@ -5,7 +5,7 @@ use schemars::{gen::SchemaSettings, schema::RootSchema, schema_for, JsonSchema};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::tools::ToolOutput;
+use crate::tools::ToolData;
 
 #[async_trait]
 pub trait Tool: Send + Sync {
@@ -19,7 +19,7 @@ pub trait Tool: Send + Sync {
     type Input: JsonSchema + DeserializeOwned + Send + Sync;
 
     /// The output type for the tool. Recommended to use `String` or `Vec<String>` for simple tools.
-    type Output: Into<ToolOutput> + Send + Sync;
+    type Output: Into<ToolData> + Send + Sync;
 
     /// Returns the name of the tool.
     fn name(&self) -> String;
@@ -85,6 +85,20 @@ pub trait Tool: Send + Sync {
     /// If not implemented, it will default to parsing the input as a JSON value.
     async fn parse_input(&self, input: Value) -> Result<Self::Input, serde_json::Error> {
         serde_json::from_value(input)
+    }
+
+    /// Returns a concise summary of the tool's input.
+    ///
+    /// The summary is used for long conversaions to reduce context length.
+    fn summarize_input(&self, _input: &Self::Input) -> Option<String> {
+        Some(format!("Used tool {}", self.name()))
+    }
+
+    /// Returns a concise summary of the tool's output.
+    ///
+    /// The summary is used for long conversations to reduce context length.
+    fn summarize_output(&self, _result: &Self::Output) -> Option<String> {
+        None
     }
 
     /// The usage limit for the tool.

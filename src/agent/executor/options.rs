@@ -5,7 +5,6 @@ use crate::agent::FinalAnswerValidator;
 pub struct ExecutorOptions {
     pub max_iterations: Option<usize>,
     pub max_consecutive_fails: Option<usize>,
-    pub break_if_tool_error: bool,
     pub final_answer_validator: Option<Arc<dyn FinalAnswerValidator>>,
 }
 
@@ -13,13 +12,11 @@ impl ExecutorOptions {
     pub fn new(
         max_iterations: Option<usize>,
         max_consecutive_fails: Option<usize>,
-        break_if_tool_error: bool,
         final_answer_validator: Option<Arc<dyn FinalAnswerValidator>>,
     ) -> Self {
         Self {
             max_iterations,
             max_consecutive_fails,
-            break_if_tool_error,
             final_answer_validator,
         }
     }
@@ -44,11 +41,6 @@ impl ExecutorOptions {
         self
     }
 
-    pub fn with_break_if_tool_error(mut self, break_if_tool_error: bool) -> Self {
-        self.break_if_tool_error = break_if_tool_error;
-        self
-    }
-
     pub fn with_final_answer_validator(
         mut self,
         final_answer_validator: Arc<dyn FinalAnswerValidator>,
@@ -63,7 +55,6 @@ impl Default for ExecutorOptions {
         Self {
             max_iterations: Some(10),
             max_consecutive_fails: Some(3),
-            break_if_tool_error: false,
             final_answer_validator: None,
         }
     }

@@ -124,7 +124,8 @@ mod tests {
         let s = openai
             .call(Value::String("Hola como estas".to_string()))
             .await
-            .unwrap();
+            .unwrap()
+            .data;
         println!("{s}");
     }
 }

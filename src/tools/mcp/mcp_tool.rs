@@ -5,7 +5,7 @@ use serde_json::Value;
 
 use std::{borrow::Cow, error::Error, sync::Arc};
 
-use crate::tools::{ToolError, Tool};
+use crate::tools::{Tool, ToolError};
 
 use super::{parse_mcp_response, McpService, McpServiceExt};
 

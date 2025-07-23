@@ -9,7 +9,7 @@ use schemars::{schema::RootSchema, schema_for};
 use serde_json::Value;
 
 use crate::{
-    tools::{Tool, ToolOutput},
+    tools::{Tool, ToolData, ToolOutput},
     utils::helper::normalize_tool_name,
 };
 
@@ -137,9 +137,20 @@ where
     }
 
     async fn call(&self, input: Value) -> Result<ToolOutput, ToolError> {
-        let input = self.parse_input(input).await?;
-        let result = self.run(input).await.map_err(ToolError::ExecutionError)?;
-        Ok(result.into())
+        let input: T::Input = self.parse_input(input).await?;
+        let input_summary = self.summarize_input(&input);
+        let result: T::Output = self.run(input).await.map_err(ToolError::ExecutionError)?;
+        let output_summary = self.summarize_output(&result);
+
+        let data: ToolData = result.into();
+        let summary = match (input_summary, output_summary) {
+            (Some(input), Some(output)) => Some(format!("{input}{output}")),
+            (Some(input), None) => Some(input),
+            (None, Some(output)) => Some(output),
+            (None, None) => None,
+        };
+
+        Ok(ToolOutput { data, summary })
     }
 
     fn usage_limit(&self) -> Option<usize> {

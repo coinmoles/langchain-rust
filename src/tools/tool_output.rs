@@ -1,14 +1,19 @@
+pub struct ToolOutput {
+    pub data: ToolData,
+    pub summary: Option<String>,
+}
+
 #[derive(Debug, Clone)]
-pub enum ToolOutput {
+pub enum ToolData {
     Text(String),
     List(Vec<String>),
 }
 
-impl std::fmt::Display for ToolOutput {
+impl std::fmt::Display for ToolData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ToolOutput::Text(text) => write!(f, "{text}"),
-            ToolOutput::List(list) => {
+            ToolData::Text(text) => write!(f, "{text}"),
+            ToolData::List(list) => {
                 for (i, item) in list.iter().enumerate() {
                     if i > 0 {
                         writeln!(f, "\n---")?;
@@ -21,24 +26,24 @@ impl std::fmt::Display for ToolOutput {
     }
 }
 
-impl From<String> for ToolOutput {
+impl From<String> for ToolData {
     fn from(value: String) -> Self {
-        ToolOutput::Text(value)
+        ToolData::Text(value)
     }
 }
 
-impl<T> From<Vec<T>> for ToolOutput
+impl<T> From<Vec<T>> for ToolData
 where
-    ToolOutput: From<T>,
+    ToolData: From<T>,
 {
     fn from(value: Vec<T>) -> Self {
         let list = value
             .into_iter()
-            .flat_map(|v| match ToolOutput::from(v) {
-                ToolOutput::Text(text) => vec![text],
-                ToolOutput::List(list) => list,
+            .flat_map(|v| match ToolData::from(v) {
+                ToolData::Text(text) => vec![text],
+                ToolData::List(list) => list,
             })
             .collect();
-        ToolOutput::List(list)
+        ToolData::List(list)
     }
 }

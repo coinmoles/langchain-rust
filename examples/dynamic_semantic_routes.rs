@@ -45,7 +45,11 @@ async fn main() {
 
     println!("{route_choice:?}");
     if route_choice.route == "capital" {
-        let tool_output = tool.call(route_choice.tool_input.unwrap()).await.unwrap();
+        let tool_output = tool
+            .call(route_choice.tool_input.unwrap())
+            .await
+            .unwrap()
+            .data;
         println!("{tool_output:?}");
     }
 }

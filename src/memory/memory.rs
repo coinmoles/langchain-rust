@@ -1,4 +1,7 @@
-use crate::schemas::{Message, ToolCall};
+use crate::{
+    agent::AgentStep,
+    schemas::{Message, ToolCall},
+};
 
 pub trait Memory: Send + Sync {
     fn messages(&self) -> Vec<Message>;
@@ -8,6 +11,16 @@ pub trait Memory: Send + Sync {
     fn clear(&mut self);
 
     fn to_string(&self) -> String;
+
+    fn update(&mut self, human_message: String, steps: Vec<AgentStep>, final_answer: String) {
+        self.add_human_message(human_message);
+        for step in steps {
+            let tool_call_id = step.tool_call.id.clone();
+            self.add_tool_call_message(vec![step.tool_call]);
+            self.add_tool_message(Some(tool_call_id), step.result);
+        }
+        self.add_ai_message(final_answer);
+    }
 
     fn add_human_message(&mut self, content: String) {
         self.add_message(Message::new_human_message(content))

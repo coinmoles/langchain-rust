@@ -1,38 +1,35 @@
-use std::collections::HashMap;
 use std::fmt::Display;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use indoc::formatdoc;
 use tokio::sync::RwLock;
 
 use crate::{
-    agent::{AgentError, AgentInput, AgentOutput, AgentStep},
-    chain::{Chain, ChainOutput, InputCtor, OutputCtor},
-    schemas::{GetPrompt, IntoWithUsage, Prompt, WithUsage},
+    agent::{Agent, AgentInput, ExecutionContext},
+    chain::{Chain, ChainError, ChainOutput, InputCtor, OutputCtor},
+    memory::Memory,
+    schemas::{GetPrompt, Prompt, WithUsage},
     template::TemplateError,
-    utils::helper::normalize_tool_name,
-    {agent::Agent, chain::ChainError, memory::Memory, schemas::TokenUsage},
 };
 
 use super::ExecutorOptions;
 
-pub struct AgentExecutor<'a, I: InputCtor, O: OutputCtor>
+pub struct AgentExecutor<'agent, I: InputCtor, O: OutputCtor>
 where
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    agent: Box<dyn Agent<I, O> + 'a>,
-    memory: Option<Arc<RwLock<dyn Memory>>>,
-    options: ExecutorOptions,
+    pub(super) agent: Box<dyn Agent<I, O> + 'agent>,
+    pub(super) memory: Option<Arc<RwLock<dyn Memory>>>,
+    pub(super) options: ExecutorOptions,
 }
 
-impl<'a, I: InputCtor, O: OutputCtor> AgentExecutor<'a, I, O>
+impl<'agent, I: InputCtor, O: OutputCtor> AgentExecutor<'agent, I, O>
 where
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    pub fn from_agent(agent: impl Agent<I, O> + 'a) -> Self {
+    pub fn from_agent(agent: impl Agent<I, O> + 'agent) -> Self {
         Self {
             agent: Box::new(agent),
             memory: None,
@@ -50,17 +47,11 @@ where
         self
     }
 
-    fn too_many_fails(&self, consecutive_fails: usize) -> Result<(), AgentError> {
-        if self
-            .options
-            .max_consecutive_fails
-            .is_some_and(|max_consecutive_fails| consecutive_fails >= max_consecutive_fails)
-        {
-            log::error!("Too many consecutive fails ({consecutive_fails} in a row), aborting");
-            return Err(AgentError::TooManyConsecutiveFails(consecutive_fails));
-        }
-
-        Ok(())
+    pub fn execution<'exec, 'input>(
+        &'exec self,
+        input: I::Target<'input>,
+    ) -> ExecutionContext<'exec, 'agent, 'input, I, O> {
+        ExecutionContext::new(self, input)
     }
 }
 
@@ -71,150 +62,7 @@ where
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
-        let human_message = input.to_string();
-        let options = &self.options;
-
-        let mut steps: Vec<AgentStep> = Vec::new();
-        let mut use_counts: HashMap<String, usize> = HashMap::new();
-        let mut consecutive_fails: usize = 0;
-        let mut total_usage: Option<TokenUsage> = None;
-        let mut input = AgentInput::new(input);
-
-        if log::log_enabled!(log::Level::Debug) {
-            let prompt = self.agent.get_prompt(&input)?;
-            for message in prompt.to_messages() {
-                log::debug!(
-                    "\n{}:\n{}",
-                    message.message_type.to_string().to_uppercase(),
-                    message.content
-                );
-            }
-        }
-
-        if let Some(memory) = &self.memory {
-            input.set_chat_history(memory.read().await.messages());
-        }
-
-        'step: loop {
-            self.too_many_fails(consecutive_fails)?;
-
-            let WithUsage { content, usage } = match self.agent.plan(&steps, &mut input).await {
-                Ok(agent_event) => agent_event,
-                Err(e) => {
-                    consecutive_fails += 1;
-                    log::warn!("Error: {e} ({consecutive_fails} consecutive fails)");
-                    continue 'step;
-                }
-            };
-
-            total_usage = TokenUsage::merge_options([&total_usage, &usage]);
-
-            match content {
-                AgentOutput::Action(tool_calls) => {
-                    if options
-                        .max_iterations
-                        .is_some_and(|max_iterations| steps.len() >= max_iterations)
-                    {
-                        log::warn!(
-                            "Max iteration ({}) reached, forcing final answer",
-                            steps.len()
-                        );
-                        input.enable_ultimatum();
-                        continue 'step;
-                    }
-
-                    for tool_call in tool_calls {
-                        log::debug!("\nTool call:\n{tool_call}");
-                        let tool_name = normalize_tool_name(&tool_call.name);
-                        let Some(tool) = self.agent.get_tool(&tool_name) else {
-                            consecutive_fails += 1;
-                            log::warn!(
-                                "Agent tried to use nonexistent tool '{tool_name}', retrying ({consecutive_fails} consecutive fails)",
-                            );
-                            continue 'step;
-                        };
-
-                        if let Some(usage_limit) = tool.usage_limit() {
-                            let count = use_counts.entry(tool_name.clone()).or_insert(0);
-                            *count += 1;
-                            if *count > usage_limit {
-                                consecutive_fails += 1;
-                                log::warn!(
-                                    "Agent repeatedly using tool '{tool_name}' (usage limit: {usage_limit}), \
-                                    preventing further use ({consecutive_fails} consecutive fails)",
-                                );
-                                continue 'step;
-                            }
-                        }
-
-                        let result = match tool.call(tool_call.arguments.clone()).await {
-                            Ok(result) => result.to_string(),
-                            Err(e) => {
-                                log::warn!("Tool '{tool_name}' encountered an error: {e}");
-                                if options.break_if_tool_error {
-                                    return Err(ChainError::AgentError(AgentError::ToolError(e)));
-                                }
-                                formatdoc! {"
-                                    Tool call failed: {e}
-                                    If the error doesn't make sense to you, it means that the tool is broken. DO NOT use this tool again."
-                                }
-                            }
-                        };
-
-                        log::debug!("\nTool {} result:\n{}", &tool_call.name, result);
-
-                        let agent_step = AgentStep::new(tool_call, result);
-
-                        steps.push(agent_step);
-                        consecutive_fails = 0;
-                    }
-                }
-                AgentOutput::Finish(final_answer) => {
-                    if let Some(validator) = &options.final_answer_validator {
-                        if !validator.validate_final_answer(&final_answer, &steps) {
-                            log::warn!(
-                                "Final answer validation failed ({consecutive_fails} consecutive fails)\nAnswer:{final_answer}"
-                            );
-                            continue 'step;
-                        }
-                    }
-                    log::debug!("\nAgent finished with result:\n{}", &final_answer);
-
-                    let answer = match O::Target::construct_from_text_and_input(
-                        input.inner,
-                        final_answer.clone(),
-                    ) {
-                        Ok(answer) => answer,
-                        Err((returned_input, e)) => {
-                            log::warn!(
-                                "Failed to construct output from final answer: {e}  ({consecutive_fails} consecutive fails)",
-                            );
-                            consecutive_fails += 1;
-                            input.inner = returned_input;
-                            continue 'step;
-                        }
-                    };
-
-                    if let Some(memory) = &self.memory {
-                        let mut memory = memory.write().await;
-
-                        memory.add_human_message(human_message);
-
-                        for step in steps {
-                            memory.add_tool_call_message(vec![step.tool_call.clone()]);
-                            memory.add_tool_message(
-                                Some(step.tool_call.id.clone()),
-                                step.result.clone(),
-                            );
-                        }
-
-                        memory.add_ai_message(final_answer);
-                    }
-
-                    return Ok(answer.with_usage(total_usage));
-                }
-            }
-        }
+        self.execution(input).start().await
     }
 }
 

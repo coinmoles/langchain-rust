@@ -64,6 +64,7 @@ async fn main() {
             .call(Value::String(chunk.page_content.to_string()))
             .await
             .unwrap()
+            .data
             .to_string();
 
         let path = std::path::Path::new(&path).canonicalize().unwrap();

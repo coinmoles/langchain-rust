@@ -73,7 +73,7 @@ mod tests {
 
         let list_tools_tool = ListTools::new(&Arc::new(toolbox));
         println!("{:#?}", list_tools_tool.as_openai_tool());
-        println!("{}", list_tools_tool.call(json!({})).await.unwrap());
+        println!("{}", list_tools_tool.call(json!({})).await.unwrap().data);
     }
 
     #[tokio::test]

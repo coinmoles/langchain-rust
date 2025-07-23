@@ -137,7 +137,7 @@ mod tests {
             "query": "Who is the current President of Peru?"
         });
 
-        let result = tool.call(input).await.unwrap();
+        let result = tool.call(input).await.unwrap().data;
         println!("{result}");
     }
 
@@ -149,7 +149,7 @@ mod tests {
             "query": "vaygbuoipqyngxaupoidfcaasdcfjlkqwhfqhsakdnasfsfclkvahsxczkgjqeopjraoisphd"
         });
 
-        let result = tool.call(input).await.unwrap();
+        let result = tool.call(input).await.unwrap().data;
         println!("{result}");
     }
 }
