@@ -1,18 +1,13 @@
-use crate::schemas::ToolCall;
+use crate::{schemas::ToolCall, tools::ToolOutput};
 
 #[derive(Debug, Clone)]
 pub struct AgentStep {
     pub tool_call: ToolCall,
-    pub result: String,
-    pub summary: Option<String>,
+    pub output: ToolOutput,
 }
 
 impl AgentStep {
-    pub fn new(tool_call: ToolCall, result: impl Into<String>, summary: Option<String>) -> Self {
-        Self {
-            tool_call,
-            result: result.into(),
-            summary,
-        }
+    pub fn new(tool_call: ToolCall, output: ToolOutput) -> Self {
+        Self { tool_call, output }
     }
 }

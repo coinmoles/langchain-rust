@@ -150,9 +150,9 @@ where
             };
 
             match tool.call(call.arguments.clone()).await {
-                Ok(result) => {
-                    log::debug!("\nTool {} result:\n{}", &call.name, result.data);
-                    let step = AgentStep::new(call, result.data.to_string(), result.summary);
+                Ok(output) => {
+                    log::debug!("\nTool {} result:\n{}", &call.name, output.data);
+                    let step = AgentStep::new(call, output);
                     self.steps.push(step);
                     self.consecutive_fails = 0;
                 }
