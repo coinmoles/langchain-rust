@@ -145,17 +145,9 @@ where
             log::debug!("\nTool call:\n{call}");
             let tool_name = normalize_tool_name(&call.name);
 
-            let Some(tool) = self.executor.agent.get_tool(&tool_name) else {
-                self.bump_failure(&format!("Tried to use nonexistent tool '{tool_name}'"));
-                return;
+            let Some(tool) = self.get_tool_with_use_count_check(&tool_name) else {
+                continue;
             };
-
-            if let Err(usage_limit) = self.tool_use_limit_reached(tool, &tool_name) {
-                self.bump_failure(&format!(
-                    "Tool '{tool_name}' usage limit reached ({usage_limit})"
-                ));
-                return;
-            }
 
             match tool.call(call.arguments.clone()).await {
                 Ok(result) => {
@@ -172,6 +164,24 @@ where
         }
     }
 
+    fn get_tool_with_use_count_check(&mut self, tool_name: &str) -> Option<&dyn ToolDyn> {
+        let Some(tool) = self.executor.agent.get_tool(tool_name) else {
+            self.bump_failure(&format!("Tried to use nonexistent tool '{tool_name}'"));
+            return None;
+        };
+        if let Some(usage_limit) = tool.usage_limit() {
+            let count = self.use_counts.entry(tool_name.to_string()).or_insert(0);
+            *count += 1;
+            if *count > usage_limit {
+                self.bump_failure(&format!(
+                    "Tool '{tool_name}' usage limit reached ({usage_limit})"
+                ));
+                return None;
+            }
+        }
+        Some(tool)
+    }
+
     fn max_iterations_reached(&self) -> bool {
         self.executor
             .options
@@ -184,17 +194,6 @@ where
             .options
             .max_consecutive_fails
             .is_some_and(|max_consecutive_fails| self.consecutive_fails >= max_consecutive_fails)
-    }
-
-    fn tool_use_limit_reached(&mut self, tool: &dyn ToolDyn, tool_name: &str) -> Result<(), usize> {
-        if let Some(usage_limit) = tool.usage_limit() {
-            let count = self.use_counts.entry(tool_name.to_string()).or_insert(0);
-            *count += 1;
-            if *count > usage_limit {
-                return Err(*count);
-            }
-        }
-        Ok(())
     }
 
     fn is_final_answer_valid(&self, final_answer: &str) -> bool {
