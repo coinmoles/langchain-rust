@@ -47,3 +47,12 @@ where
         ToolData::List(list)
     }
 }
+
+impl ToolData {
+    pub fn into_vec(self) -> Vec<String> {
+        match self {
+            ToolData::Text(text) => vec![text],
+            ToolData::List(list) => list,
+        }
+    }
+}
