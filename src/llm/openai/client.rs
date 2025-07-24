@@ -42,7 +42,7 @@ impl<C: Config> OpenAI<C> {
     fn process_prompt(&self, prompt: Vec<Message>) -> Vec<Message> {
         prompt
             .into_iter()
-            .filter(|message| !message.content.is_empty())
+            .filter(|message| !message.content.is_empty() || message.tool_calls.is_some())
             .map(|message| match message.message_type {
                 MessageType::System if self.call_options.system_is_assistant => Message {
                     message_type: MessageType::Ai,
