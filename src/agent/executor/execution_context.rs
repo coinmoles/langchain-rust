@@ -73,7 +73,7 @@ where
 
                     let human_message = self.input.inner.to_string();
                     // `self.input.inner` is moved here, this cannot be done in a separate method which receives `&self`.
-                    let answer = match O::Target::construct_from_text_and_input(
+                    let answer = match O::Target::from_text_and_input(
                         self.input.inner,
                         final_answer.clone(),
                     ) {

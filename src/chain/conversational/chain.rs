@@ -65,9 +65,9 @@ where
         }
 
         let content = match result.content {
-            LLMOutput::Text(text) => O::Target::construct_from_text_and_input(input.inner, text)?,
+            LLMOutput::Text(text) => O::Target::from_text_and_input(input.inner, text)?,
             LLMOutput::ToolCall(tool_calls) => {
-                O::Target::construct_from_tool_call_and_input(input.inner, tool_calls)?
+                O::Target::from_tool_call_and_input(input.inner, tool_calls)?
             }
         };
 

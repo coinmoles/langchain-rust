@@ -20,7 +20,7 @@ impl<O: DeserializeOwned + Send + Sync + 'static> PureOutput<O> {
 }
 
 impl<T, O: DeserializeOwned + Send + Sync> ChainOutput<T> for PureOutput<O> {
-    fn construct_from_text(output: impl Into<String>) -> Result<Self, OutputParseError> {
+    fn from_text(output: impl Into<String>) -> Result<Self, OutputParseError> {
         let original: String = output.into();
         let value = match parse_partial_json(&original, false) {
             Ok(value) => value,

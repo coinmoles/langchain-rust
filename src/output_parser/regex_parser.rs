@@ -73,11 +73,11 @@ where
         output: String,
     ) -> Result<O::Target<'a>, (I::Target<'a>, OutputParseError)> {
         let (input, sanitized_output) = self.sanitize(&output).with_input(input)?;
-        O::Target::construct_from_text_and_input(input, sanitized_output)
+        O::Target::from_text_and_input(input, sanitized_output)
     }
 
     fn parse_from_text<'a>(&self, output: String) -> Result<O::Target<'a>, OutputParseError> {
-        O::Target::construct_from_text(self.sanitize(&output)?)
+        O::Target::from_text(self.sanitize(&output)?)
     }
 }
 

@@ -29,13 +29,11 @@ impl Default for LLMOutput {
 }
 
 impl<T> ChainOutput<T> for LLMOutput {
-    fn construct_from_text(
-        text: impl Into<String>,
-    ) -> Result<Self, crate::output_parser::OutputParseError> {
+    fn from_text(text: impl Into<String>) -> Result<Self, crate::output_parser::OutputParseError> {
         Ok(LLMOutput::Text(text.into()))
     }
 
-    fn construct_from_tool_call(
+    fn from_tool_call(
         tool_calls: Vec<ToolCall>,
     ) -> Result<Self, crate::output_parser::OutputParseError> {
         Ok(LLMOutput::ToolCall(tool_calls))

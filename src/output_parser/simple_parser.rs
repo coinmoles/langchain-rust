@@ -54,17 +54,17 @@ where
         output: String,
     ) -> Result<O::Target<'a>, (I::Target<'a>, OutputParseError)> {
         if self.trim {
-            O::Target::construct_from_text_and_input(input, output.trim())
+            O::Target::from_text_and_input(input, output.trim())
         } else {
-            O::Target::construct_from_text_and_input(input, output)
+            O::Target::from_text_and_input(input, output)
         }
     }
 
     fn parse_from_text<'a>(&self, output: String) -> Result<O::Target<'a>, OutputParseError> {
         if self.trim {
-            O::Target::construct_from_text(output.trim())
+            O::Target::from_text(output.trim())
         } else {
-            O::Target::construct_from_text(output)
+            O::Target::from_text(output)
         }
     }
 }

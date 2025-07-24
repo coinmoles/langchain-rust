@@ -258,9 +258,9 @@ pub fn derive_chain_output(
     };
 
     let fn_signature = if use_input {
-        quote! { fn construct_from_text_and_input(input: #from_input, text: impl Into<String>) -> Result<Self, (#input_ty, #crate_path::output_parser::OutputParseError)> }
+        quote! { fn from_text_and_input(input: #from_input, text: impl Into<String>) -> Result<Self, (#input_ty, #crate_path::output_parser::OutputParseError)> }
     } else {
-        quote! { fn construct_from_text(text: impl Into<String>) -> Result<Self, #crate_path::output_parser::OutputParseError> }
+        quote! { fn from_text(text: impl Into<String>) -> Result<Self, #crate_path::output_parser::OutputParseError> }
     };
 
     let expanded = quote! {
