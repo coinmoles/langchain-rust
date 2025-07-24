@@ -13,11 +13,7 @@ use crate::{
 use super::{AgentError, AgentExecutor, AgentInput};
 
 #[async_trait]
-pub trait Agent<I: InputCtor, O: OutputCtor>: Send + Sync
-where
-    for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
-{
+pub trait Agent<I: InputCtor, O: OutputCtor>: Send + Sync {
     async fn plan<'a>(
         &self,
         steps: &[AgentStep],
@@ -29,6 +25,8 @@ where
     fn executor<'a>(self) -> AgentExecutor<'a, I, O>
     where
         Self: Sized + 'a,
+        for<'any> I::Target<'any>: Display,
+        for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
     {
         AgentExecutor::from_agent(self)
     }

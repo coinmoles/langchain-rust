@@ -1,13 +1,12 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fmt::Display;
 
 use crate::{
     agent::{
         Agent, AgentError, AgentInput, AgentInputCtor, AgentOutput, AgentOutputCtor, AgentStep,
     },
-    chain::{ChainOutput, DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor, StringCtor},
+    chain::{DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor, StringCtor},
     schemas::{GetPrompt, Message, Prompt, WithUsage},
     template::TemplateError,
     tools::{ToolDyn, Toolbox},
@@ -22,22 +21,14 @@ pub struct LogTools {
     pub tools: String,
 }
 
-pub struct OpenAiToolAgent<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor>
-where
-    for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
-{
+pub struct OpenAiToolAgent<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor> {
     pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
     pub(super) tools: HashMap<String, Box<dyn ToolDyn>>,
     pub(super) toolboxes: Vec<Box<dyn Toolbox>>,
     pub(super) _phantom: std::marker::PhantomData<O>,
 }
 
-impl<I: InputCtor, O: OutputCtor> OpenAiToolAgent<I, O>
-where
-    for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
-{
+impl<I: InputCtor, O: OutputCtor> OpenAiToolAgent<I, O> {
     pub fn builder<'a, 'b>() -> OpenAiToolAgentBuilder<'a, 'b, I, O> {
         OpenAiToolAgentBuilder::new()
     }
@@ -56,11 +47,7 @@ where
 }
 
 #[async_trait]
-impl<I: InputCtor, O: OutputCtor> Agent<I, O> for OpenAiToolAgent<I, O>
-where
-    for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
-{
+impl<I: InputCtor, O: OutputCtor> Agent<I, O> for OpenAiToolAgent<I, O> {
     async fn plan<'i>(
         &self,
         steps: &[AgentStep],
@@ -90,11 +77,7 @@ where
     }
 }
 
-impl<I: InputCtor, O: OutputCtor> GetPrompt<I::Target<'_>> for OpenAiToolAgent<I, O>
-where
-    for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
-{
+impl<I: InputCtor, O: OutputCtor> GetPrompt<I::Target<'_>> for OpenAiToolAgent<I, O> {
     fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, TemplateError> {
         self.llm_chain.get_prompt(&AgentInput::new(input))
     }

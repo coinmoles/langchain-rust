@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
 
@@ -6,7 +6,7 @@ use crate::{
     agent::{
         Agent, AgentError, AgentInput, AgentInputCtor, AgentOutput, AgentOutputCtor, AgentStep,
     },
-    chain::{ChainOutput, DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor, StringCtor},
+    chain::{DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor, StringCtor},
     schemas::{GetPrompt, Message, Prompt, WithUsage},
     template::TemplateError,
     tools::{ToolDyn, Toolbox},
@@ -14,22 +14,14 @@ use crate::{
 
 use super::ConversationalAgentBuilder;
 
-pub struct ConversationalAgent<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor>
-where
-    for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
-{
+pub struct ConversationalAgent<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor> {
     pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
     pub(super) tools: HashMap<String, Box<dyn ToolDyn>>,
     pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
     pub(super) _phantom: std::marker::PhantomData<O>,
 }
 
-impl<I: InputCtor, O: OutputCtor> ConversationalAgent<I, O>
-where
-    for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
-{
+impl<I: InputCtor, O: OutputCtor> ConversationalAgent<I, O> {
     pub fn new(
         llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
         tools: HashMap<String, Box<dyn ToolDyn>>,
@@ -61,11 +53,7 @@ where
 }
 
 #[async_trait]
-impl<I: InputCtor, O: OutputCtor> Agent<I, O> for ConversationalAgent<I, O>
-where
-    for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
-{
+impl<I: InputCtor, O: OutputCtor> Agent<I, O> for ConversationalAgent<I, O> {
     async fn plan<'i>(
         &self,
         steps: &[AgentStep],

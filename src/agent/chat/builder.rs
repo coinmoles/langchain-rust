@@ -1,8 +1,8 @@
-use std::{collections::HashMap, fmt::Display, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     agent::create_prompt,
-    chain::{ChainOutput, DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor, StringCtor},
+    chain::{DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor, StringCtor},
     instructor::{BoxInstructorExt, DefaultInstructor, Instructor},
     llm::LLM,
     schemas::BuilderError,
@@ -20,10 +20,7 @@ pub struct ConversationalAgentBuilder<
     'b,
     I: InputCtor = DefaultChainInputCtor,
     O: OutputCtor = StringCtor,
-> where
-    for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
-{
+> {
     tools: Option<Vec<Box<dyn ToolDyn>>>,
     toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     system_prompt: Option<&'a str>,
@@ -32,11 +29,7 @@ pub struct ConversationalAgentBuilder<
     _phantom: std::marker::PhantomData<(I, O)>,
 }
 
-impl<'a, 'b, I: InputCtor, O: OutputCtor> ConversationalAgentBuilder<'a, 'b, I, O>
-where
-    for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
-{
+impl<'a, 'b, I: InputCtor, O: OutputCtor> ConversationalAgentBuilder<'a, 'b, I, O> {
     pub(super) fn new() -> Self {
         Self {
             tools: None,

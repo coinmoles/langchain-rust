@@ -1,8 +1,6 @@
-use std::fmt::Display;
-
 use crate::{
     agent::create_prompt,
-    chain::{ChainOutput, InputCtor, LLMChain, OutputCtor},
+    chain::{InputCtor, LLMChain, OutputCtor},
     llm::{options::CallOptions, LLM},
     schemas::BuilderError,
     tools::{ToolDyn, Toolbox},
@@ -14,11 +12,7 @@ use super::{
     OpenAiToolAgent,
 };
 
-pub struct OpenAiToolAgentBuilder<'a, 'b, I: InputCtor, O: OutputCtor>
-where
-    for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
-{
+pub struct OpenAiToolAgentBuilder<'a, 'b, I: InputCtor, O: OutputCtor> {
     tools: Option<Vec<Box<dyn ToolDyn>>>,
     toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     system_prompt: Option<&'a str>,
@@ -26,11 +20,7 @@ where
     _phantom: std::marker::PhantomData<(I, O)>,
 }
 
-impl<'a, 'b, I: InputCtor, O: OutputCtor> OpenAiToolAgentBuilder<'a, 'b, I, O>
-where
-    for<'any> I::Target<'any>: Display,
-    for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
-{
+impl<'a, 'b, I: InputCtor, O: OutputCtor> OpenAiToolAgentBuilder<'a, 'b, I, O> {
     pub(super) fn new() -> Self {
         Self {
             tools: None,
