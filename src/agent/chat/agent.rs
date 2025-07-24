@@ -45,7 +45,7 @@ impl<I: InputCtor, O: OutputCtor> ConversationalAgent<I, O> {
             .flat_map(|step| {
                 vec![
                     Message::new_ai_message(&step.tool_call),
-                    Message::new_human_message(&step.output.data),
+                    Message::new_human_message(&step.result),
                 ]
             })
             .collect::<Vec<_>>()

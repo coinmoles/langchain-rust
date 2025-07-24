@@ -17,7 +17,7 @@ pub trait Memory: Send + Sync {
         for step in steps {
             let tool_call_id = step.tool_call.id.clone();
             self.add_tool_call_message(vec![step.tool_call]);
-            self.add_tool_message(Some(tool_call_id), step.output.data.to_string());
+            self.add_tool_message(Some(tool_call_id), step.result);
         }
         self.add_ai_message(final_answer);
     }

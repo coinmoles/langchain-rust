@@ -39,10 +39,7 @@ impl<I: InputCtor, O: OutputCtor> OpenAiToolAgent<I, O> {
             .flat_map(|step| {
                 vec![
                     Message::new_tool_call_message([step.tool_call.clone()]),
-                    Message::new_tool_message(
-                        Some(&step.tool_call.id),
-                        step.output.data.to_string(),
-                    ),
+                    Message::new_tool_message(Some(&step.tool_call.id), step.result.clone()),
                 ]
             })
             .collect::<Vec<_>>()

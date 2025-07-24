@@ -1,4 +1,3 @@
-#[derive(Debug, Clone)]
 pub struct ToolOutput {
     pub data: ToolData,
     pub summary: Option<String>,
