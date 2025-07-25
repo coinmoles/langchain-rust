@@ -1,5 +1,7 @@
 use std::{collections::HashMap, fmt::Display};
 
+use tracing::{info_span, Instrument, Span};
+
 use crate::{
     agent::{
         AgentError, AgentExecutor, AgentInput, AgentOutput, AgentStep, DefaultStrategy,
@@ -75,25 +77,35 @@ where
     /// Entry point – iteratively plan / execute tool actions until the agent
     /// produces a valid final answer that can be transformed into `O`.
     pub async fn start(mut self) -> Result<ExecutionOutput<'input, O, S>, ChainError> {
-        self.log_initial_prompt()?;
-        self.load_memory().await;
-        self.input = self.strategy.prepare_input::<I>(self.input).await?;
+        let span = if let Some(id) = self.strategy.agent_id() {
+            info_span!("agent_execution", %id)
+        } else {
+            Span::none()
+        };
 
-        while !self.fail_limit_reached() {
-            let Ok(plan) = self.plan_step().await else {
-                continue;
-            };
+        async move {
+            self.log_initial_prompt()?;
+            self.load_memory().await;
+            self.input = self.strategy.prepare_input::<I>(self.input).await?;
 
-            match plan {
-                AgentOutput::Action(tool_calls) => self.handle_tool_calls(tool_calls).await,
-                AgentOutput::Finish(final_answer) => match self.finalize(final_answer).await {
-                    Ok(ok) => return Ok(ok),
-                    Err(FinalizeFailure::Abort(e)) => return Err(e),
-                    Err(FinalizeFailure::Retry(new_context)) => self = new_context,
-                },
+            while !self.fail_limit_reached() {
+                let Ok(plan) = self.plan_step().await else {
+                    continue;
+                };
+
+                match plan {
+                    AgentOutput::Action(tool_calls) => self.handle_tool_calls(tool_calls).await,
+                    AgentOutput::Finish(final_answer) => match self.finalize(final_answer).await {
+                        Ok(ok) => return Ok(ok),
+                        Err(FinalizeFailure::Abort(e)) => return Err(e),
+                        Err(FinalizeFailure::Retry(new_context)) => self = new_context,
+                    },
+                }
             }
+            Err(AgentError::TooManyConsecutiveFails(self.consecutive_fails).into())
         }
-        Err(AgentError::TooManyConsecutiveFails(self.consecutive_fails).into())
+        .instrument(span)
+        .await
     }
 
     fn log_initial_prompt(&self) -> Result<(), ChainError> {

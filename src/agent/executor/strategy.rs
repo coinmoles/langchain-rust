@@ -23,6 +23,8 @@ use crate::{
 ///    converting it to `O::Target`.
 /// 6. [`finalize`] — produce any strategy-specific artifact to return to the caller.
 ///
+/// Additionally, you can implement [`agent_id`] to customize the log output.
+///
 /// All hooks have **no-op pass-through defaults** so you only override what you need.
 ///
 /// ### Thread-safety
@@ -36,6 +38,11 @@ pub trait Strategy: Default + Send + Sync {
     /// Type produced by [`finalize`]. Often used to return strategy-specific
     /// side artifacts (e.g., tag indices, telemetry, transcripts).
     type Output;
+
+    /// Unique identifier for the agent, used for logging and telemetry.
+    fn agent_id(&self) -> Option<String> {
+        None
+    }
 
     /// Prepare (augment / normalize) the initial `AgentInput` **before the first plan**.
     ///

@@ -123,6 +123,7 @@ opensearch = { version = "2", optional = true, default-features = false, feature
     "aws-auth",
     "rustls-tls",
 ] }
+tracing = "0.1.41"
 
 [features]
 default = ["rustls"]
