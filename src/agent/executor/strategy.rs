@@ -67,11 +67,14 @@ pub trait Strategy: Default + Send + Sync {
     /// - Add indirections (aliases, fallbacks, version pinning, canary tools, ...).
     ///
     /// Default: delegates to `agent.get_tool(tool_name)`.
-    fn resolve_tool<'agent, I: InputCtor, O: OutputCtor>(
-        &'agent mut self,
-        agent: &'agent dyn Agent<I, O>,
+    fn resolve_tool<'tool, I: InputCtor, O: OutputCtor>(
+        &'tool mut self,
+        agent: &'tool dyn Agent<I, O>,
         tool_name: &str,
-    ) -> Option<&'agent dyn ToolDyn> {
+    ) -> Option<&'tool dyn ToolDyn>
+    where
+        Self: 'tool,
+    {
         agent.get_tool(tool_name)
     }
 
