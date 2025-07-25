@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     chain::{ChainInput, Ctor},
     schemas::Message,
@@ -19,7 +17,7 @@ pub struct AgentInput<I: ChainInput> {
     pub ultimatum: Option<Vec<Message>>,
     #[cfg(feature = "extra-keys")]
     #[langchain(into = "inner")]
-    pub extra_keys: HashMap<String, String>,
+    pub extra_keys: std::collections::HashMap<String, String>,
 }
 
 impl<I: ChainInput> AgentInput<I> {
@@ -30,7 +28,7 @@ impl<I: ChainInput> AgentInput<I> {
             chat_history: None,
             ultimatum: None,
             #[cfg(feature = "extra-keys")]
-            extra_keys: HashMap::new(),
+            extra_keys: std::collections::HashMap::new(),
         }
     }
 
