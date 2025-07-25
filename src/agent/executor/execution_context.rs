@@ -57,7 +57,11 @@ where
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     #[must_use]
-    pub fn new(executor: &'exec AgentExecutor<'agent, I, O>, input: I::Target<'input>) -> Self {
+    pub fn new(
+        executor: &'exec AgentExecutor<'agent, I, O>,
+        input: I::Target<'input>,
+        strategy: S,
+    ) -> Self {
         Self {
             executor,
             input: AgentInput::new(input),
@@ -65,7 +69,7 @@ where
             use_counts: HashMap::new(),
             consecutive_fails: 0,
             total_usage: None,
-            strategy: S::default(),
+            strategy,
         }
     }
 

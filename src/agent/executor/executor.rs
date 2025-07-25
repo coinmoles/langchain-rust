@@ -50,8 +50,9 @@ where
     pub fn execution<'exec, 'input, S: Strategy>(
         &'exec self,
         input: I::Target<'input>,
+        strategy: S,
     ) -> ExecutionContext<'exec, 'agent, 'input, I, O, S> {
-        ExecutionContext::new(self, input)
+        ExecutionContext::new(self, input, strategy)
     }
 }
 
@@ -62,7 +63,7 @@ where
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
-        let output = self.execution::<DefaultStrategy>(input).start().await?;
+        let output = self.execution(input, DefaultStrategy).start().await?;
         Ok(output.without_extra())
     }
 }
