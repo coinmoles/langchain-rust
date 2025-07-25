@@ -67,6 +67,11 @@ where
         }
     }
 
+    pub fn with_strategy(mut self, strategy: S) -> Self {
+        self.strategy = strategy;
+        self
+    }
+
     /// Entry point – iteratively plan / execute tool actions until the agent
     /// produces a valid final answer that can be transformed into `O`.
     pub async fn start(mut self) -> Result<ExecutionOutput<'input, O, S>, ChainError> {
