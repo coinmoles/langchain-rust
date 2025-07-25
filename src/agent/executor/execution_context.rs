@@ -168,7 +168,7 @@ where
                 return;
             };
 
-            log::debug!("\nTool {} result:\n{}", &call.name, result.data);
+            log::trace!("\nTool {} raw result:\n{}", &call.name, result.data);
 
             let Ok(step) = self
                 .strategy
@@ -178,6 +178,7 @@ where
             else {
                 return;
             };
+            log::debug!("\nTool {} result:\n{}", &step.tool_call.name, step.result);
             self.steps.push(step);
             self.consecutive_fails = 0;
         }
