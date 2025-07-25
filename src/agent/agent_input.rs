@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     chain::{ChainInput, Ctor},
     schemas::Message,
@@ -15,6 +17,9 @@ pub struct AgentInput<I: ChainInput> {
     pub chat_history: Option<Vec<Message>>,
     #[langchain(into = "placeholder")]
     pub ultimatum: Option<Vec<Message>>,
+    #[cfg(feature = "extra-keys")]
+    #[langchain(into = "inner")]
+    pub extra_keys: HashMap<String, String>,
 }
 
 impl<I: ChainInput> AgentInput<I> {
@@ -24,6 +29,8 @@ impl<I: ChainInput> AgentInput<I> {
             agent_scratchpad: None,
             chat_history: None,
             ultimatum: None,
+            #[cfg(feature = "extra-keys")]
+            extra_keys: HashMap::new(),
         }
     }
 
@@ -40,5 +47,10 @@ impl<I: ChainInput> AgentInput<I> {
             Message::new_ai_message(""),
             Message::new_human_message(FORCE_FINAL_ANSWER),
         ]);
+    }
+
+    #[cfg(feature = "extra-keys")]
+    pub fn add_extra_key(&mut self, key: String, value: String) {
+        self.extra_keys.insert(key, value);
     }
 }

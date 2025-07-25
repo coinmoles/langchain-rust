@@ -172,6 +172,7 @@ qdrant = ["qdrant-client"]
 sqlite-vec = ["sqlx"]
 sqlite-vss = ["sqlx"]
 surrealdb = ["dep:surrealdb"]
+extra-keys = []
 
 # Example
 opensearch = ["dep:opensearch", "dep:aws-config", "rustls"]

@@ -1,27 +1,44 @@
 use std::{collections::HashMap, fmt::Display};
 
 use crate::{
-    agent::{AgentError, AgentExecutor, AgentInput, AgentOutput, AgentStep},
+    agent::{
+        AgentError, AgentExecutor, AgentInput, AgentOutput, AgentStep, DefaultStrategy,
+        ExecutionOutput, Strategy,
+    },
     chain::{ChainError, ChainOutput, InputCtor, OutputCtor},
     schemas::{IntoWithUsage, TokenUsage, ToolCall, WithUsage},
     tools::ToolDyn,
     utils::helper::normalize_tool_name,
 };
 
+macro_rules! failure {
+    ($ctx:expr, $($arg:tt)*) => {{
+        $ctx.consecutive_fails += 1;
+        log::warn!("{} ({} consecutive fails)", ::core::format_args!($($arg)*), $ctx.consecutive_fails);
+    }};
+}
+
+enum FinalizeFailure<Ctx> {
+    Retry(Ctx),
+    Abort(ChainError),
+}
+
 /// Runtime context that owns all mutable state during an [`AgentExecutor`] run.
 ///
-/// * `steps` - transcript of executed tool calls so far
-/// * `use_counts` - per-tool invocation counters (enforced via the tool’s `usage_limit()`)
-/// * `fails_in_a_row` - consecutive planning / execution failures for back-off & abort logic
-/// * `total_usage` - cumulative token accounting (merged from the LLM and tools)
-pub struct ExecutionContext<'exec, 'agent, 'input, I, O>
+/// * `steps`              - transcript of executed tool calls so far
+/// * `use_counts`         - per-tool invocation counters
+/// * `consecutive_fails`  - back-off & abort logic
+/// * `total_usage`        - cumulative token accounting
+pub struct ExecutionContext<'exec, 'agent, 'input, I, O, S = DefaultStrategy>
 where
     I: InputCtor,
     O: OutputCtor,
+    S: Strategy,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     executor: &'exec AgentExecutor<'agent, I, O>,
+    strategy: S,
     input: AgentInput<I::Target<'input>>,
     steps: Vec<AgentStep>,
     use_counts: HashMap<String, usize>,
@@ -29,13 +46,15 @@ where
     total_usage: Option<TokenUsage>,
 }
 
-impl<'exec, 'agent, 'input, I, O> ExecutionContext<'exec, 'agent, 'input, I, O>
+impl<'exec, 'agent, 'input, I, O, S> ExecutionContext<'exec, 'agent, 'input, I, O, S>
 where
     I: InputCtor,
     O: OutputCtor,
+    S: Strategy,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
+    #[must_use]
     pub fn new(executor: &'exec AgentExecutor<'agent, I, O>, input: I::Target<'input>) -> Self {
         Self {
             executor,
@@ -44,74 +63,45 @@ where
             use_counts: HashMap::new(),
             consecutive_fails: 0,
             total_usage: None,
+            strategy: S::default(),
         }
     }
 
     /// Entry point – iteratively plan / execute tool actions until the agent
     /// produces a valid final answer that can be transformed into `O`.
-    pub async fn start(mut self) -> Result<WithUsage<O::Target<'input>>, ChainError> {
+    pub async fn start(mut self) -> Result<ExecutionOutput<'input, O, S>, ChainError> {
         self.log_initial_prompt()?;
         self.load_memory().await;
+        self.input = self.strategy.prepare_input::<I>(self.input).await?;
 
         while !self.fail_limit_reached() {
-            let Ok(plan) = self.plan_next_step().await else {
+            let Ok(plan) = self.plan_step().await else {
                 continue;
             };
 
             match plan {
-                AgentOutput::Action(tool_calls) => self.execute_tool_calls(tool_calls).await,
-                // This match arm cannot be extracted into a separate method because of ownership issue involving `self.input.inner`.
-                AgentOutput::Finish(final_answer) => {
-                    if !self.is_final_answer_valid(&final_answer) {
-                        self.bump_failure(&format!(
-                            "Final answer validation failed: {final_answer}"
-                        ));
-                        continue;
-                    }
-
-                    log::debug!("\nAgent finished with result:\n{final_answer}");
-
-                    let human_message = self.input.inner.to_string();
-                    // `self.input.inner` is moved here, this cannot be done in a separate method which receives `&self`.
-                    let answer = match O::Target::from_text_and_input(
-                        self.input.inner,
-                        final_answer.clone(),
-                    ) {
-                        Ok(answer) => answer,
-                        Err((returned_input, e)) => {
-                            // If the final answer cannot be constructed, `self.input.inner` is set again.
-                            self.input.inner = returned_input;
-                            self.bump_failure(&format!(
-                                "Failed to construct output from final answer: {e}"
-                            ));
-                            continue;
-                        }
-                    };
-
-                    if let Some(memory) = &self.executor.memory {
-                        memory
-                            .write()
-                            .await
-                            .update(human_message, self.steps, final_answer);
-                    }
-
-                    return Ok(answer.with_usage(self.total_usage));
-                }
+                AgentOutput::Action(tool_calls) => self.handle_tool_calls(tool_calls).await,
+                AgentOutput::Finish(final_answer) => match self.finalize(final_answer).await {
+                    Ok(ok) => return Ok(ok),
+                    Err(FinalizeFailure::Abort(e)) => return Err(e),
+                    Err(FinalizeFailure::Retry(new_context)) => self = new_context,
+                },
             }
         }
-
         Err(AgentError::TooManyConsecutiveFails(self.consecutive_fails).into())
     }
 
     fn log_initial_prompt(&self) -> Result<(), ChainError> {
-        if log::log_enabled!(log::Level::Debug) {
-            for message in self.executor.agent.get_prompt(&self.input)?.to_messages() {
-                log::debug!(
-                    "\n{}:\n{}",
-                    message.message_type.to_string().to_uppercase(),
-                    message.content
-                );
-            }
+        if !log::log_enabled!(log::Level::Debug) {
+            return Ok(());
+        }
+
+        for message in self.executor.agent.get_prompt(&self.input)?.to_messages() {
+            log::debug!(
+                "{}:\n{}",
+                message.message_type.to_string().to_uppercase(),
+                message.content
+            );
         }
         Ok(())
     }
@@ -122,20 +112,20 @@ where
         }
     }
 
-    async fn plan_next_step(&mut self) -> Result<AgentOutput, ChainError> {
-        match self.executor.agent.plan(&self.steps, &mut self.input).await {
-            Ok(plan) => {
-                self.add_usage(plan.usage);
-                Ok(plan.content)
-            }
-            Err(e) => {
-                self.bump_failure(&format!("Failed to plan next step: {e}"));
-                Err(e.into())
-            }
-        }
+    async fn plan_step(&mut self) -> Result<AgentOutput, ChainError> {
+        let plan = self
+            .executor
+            .agent
+            .plan(&self.steps, &mut self.input)
+            .await
+            .inspect_err(|e| failure!(self, "Failed to plan next step: {e}"))?;
+
+        let plan = self.strategy.process_plan(plan).await?;
+        self.add_usage(plan.usage);
+        Ok(plan.content)
     }
 
-    async fn execute_tool_calls(&mut self, tool_calls: Vec<ToolCall>) {
+    async fn handle_tool_calls(&mut self, tool_calls: Vec<ToolCall>) {
         if self.max_iterations_reached() {
             self.force_final_answer();
             return;
@@ -146,36 +136,85 @@ where
             let tool_name = normalize_tool_name(&call.name);
 
             let Some(tool) = self.get_tool_with_use_count_check(&tool_name) else {
-                continue;
+                return;
             };
 
-            match tool.call(call.arguments.clone()).await {
-                Ok(result) => {
-                    log::debug!("\nTool {} result:\n{}", &call.name, result.data);
-                    let step = AgentStep::new(call, result.data.to_string(), result.summary);
-                    self.steps.push(step);
-                    self.consecutive_fails = 0;
-                }
-                Err(e) => {
-                    self.bump_failure(&format!("Tool '{tool_name}' error: {e}"));
-                    return;
-                }
+            let Ok(result) = tool
+                .call(call.arguments.clone())
+                .await
+                .inspect_err(|e| failure!(self, "Tool '{tool_name}' error: {e}"))
+            else {
+                return;
             };
+
+            log::debug!("\nTool {} result:\n{}", &call.name, result.data);
+
+            let Ok(step) = self
+                .strategy
+                .build_step(call, result)
+                .await
+                .inspect_err(|e| failure!(self, "Failed to construct tool step: {e}"))
+            else {
+                return;
+            };
+            self.steps.push(step);
+            self.consecutive_fails = 0;
         }
     }
 
+    async fn finalize(
+        mut self,
+        final_answer: String,
+    ) -> Result<ExecutionOutput<'input, O, S>, FinalizeFailure<Self>> {
+        let Ok(final_answer) = self.strategy.process_final_answer(final_answer).await else {
+            failure!(self, "Failed to construct final answer");
+            return Err(FinalizeFailure::Retry(self));
+        };
+
+        log::debug!("\nAgent finished with result:\n{final_answer}");
+
+        let human_message = self.input.inner.to_string();
+        // `self.input.inner` is moved here, this cannot be done in a separate method which receives `&self`.
+        let answer = match O::Target::from_text_and_input(self.input.inner, final_answer.clone()) {
+            Ok(answer) => answer,
+            Err((returned_input, e)) => {
+                // If the final answer cannot be constructed, `self.input.inner` is set again.
+                self.input.inner = returned_input;
+                failure!(self, "Failed to construct output from final answer: {e}");
+                return Err(FinalizeFailure::Retry(self));
+            }
+        };
+
+        if let Some(memory) = &self.executor.memory {
+            memory
+                .write()
+                .await
+                .update(human_message, self.steps, final_answer);
+        }
+
+        let WithUsage { content, usage } = answer.with_usage(self.total_usage);
+        let extra_content = self
+            .strategy
+            .finalize()
+            .await
+            .map_err(FinalizeFailure::Abort)?;
+
+        Ok(ExecutionOutput::new(content, extra_content, usage))
+    }
+
     fn get_tool_with_use_count_check(&mut self, tool_name: &str) -> Option<&dyn ToolDyn> {
-        let Some(tool) = self.executor.agent.get_tool(tool_name) else {
-            self.bump_failure(&format!("Tried to use nonexistent tool '{tool_name}'"));
+        let Some(tool) = self
+            .strategy
+            .resolve_tool(self.executor.agent.as_ref(), tool_name)
+        else {
+            failure!(self, "Failed to fetch tool '{tool_name}'");
             return None;
         };
-        if let Some(usage_limit) = tool.usage_limit() {
-            let count = self.use_counts.entry(tool_name.to_string()).or_insert(0);
+        if let Some(limit) = tool.usage_limit() {
+            let count = self.use_counts.entry(tool_name.to_string()).or_default();
             *count += 1;
-            if *count > usage_limit {
-                self.bump_failure(&format!(
-                    "Tool '{tool_name}' usage limit reached ({usage_limit})"
-                ));
+            if *count > limit {
+                failure!(self, "Tool '{tool_name}' usage limit reached ({limit})");
                 return None;
             }
         }
@@ -196,21 +235,8 @@ where
             .is_some_and(|max_consecutive_fails| self.consecutive_fails >= max_consecutive_fails)
     }
 
-    fn is_final_answer_valid(&self, final_answer: &str) -> bool {
-        if let Some(validator) = &self.executor.options.final_answer_validator {
-            validator.validate_final_answer(final_answer, &self.steps)
-        } else {
-            true
-        }
-    }
-
     fn add_usage(&mut self, usage: Option<TokenUsage>) {
         self.total_usage = TokenUsage::merge_options([&self.total_usage, &usage]);
-    }
-
-    fn bump_failure(&mut self, message: &str) {
-        self.consecutive_fails += 1;
-        log::warn!("{message} ({} consecutive fails)", self.consecutive_fails);
     }
 
     fn force_final_answer(&mut self) {

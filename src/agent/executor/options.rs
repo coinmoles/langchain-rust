@@ -1,23 +1,13 @@
-use std::sync::Arc;
-
-use crate::agent::FinalAnswerValidator;
-
 pub struct ExecutorOptions {
     pub max_iterations: Option<usize>,
     pub max_consecutive_fails: Option<usize>,
-    pub final_answer_validator: Option<Arc<dyn FinalAnswerValidator>>,
 }
 
 impl ExecutorOptions {
-    pub fn new(
-        max_iterations: Option<usize>,
-        max_consecutive_fails: Option<usize>,
-        final_answer_validator: Option<Arc<dyn FinalAnswerValidator>>,
-    ) -> Self {
+    pub fn new(max_iterations: Option<usize>, max_consecutive_fails: Option<usize>) -> Self {
         Self {
             max_iterations,
             max_consecutive_fails,
-            final_answer_validator,
         }
     }
 
@@ -40,14 +30,6 @@ impl ExecutorOptions {
         self.max_consecutive_fails = None;
         self
     }
-
-    pub fn with_final_answer_validator(
-        mut self,
-        final_answer_validator: Arc<dyn FinalAnswerValidator>,
-    ) -> Self {
-        self.final_answer_validator = Some(final_answer_validator);
-        self
-    }
 }
 
 impl Default for ExecutorOptions {
@@ -55,7 +37,6 @@ impl Default for ExecutorOptions {
         Self {
             max_iterations: Some(10),
             max_consecutive_fails: Some(3),
-            final_answer_validator: None,
         }
     }
 }

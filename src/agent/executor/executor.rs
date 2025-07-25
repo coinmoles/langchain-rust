@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use tokio::sync::RwLock;
 
 use crate::{
-    agent::{Agent, AgentInput, ExecutionContext},
+    agent::{Agent, AgentInput, DefaultStrategy, ExecutionContext, Strategy},
     chain::{Chain, ChainError, ChainOutput, InputCtor, OutputCtor},
     memory::Memory,
     schemas::{GetPrompt, Prompt, WithUsage},
@@ -47,10 +47,10 @@ where
         self
     }
 
-    pub fn execution<'exec, 'input>(
+    pub fn execution<'exec, 'input, S: Strategy>(
         &'exec self,
         input: I::Target<'input>,
-    ) -> ExecutionContext<'exec, 'agent, 'input, I, O> {
+    ) -> ExecutionContext<'exec, 'agent, 'input, I, O, S> {
         ExecutionContext::new(self, input)
     }
 }
@@ -62,7 +62,8 @@ where
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
-        self.execution(input).start().await
+        let output = self.execution::<DefaultStrategy>(input).start().await?;
+        Ok(output.without_extra())
     }
 }
 
