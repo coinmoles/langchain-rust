@@ -101,20 +101,15 @@ fn describe_schema_object(
         InstanceType::Number => format!("number {comment}"),
         InstanceType::Integer => format!("integer {comment}"),
         InstanceType::String => format!("string {comment}"),
-        InstanceType::Object => describe_object(
-            schema_object.object.as_ref().ok_or("Not an object")?,
-            &comment,
-            definitions,
-            depth,
-        )?,
-        InstanceType::Array => describe_array(
-            schema_object.array.as_ref().ok_or("Not an array")?,
-            &comment,
-            definitions,
-            depth,
-        )?,
+        InstanceType::Object => match &schema_object.object {
+            Some(object) => describe_object(object, &comment, definitions, depth)?,
+            None => "{} // An empty object".to_string(),
+        },
+        InstanceType::Array => match &schema_object.array {
+            Some(array) => describe_array(array, &comment, definitions, depth)?,
+            None => "[] // An empty array".to_string(),
+        },
     };
-
     Ok(full_description)
 }
 
