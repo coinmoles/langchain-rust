@@ -7,10 +7,7 @@ use rmcp::{
     transport::StreamableHttpClientTransport, RoleClient, ServiceExt,
 };
 
-use crate::{
-    tools::{McpError, ToolError},
-    utils::helper::normalize_tool_name,
-};
+use crate::{tools::McpError, utils::helper::normalize_tool_name};
 
 use super::McpTool;
 
@@ -52,14 +49,14 @@ pub trait McpServiceExt: Send + Sync {
     async fn fetch_tools(
         &self,
         names: Option<impl IntoIterator<Item = impl AsRef<str>> + Send + Sync>,
-    ) -> Result<HashMap<String, McpTool>, ToolError>;
+    ) -> Result<HashMap<String, McpTool>, McpError>;
 
-    async fn fetch_tool(&self, name: impl AsRef<str> + Send + Sync) -> Result<McpTool, ToolError> {
+    async fn fetch_tool(&self, name: impl AsRef<str> + Send + Sync) -> Result<McpTool, McpError> {
         let tool_name = normalize_tool_name(name.as_ref());
         self.fetch_tools(Some([&tool_name]))
             .await?
             .remove(&tool_name)
-            .ok_or(ToolError::ToolNotFound(tool_name))
+            .ok_or(McpError::ToolNotFound(tool_name))
     }
 }
 
@@ -68,7 +65,7 @@ impl McpServiceExt for Arc<McpService> {
     async fn fetch_tools(
         &self,
         names: Option<impl IntoIterator<Item = impl AsRef<str>> + Send + Sync>,
-    ) -> Result<HashMap<String, McpTool>, ToolError> {
+    ) -> Result<HashMap<String, McpTool>, McpError> {
         let tools = self
             .list_all_tools()
             .await

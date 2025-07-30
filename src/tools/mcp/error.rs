@@ -9,4 +9,8 @@ pub enum McpError {
     ReqwestError(#[from] reqwest::Error),
     #[error("Client initialize error: {0}")]
     ClientInitializeError(#[from] ClientInitializeError),
+    #[error("Parameter specification deserialization error: {0}")]
+    ParaSpecDeserializeError(#[from] serde_json::Error),
+    #[error("Tool not found: {0}")]
+    ToolNotFound(String),
 }

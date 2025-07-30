@@ -5,7 +5,7 @@ use serde_json::Value;
 
 use std::{borrow::Cow, error::Error, sync::Arc};
 
-use crate::tools::{Tool, ToolError};
+use crate::tools::{McpError, Tool};
 
 use super::{parse_mcp_response, McpService, McpServiceExt};
 
@@ -34,7 +34,7 @@ impl McpTool {
     pub async fn fetch_tool(
         client: impl Into<Arc<McpService>>,
         name: impl AsRef<str> + Send + Sync,
-    ) -> Result<Self, ToolError> {
+    ) -> Result<Self, McpError> {
         let client: Arc<McpService> = client.into();
         client.fetch_tool(name.as_ref()).await
     }
