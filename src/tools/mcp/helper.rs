@@ -27,5 +27,9 @@ pub(super) fn parse_mcp_response(response: Annotated<RawContent>) -> String {
                 )
             }
         },
+        _ => {
+            tracing::warn!("Unsupported MCP response type: {:?}", response.raw);
+            "Unsupported response type".to_string()
+        }
     }
 }

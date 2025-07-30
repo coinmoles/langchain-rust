@@ -59,7 +59,6 @@ mod tests {
     use std::sync::Arc;
 
     use serde_json::json;
-    use url::Url;
 
     use crate::tools::{ListTools, McpServiceFromUrl};
 
@@ -67,7 +66,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_tools() {
-        let url = Url::parse("http://localhost:8000/sse").unwrap();
+        let url = "http://localhost:8000/sse";
         let client = McpService::from_url(url).await.unwrap();
         let toolbox = McpToolbox::fetch(client, "Test", None).await.unwrap();
 
@@ -78,8 +77,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_mcp_toolbox() {
-        let url = Url::parse("http://localhost:8000/sse").unwrap();
-        let client = McpService::from_url(url.clone()).await.unwrap();
+        let url = "http://localhost:8000/sse";
+        let client = McpService::from_url(url).await.unwrap();
         let toolbox = McpToolbox::fetch(client, "Test", None).await.unwrap();
 
         let tools = toolbox.get_tools().unwrap();
@@ -92,8 +91,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_mcp_toolbox_using() {
-        let url = Url::parse("http://localhost:8000/sse").unwrap();
-        let client = McpService::from_url(url.clone()).await.unwrap();
+        let url = "http://localhost:8000/sse";
+        let client = McpService::from_url(url).await.unwrap();
         let toolbox =
             McpToolbox::fetch(client, "Test", Some(vec!["say_hello".into(), "sum".into()]))
                 .await

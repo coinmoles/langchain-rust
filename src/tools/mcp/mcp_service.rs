@@ -3,13 +3,14 @@ use std::{collections::HashMap, sync::Arc};
 use async_trait::async_trait;
 use reqwest::IntoUrl;
 use rmcp::{
-    model::InitializeRequestParam,
-    service::RunningService,
-    transport::{sse::SseTransportError, SseTransport},
-    RoleClient, ServiceExt,
+    model::InitializeRequestParam, service::RunningService,
+    transport::StreamableHttpClientTransport, RoleClient, ServiceExt,
 };
 
-use crate::{tools::ToolError, utils::helper::normalize_tool_name};
+use crate::{
+    tools::{McpError, ToolError},
+    utils::helper::normalize_tool_name,
+};
 
 use super::McpTool;
 
@@ -17,15 +18,16 @@ pub type McpService = RunningService<RoleClient, InitializeRequestParam>;
 
 #[async_trait]
 pub trait McpServiceFromUrl: Send + Sync {
-    async fn from_url(url: impl IntoUrl + Send + Sync) -> Result<Self, SseTransportError>
+    async fn from_url(url: impl IntoUrl + Send + Sync) -> Result<Self, McpError>
     where
         Self: Sized;
 }
 
 #[async_trait]
 impl McpServiceFromUrl for McpService {
-    async fn from_url(url: impl IntoUrl + Send + Sync) -> Result<Self, SseTransportError> {
-        let transport = SseTransport::start(url).await?;
+    async fn from_url(url: impl IntoUrl + Send + Sync) -> Result<Self, McpError> {
+        let url = url.into_url()?;
+        let transport = StreamableHttpClientTransport::from_uri(url.as_str());
 
         let client_info = rmcp::model::ClientInfo {
             protocol_version: Default::default(),
@@ -36,7 +38,10 @@ impl McpServiceFromUrl for McpService {
             },
         };
 
-        let client = client_info.serve(transport).await?;
+        let client = client_info
+            .serve(transport)
+            .await
+            .inspect_err(|e| tracing::error!("client error: {e:?}"))?;
 
         Ok(client)
     }
@@ -66,7 +71,8 @@ impl McpServiceExt for Arc<McpService> {
     ) -> Result<HashMap<String, McpTool>, ToolError> {
         let tools = self
             .list_all_tools()
-            .await?
+            .await
+            .map_err(McpError::ServiceError)?
             .into_iter()
             .map(|tool| -> Result<(String, McpTool), serde_json::Error> {
                 let tool_name = normalize_tool_name(tool.name.as_ref());

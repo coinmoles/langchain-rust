@@ -7,5 +7,8 @@ pub use mcp_tool::*;
 mod mcp_service;
 pub use mcp_service::*;
 
+mod error;
+pub use error::*;
+
 mod helper;
 use helper::*;

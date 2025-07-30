@@ -12,7 +12,7 @@ use super::{parse_mcp_response, McpService, McpServiceExt};
 pub struct McpTool {
     client: Arc<McpService>,
     name: Cow<'static, str>,
-    description: Cow<'static, str>,
+    description: Option<Cow<'static, str>>,
     parameters: RootSchema,
 }
 
@@ -20,7 +20,7 @@ impl McpTool {
     pub fn new(
         client: Arc<McpService>,
         name: Cow<'static, str>,
-        description: Cow<'static, str>,
+        description: Option<Cow<'static, str>>,
         parameters: RootSchema,
     ) -> Self {
         Self {
@@ -50,7 +50,9 @@ impl Tool for McpTool {
     }
 
     fn description(&self) -> String {
-        self.description.to_string()
+        self.description
+            .as_ref()
+            .map_or_else(|| "No description provided".to_string(), |d| d.to_string())
     }
 
     fn parameters(&self) -> RootSchema {
@@ -64,9 +66,7 @@ impl Tool for McpTool {
     async fn run(&self, input: Self::Input) -> Result<Self::Output, Box<dyn Error + Send + Sync>> {
         let input = match input {
             Value::Object(obj) => obj,
-            _ => {
-                return Err("Invalid input".into());
-            }
+            _ => return Err("Invalid input".into()),
         };
 
         let tool_result: rmcp::model::CallToolResult = self

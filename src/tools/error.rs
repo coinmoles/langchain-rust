@@ -1,5 +1,8 @@
 use thiserror::Error;
 
+#[cfg(feature = "mcp")]
+use crate::tools::McpError;
+
 #[derive(Error, Debug)]
 pub enum ToolError {
     #[error("Error while running tool: {0}")]
@@ -9,12 +12,8 @@ pub enum ToolError {
     InputParseError(#[from] serde_json::Error),
 
     #[cfg(feature = "mcp")]
-    #[error("MCP sse transport error: {0}")]
-    McpSseTransportError(#[from] rmcp::transport::sse::SseTransportError),
-
-    #[cfg(feature = "mcp")]
     #[error("MCP error: {0}")]
-    McpError(#[from] rmcp::ServiceError),
+    McpError(Box<McpError>),
 
     #[error("Tool not found: {0}")]
     ToolNotFound(String),
@@ -26,5 +25,11 @@ impl ToolError {
         E: std::error::Error + Send + Sync + 'static,
     {
         ToolError::ExecutionError(Box::new(error))
+    }
+}
+
+impl From<McpError> for ToolError {
+    fn from(error: McpError) -> Self {
+        ToolError::McpError(Box::new(error))
     }
 }
