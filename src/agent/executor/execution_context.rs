@@ -88,9 +88,9 @@ where
         };
 
         async move {
-            self.log_initial_prompt()?;
             self.load_memory().await;
             self.input = self.strategy.prepare_input::<I>(self.input).await?;
+            self.log_initial_prompt()?;
 
             while !self.fail_limit_reached() {
                 let Ok(plan) = self.plan_step().await else {
