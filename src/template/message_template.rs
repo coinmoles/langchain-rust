@@ -6,13 +6,13 @@ use crate::{
     template::TemplateError,
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum TemplateFormat {
     FString,
     Jinja2,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct MessageTemplate {
     message_type: MessageType,
     template: String,

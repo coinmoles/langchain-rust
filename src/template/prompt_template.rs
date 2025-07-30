@@ -8,7 +8,7 @@ use crate::{
 
 use super::MessageTemplate;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum MessageOrTemplate {
     Message(Message),
     Template(MessageTemplate),
@@ -27,6 +27,7 @@ impl From<MessageTemplate> for MessageOrTemplate {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct PromptTemplate {
     pub(crate) messages: Vec<MessageOrTemplate>,
 }
