@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use crate::{
     agent::{AgentOutput, AgentStep},
     chain::{ChainOutput, InputCtor, OutputCtor},
-    schemas::{Prompt, WithUsage},
+    schemas::{Message, Prompt, WithUsage},
     template::TemplateError,
     tools::ToolDyn,
 };
@@ -14,10 +14,11 @@ use super::{AgentError, AgentExecutor, AgentInput};
 
 #[async_trait]
 pub trait Agent<I: InputCtor, O: OutputCtor>: Send + Sync {
+    async fn construct_scratchpad(&self, steps: &[AgentStep]) -> Result<Vec<Message>, AgentError>;
+
     async fn plan<'a>(
         &self,
-        steps: &[AgentStep],
-        input: &mut AgentInput<I::Target<'a>>,
+        input: &AgentInput<I::Target<'a>>,
     ) -> Result<WithUsage<AgentOutput>, AgentError>;
 
     fn get_tool(&self, tool_name: &str) -> Option<&dyn ToolDyn>;

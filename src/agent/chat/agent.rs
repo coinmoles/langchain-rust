@@ -38,30 +38,29 @@ impl<I: InputCtor, O: OutputCtor> ConversationalAgent<I, O> {
     pub fn builder<'a, 'b>() -> ConversationalAgentBuilder<'a, 'b, I, O> {
         ConversationalAgentBuilder::new()
     }
-
-    fn construct_scratchpad(&self, intermediate_steps: &[AgentStep]) -> Vec<Message> {
-        intermediate_steps
-            .iter()
-            .flat_map(|step| {
-                vec![
-                    Message::new_ai_message(&step.tool_call),
-                    Message::new_human_message(&step.result),
-                ]
-            })
-            .collect::<Vec<_>>()
-    }
 }
 
 #[async_trait]
 impl<I: InputCtor, O: OutputCtor> Agent<I, O> for ConversationalAgent<I, O> {
+    async fn construct_scratchpad(&self, steps: &[AgentStep]) -> Result<Vec<Message>, AgentError> {
+        let scratchpad = steps
+            .iter()
+            .flat_map(|step| {
+                [
+                    Message::new_ai_message(&step.tool_call),
+                    Message::new_human_message(&step.result),
+                ]
+            })
+            .collect::<Vec<_>>();
+        Ok(scratchpad)
+    }
+
     async fn plan<'i>(
         &self,
-        steps: &[AgentStep],
-        input: &mut AgentInput<I::Target<'i>>,
+        input: &AgentInput<I::Target<'i>>,
     ) -> Result<WithUsage<AgentOutput>, AgentError> {
-        input.set_agent_scratchpad(self.construct_scratchpad(steps));
-        let result = self.llm_chain.call_with_reference(input).await?;
-        Ok(result)
+        let plan = self.llm_chain.call_with_reference(input).await?;
+        Ok(plan)
     }
 
     fn get_tool(&self, tool_name: &str) -> Option<&dyn ToolDyn> {

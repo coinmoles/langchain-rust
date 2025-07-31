@@ -134,10 +134,17 @@ where
     }
 
     async fn plan_step(&mut self) -> Result<AgentOutput, ChainError> {
+        let scratchpad = self
+            .executor
+            .agent
+            .construct_scratchpad(&self.steps)
+            .await?;
+        self.input.set_agent_scratchpad(scratchpad);
+
         let plan = self
             .executor
             .agent
-            .plan(&self.steps, &mut self.input)
+            .plan(&self.input)
             .await
             .inspect_err(|e| failure!(self, "Failed to plan next step: {e}"))?;
 

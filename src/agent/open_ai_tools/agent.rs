@@ -32,30 +32,29 @@ impl<I: InputCtor, O: OutputCtor> OpenAiToolAgent<I, O> {
     pub fn builder<'a, 'b>() -> OpenAiToolAgentBuilder<'a, 'b, I, O> {
         OpenAiToolAgentBuilder::new()
     }
-
-    fn construct_scratchpad(&self, steps: &[AgentStep]) -> Vec<Message> {
-        steps
-            .iter()
-            .flat_map(|step| {
-                vec![
-                    Message::new_tool_call_message([step.tool_call.clone()]),
-                    Message::new_tool_message(Some(&step.tool_call.id), step.result.clone()),
-                ]
-            })
-            .collect::<Vec<_>>()
-    }
 }
 
 #[async_trait]
 impl<I: InputCtor, O: OutputCtor> Agent<I, O> for OpenAiToolAgent<I, O> {
+    async fn construct_scratchpad(&self, steps: &[AgentStep]) -> Result<Vec<Message>, AgentError> {
+        let scratchpad = steps
+            .iter()
+            .flat_map(|step| {
+                [
+                    Message::new_tool_call_message([step.tool_call.clone()]),
+                    Message::new_tool_message(Some(&step.tool_call.id), &step.result),
+                ]
+            })
+            .collect::<Vec<_>>();
+        Ok(scratchpad)
+    }
+
     async fn plan<'i>(
         &self,
-        steps: &[AgentStep],
-        input: &mut AgentInput<I::Target<'i>>,
+        input: &AgentInput<I::Target<'i>>,
     ) -> Result<WithUsage<AgentOutput>, AgentError> {
-        input.set_agent_scratchpad(self.construct_scratchpad(steps));
-        let result = self.llm_chain.call_with_reference(input).await?;
-        Ok(result)
+        let plan = self.llm_chain.call_with_reference(input).await?;
+        Ok(plan)
     }
 
     fn get_tool(&self, tool_name: &str) -> Option<&dyn ToolDyn> {
