@@ -66,7 +66,7 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> ConversationalAgentBuilder<'a, 'b, I, 
         self
     }
 
-    pub async fn build<L: Into<Box<dyn LLM>>>(
+    pub fn build<L: Into<Box<dyn LLM>>>(
         self,
         llm: L,
     ) -> Result<ConversationalAgent<I, O>, BuilderError> {

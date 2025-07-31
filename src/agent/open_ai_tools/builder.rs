@@ -51,10 +51,7 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> OpenAiToolAgentBuilder<'a, 'b, I, O> {
         self
     }
 
-    pub async fn build<L: LLM + 'static>(
-        self,
-        llm: L,
-    ) -> Result<OpenAiToolAgent<I, O>, BuilderError> {
+    pub fn build<L: LLM + 'static>(self, llm: L) -> Result<OpenAiToolAgent<I, O>, BuilderError> {
         let system_prompt = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
 
@@ -80,7 +77,7 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> OpenAiToolAgentBuilder<'a, 'b, I, O> {
 
             local_tools
                 .into_iter()
-                .chain(toolbox_tools.into_iter())
+                .chain(toolbox_tools)
                 .collect::<Vec<_>>()
         };
 

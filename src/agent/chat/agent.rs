@@ -134,7 +134,6 @@ mod tests {
         let agent: ConversationalAgent = ConversationalAgent::builder()
             .tools([tool_calc])
             .build(llm)
-            .await
             .unwrap();
         let input = DefaultChainInput::new(
             "hola,Me llamo luis, y tengo 10 anos, y estudio Computer scinence",
