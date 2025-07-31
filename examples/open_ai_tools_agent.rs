@@ -49,7 +49,6 @@ async fn main() {
             CommandExecutor::default(),
         ])
         .build(llm)
-        .await
         .unwrap();
 
     let executor = agent.executor().with_memory(memory.into());

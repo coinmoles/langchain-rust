@@ -18,7 +18,6 @@ async fn main() {
     let agent: ConversationalAgent<DefaultChainInputCtor> = ConversationalAgent::builder()
         .tools([command_executor])
         .build(llm)
-        .await
         .unwrap();
 
     let executor = agent.executor().with_memory(memory.into());
