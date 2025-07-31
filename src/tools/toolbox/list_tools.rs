@@ -64,7 +64,7 @@ where
     }
 
     async fn run(&self, _: ()) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let tools = self.0.get_tools()?;
+        let tools = self.0.get_tools();
         let tool_descriptions: Vec<String> = tools
             .values()
             .map(|tool| tool.to_plain_description())

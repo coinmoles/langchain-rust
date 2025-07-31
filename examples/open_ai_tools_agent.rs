@@ -48,8 +48,7 @@ async fn main() {
             DuckDuckGoSearch::default(),
             CommandExecutor::default(),
         ])
-        .build(llm)
-        .unwrap();
+        .build(llm);
 
     let executor = agent.executor().with_memory(memory.into());
 

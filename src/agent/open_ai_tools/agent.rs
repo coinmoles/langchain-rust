@@ -55,7 +55,7 @@ impl<I: InputCtor, O: OutputCtor> Agent<I, O> for OpenAiToolAgent<I, O> {
         }
 
         for toolbox in &self.toolboxes {
-            if let Ok(tool) = toolbox.get_tool(tool_name) {
+            if let Some(tool) = toolbox.get_tool(tool_name) {
                 return Some(tool);
             }
         }

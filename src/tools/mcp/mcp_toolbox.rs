@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::HashMap, error::Error, sync::Arc};
 
 use async_trait::async_trait;
 
-use crate::tools::{ToolDyn, ToolError, Toolbox};
+use crate::tools::{ToolDyn, Toolbox};
 
 use super::{McpService, McpServiceExt, McpTool};
 
@@ -43,14 +43,11 @@ impl Toolbox for McpToolbox {
         self.name.to_string()
     }
 
-    fn get_tools(&self) -> Result<HashMap<&str, &dyn ToolDyn>, ToolError> {
-        let tools = self
-            .tools
+    fn get_tools(&self) -> HashMap<&str, &dyn ToolDyn> {
+        self.tools
             .iter()
             .map(|(k, v)| (k.as_str(), v as &dyn ToolDyn))
-            .collect();
-
-        Ok(tools)
+            .collect()
     }
 }
 
@@ -81,7 +78,7 @@ mod tests {
         let client = McpService::from_url(url).await.unwrap();
         let toolbox = McpToolbox::fetch(client, "Test", None).await.unwrap();
 
-        let tools = toolbox.get_tools().unwrap();
+        let tools = toolbox.get_tools();
         let tools = tools.values().collect::<Vec<_>>();
 
         for tool in tools {
@@ -93,12 +90,12 @@ mod tests {
     async fn test_mcp_toolbox_using() {
         let url = "http://localhost:8000/sse";
         let client = McpService::from_url(url).await.unwrap();
-        let toolbox =
-            McpToolbox::fetch(client, "Test", Some(vec!["say_hello".into(), "sum".into()]))
-                .await
-                .unwrap();
+        let tools = vec!["say_hello".into(), "sum".into()];
+        let toolbox = McpToolbox::fetch(client, "Test", Some(tools))
+            .await
+            .unwrap();
 
-        let tools = toolbox.get_tools().unwrap();
+        let tools = toolbox.get_tools();
         let tools = tools.values().collect::<Vec<_>>();
 
         for tool in tools {

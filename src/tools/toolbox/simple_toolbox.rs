@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::tools::{ToolDyn, ToolError};
+use crate::tools::ToolDyn;
 
 use super::Toolbox;
 
@@ -26,11 +26,10 @@ impl Toolbox for SimpleToolbox {
         self.name.clone()
     }
 
-    fn get_tools(&self) -> Result<HashMap<&str, &dyn ToolDyn>, ToolError> {
-        Ok(self
-            .tools
+    fn get_tools(&self) -> HashMap<&str, &dyn ToolDyn> {
+        self.tools
             .iter()
             .map(|(k, v)| (k.as_str(), v.as_ref()))
-            .collect())
+            .collect()
     }
 }

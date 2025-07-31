@@ -2,7 +2,6 @@ use crate::{
     agent::create_prompt,
     chain::{InputCtor, LLMChain, OutputCtor},
     llm::{options::CallOptions, LLM},
-    schemas::BuilderError,
     tools::{ToolDyn, Toolbox},
     utils::helper::normalize_tool_name,
 };
@@ -51,7 +50,7 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> OpenAiToolAgentBuilder<'a, 'b, I, O> {
         self
     }
 
-    pub fn build<L: LLM + 'static>(self, llm: L) -> Result<OpenAiToolAgent<I, O>, BuilderError> {
+    pub fn build<L: LLM + 'static>(self, llm: L) -> OpenAiToolAgent<I, O> {
         let system_prompt = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
 
@@ -66,13 +65,8 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> OpenAiToolAgentBuilder<'a, 'b, I, O> {
 
             let toolbox_tools = toolboxes
                 .iter()
-                .map(|toolbox| toolbox.get_tools())
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(|e| {
-                    BuilderError::Other(format!("Failed to fetch tool metadata from toolbox: {e}"))
-                })?
-                .iter()
-                .flat_map(|tools| tools.values().map(|tool| tool.as_openai_tool()))
+                .map(|toolbox| toolbox.get_tools().into_iter())
+                .flat_map(|tools| tools.map(|(_, tool)| tool.as_openai_tool()))
                 .collect::<Vec<_>>();
 
             local_tools
@@ -88,18 +82,18 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> OpenAiToolAgentBuilder<'a, 'b, I, O> {
             .prompt(prompt)
             .llm(llm)
             .build()
-            .map_err(|e| BuilderError::Inner("llm_chain", Box::new(e)))?;
+            .unwrap_or_else(|_| unreachable!("All necessary fields are provided"));
 
         let tools_map = tools
             .into_iter()
             .map(|tool| (normalize_tool_name(&tool.name()), tool))
             .collect();
 
-        Ok(OpenAiToolAgent {
+        OpenAiToolAgent {
             llm_chain,
             tools: tools_map,
             toolboxes,
             _phantom: std::marker::PhantomData,
-        })
+        }
     }
 }
