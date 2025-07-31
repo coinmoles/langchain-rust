@@ -28,6 +28,7 @@ impl ToolError {
     }
 }
 
+#[cfg(feature = "mcp")]
 impl From<McpError> for ToolError {
     fn from(error: McpError) -> Self {
         ToolError::McpError(Box::new(error))
