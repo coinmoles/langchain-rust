@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::{
@@ -13,13 +12,6 @@ use crate::{
 };
 
 use super::OpenAiToolAgentBuilder;
-
-///Log tools is a struct used by the openai-like agents
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct LogTools {
-    pub tool_id: String,
-    pub tools: String,
-}
 
 pub struct OpenAiToolAgent<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor> {
     pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
