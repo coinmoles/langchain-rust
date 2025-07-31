@@ -4,7 +4,8 @@ use crate::{
     template::{MessageOrTemplate, MessageTemplate, PromptTemplate},
 };
 
-pub fn create_prompt(
+/// A helper function to create a prompt template for an agent.
+pub(super) fn create_prompt(
     system_prompt: impl Into<String>,
     initial_prompt: impl Into<String>,
 ) -> PromptTemplate {
