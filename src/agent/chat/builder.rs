@@ -5,7 +5,6 @@ use crate::{
     chain::{DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor, StringCtor},
     instructor::{BoxInstructorExt, DefaultInstructor, Instructor},
     llm::LLM,
-    schemas::BuilderError,
     tools::{ListTools, ToolDyn, Toolbox},
     utils::helper::normalize_tool_name,
 };
@@ -66,10 +65,7 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> ConversationalAgentBuilder<'a, 'b, I, 
         self
     }
 
-    pub fn build<L: Into<Box<dyn LLM>>>(
-        self,
-        llm: L,
-    ) -> Result<ConversationalAgent<I, O>, BuilderError> {
+    pub fn build<L: Into<Box<dyn LLM>>>(self, llm: L) -> ConversationalAgent<I, O> {
         let toolboxes = self
             .toolboxes
             .unwrap_or_default()
@@ -110,13 +106,13 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> ConversationalAgentBuilder<'a, 'b, I, 
             .llm(llm)
             .output_parser(instructor.into_parser())
             .build()
-            .map_err(|e| BuilderError::Inner("llm_chain", Box::new(e)))?;
+            .unwrap_or_else(|_| unreachable!("All necessary fields are provided"));
 
-        Ok(ConversationalAgent {
+        ConversationalAgent {
             llm_chain,
             tools,
             toolboxes,
             _phantom: std::marker::PhantomData,
-        })
+        }
     }
 }

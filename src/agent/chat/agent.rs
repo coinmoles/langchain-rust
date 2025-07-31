@@ -131,10 +131,8 @@ mod tests {
             .build();
         let memory = SimpleMemory::new();
         let tool_calc = Calc::default();
-        let agent: ConversationalAgent = ConversationalAgent::builder()
-            .tools([tool_calc])
-            .build(llm)
-            .unwrap();
+        let agent: ConversationalAgent =
+            ConversationalAgent::builder().tools([tool_calc]).build(llm);
         let input = DefaultChainInput::new(
             "hola,Me llamo luis, y tengo 10 anos, y estudio Computer scinence",
         );
