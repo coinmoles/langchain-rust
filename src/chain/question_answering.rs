@@ -71,7 +71,7 @@ impl CondenseQuestionGeneratorChain<CondenseQuestionPromptCtor> {
         Self { chain }
     }
 
-    pub fn prompt_builder(&self) -> CondenseQuestionPrompt {
+    pub fn prompt_builder(&self) -> CondenseQuestionPrompt<'_> {
         CondenseQuestionPrompt::new()
     }
 }
@@ -117,7 +117,7 @@ impl<'a> StuffQA<'a> {
 }
 
 impl ChainInput for StuffQA<'_> {
-    fn text_replacements(&self) -> TextReplacements {
+    fn text_replacements(&self) -> TextReplacements<'_> {
         HashMap::from([
             ("question", self.question.as_ref().into()),
             (

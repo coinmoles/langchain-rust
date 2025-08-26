@@ -61,14 +61,14 @@ impl SQLDatabaseChain {
         SQLDatabaseChainBuilder::new()
     }
 
-    pub fn prompt_builder(&self) -> SqlChainInput {
+    pub fn prompt_builder(&self) -> SqlChainInput<'_> {
         SqlChainInput::default()
     }
 
     async fn build_input(
         &self,
         input: &SqlChainInput<'_>,
-    ) -> Result<SqlChainLLMChainInput, ChainError> {
+    ) -> Result<SqlChainLLMChainInput<'_>, ChainError> {
         let llm_input = format!("{}{}", input.query, QUERY_PREFIX_WITH);
         let tables_info = self
             .database
@@ -90,7 +90,7 @@ impl SQLDatabaseChain {
     async fn call_builder_chains(
         &self,
         input: &SqlChainInput<'_>,
-    ) -> Result<(SqlChainLLMChainInput, Option<TokenUsage>), ChainError> {
+    ) -> Result<(SqlChainLLMChainInput<'_>, Option<TokenUsage>), ChainError> {
         let mut token_usage: Option<TokenUsage> = None;
 
         let builder_input = self.build_input(input).await?;

@@ -7,20 +7,20 @@ pub type TextReplacements<'a> = HashMap<&'a str, Cow<'a, str>>;
 pub type PlaceholderReplacements<'a> = HashMap<&'a str, Cow<'a, [Message]>>;
 
 pub trait ChainInput: Send + Sync {
-    fn text_replacements(&self) -> TextReplacements;
-    fn placeholder_replacements(&self) -> PlaceholderReplacements {
+    fn text_replacements(&self) -> TextReplacements<'_>;
+    fn placeholder_replacements(&self) -> PlaceholderReplacements<'_> {
         HashMap::new()
     }
 }
 
 impl ChainInput for () {
-    fn text_replacements(&self) -> TextReplacements {
+    fn text_replacements(&self) -> TextReplacements<'_> {
         HashMap::new()
     }
 }
 
 impl ChainInput for HashMap<String, String> {
-    fn text_replacements(&self) -> TextReplacements {
+    fn text_replacements(&self) -> TextReplacements<'_> {
         self.iter()
             .map(|(k, v)| (k.as_str(), v.as_str().into()))
             .collect()
@@ -28,7 +28,7 @@ impl ChainInput for HashMap<String, String> {
 }
 
 impl ChainInput for HashMap<&str, &str> {
-    fn text_replacements(&self) -> TextReplacements {
+    fn text_replacements(&self) -> TextReplacements<'_> {
         self.iter().map(|(&k, &v)| (k, v.into())).collect()
     }
 }
