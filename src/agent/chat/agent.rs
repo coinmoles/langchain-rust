@@ -14,27 +14,49 @@ use crate::{
 
 use super::ConversationalAgentBuilder;
 
+/// An agent implementation for agents that do **not** support structured tool calling.
+///
+/// This agent enables tool use by prompting the model to emit tool call as plain text, which are then
+/// manually parsed into tool invocations. You can also provide a custom
+/// [`Instructor`](crate::instructor::Instructor) to customize the tool call format instruction and parsing logic.
+///
+/// While this works with any language models, it is more error-prone compared to structured tool call.
+/// For OpenAI models that support structured tool calls, consider using
+/// [`OpenAiToolAgent`](crate::agent::OpenAiToolAgent).
+///
+/// # Type Parameters
+/// - `I`: A [constructor](crate::chain::Ctor) for the agent’s input type (defaults to
+///   [`DefaultChainInputCtor`], which constructs [`ChainInput`](crate::chain::DefaultChainInput)).
+/// - `O`: A [constructor](crate::chain::Ctor) for the agent’s output type (defaults to
+///   [`StringCtor`], which constructs [`String`]).
 pub struct ConversationalAgent<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor> {
+    /// The inner [`LLMChain`] used for prompt construction and LLM invocation.
     pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
+    /// A map of registered tool names to their implementations.
     pub(super) tools: HashMap<String, Box<dyn ToolDyn>>,
+    /// A list of toolboxes used to dynamically provide tools at runtime.
     pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
     pub(super) _phantom: std::marker::PhantomData<O>,
 }
 
 impl<I: InputCtor, O: OutputCtor> ConversationalAgent<I, O> {
-    pub fn new(
-        llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
-        tools: HashMap<String, Box<dyn ToolDyn>>,
-        toolboxes: Vec<Arc<dyn Toolbox>>,
-    ) -> Self {
-        Self {
-            llm_chain,
-            tools,
-            toolboxes,
-            _phantom: std::marker::PhantomData,
-        }
-    }
-
+    /// Creates a [`ConversationalAgentBuilder`] to configure an [`ConversationalAgent`].
+    ///
+    /// This is the same as calling [`ConversationalAgentBuilder::new()`].
+    ///
+    /// # Example:
+    /// ```
+    /// use langchain_rust::{agent::ConversationalAgent, llm::{OpenAI, OpenAIModel}};
+    /// use async_openai::config::OpenAIConfig;
+    ///
+    /// let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt4o).build();
+    ///
+    /// let agent: ConversationalAgent = ConversationalAgent::builder()
+    ///     .system_prompt("You are a helpful assistant.")
+    ///     .initial_prompt("Help me find {{input}}.")
+    ///     // .tools(vec![my_tool]) // You can add tools here
+    ///     .build(llm);
+    /// ```
     pub fn builder<'a, 'b>() -> ConversationalAgentBuilder<'a, 'b, I, O> {
         ConversationalAgentBuilder::new()
     }

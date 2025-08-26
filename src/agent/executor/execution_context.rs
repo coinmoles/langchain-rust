@@ -26,11 +26,6 @@ enum FinalizeFailure<Ctx> {
 }
 
 /// Runtime context that owns all mutable state during an [`AgentExecutor`] run.
-///
-/// * `steps`              - transcript of executed tool calls so far
-/// * `use_counts`         - per-tool invocation counters
-/// * `consecutive_fails`  - back-off & abort logic
-/// * `total_usage`        - cumulative token accounting
 pub struct ExecutionContext<'exec, 'agent, 'input, I, O, S = DefaultStrategy>
 where
     I: InputCtor,
@@ -39,12 +34,19 @@ where
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
+    /// Reference to the [`AgentExecutor`] driving this execution.
     executor: &'exec AgentExecutor<'agent, I, O>,
+    /// The execution strategy for the execution.
     strategy: S,
+    /// The input provided to this execution.
     input: AgentInput<I::Target<'input>>,
+    /// The sequence of tool calls performed so far.
     steps: Vec<AgentStep>,
+    /// Counts of how many times each tool has been invoked.
     use_counts: HashMap<String, usize>,
+    /// The current number of consecutive failures.
     consecutive_fails: usize,
+    /// Total token usage.
     total_usage: Option<TokenUsage>,
 }
 
@@ -56,6 +58,7 @@ where
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
+    /// Constructs a new [`ExecutionContext`].
     #[must_use]
     pub fn new(
         executor: &'exec AgentExecutor<'agent, I, O>,
@@ -73,6 +76,7 @@ where
         }
     }
 
+    /// Set strategy for the execution.
     pub fn with_strategy(mut self, strategy: S) -> Self {
         self.strategy = strategy;
         self

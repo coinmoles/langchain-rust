@@ -4,6 +4,7 @@ use crate::{
     schemas::ToolCall,
 };
 
+/// The LLM output for a single step of agent execution, which can either be a tool call or a final result.
 #[derive(Debug, Ctor)]
 pub enum AgentOutput {
     Action(Vec<ToolCall>),

@@ -13,14 +13,46 @@ use crate::{
 
 use super::OpenAiToolAgentBuilder;
 
+/// An agent implementation for OpenAI models that support OpenAI's structured tool calling.
+///
+/// While all models can be used with [`crate::agent::ConversationalAgent`], this implementation
+/// is recommended as it takes advantage of OpenAI's structured tool calling capabilities,
+/// without having to rely on manual parsing.
+///
+/// # Type Parameters
+/// - `I`: A [constructor](crate::chain::Ctor) for the agent’s input type (defaults to
+///   [`DefaultChainInputCtor`], which constructs [`ChainInput`](crate::chain::DefaultChainInput)).
+/// - `O`: A [constructor](crate::chain::Ctor) for the agent’s output type (defaults to
+///   [`StringCtor`], which constructs [`String`]).
 pub struct OpenAiToolAgent<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor> {
+    /// The inner [`LLMChain`] used for prompt construction and LLM invocation.
     pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
+    /// A map of registered tool names to their implementations.
     pub(super) tools: HashMap<String, Box<dyn ToolDyn>>,
+    /// A list of toolboxes used to dynamically provide tools at runtime.
     pub(super) toolboxes: Vec<Box<dyn Toolbox>>,
     pub(super) _phantom: std::marker::PhantomData<O>,
 }
 
 impl<I: InputCtor, O: OutputCtor> OpenAiToolAgent<I, O> {
+    /// Creates a [`OpenAiToolAgentBuilder`] to configure an [`OpenAiToolAgent`].
+    ///
+    /// This is the same as calling [`OpenAiToolAgentBuilder::new()`].
+    ///
+    /// # Example:
+    /// ```
+    /// use langchain_rust::{agent::OpenAiToolAgent, llm::{OpenAI, OpenAIModel}};
+    /// use async_openai::config::OpenAIConfig;
+    ///
+    /// let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt4o).build();
+    ///
+    /// let agent: OpenAiToolAgent = OpenAiToolAgent::builder()
+    ///     .system_prompt("You are a helpful assistant.")
+    ///     .initial_prompt("Help me find {{input}}.")
+    ///     // .tools(vec![my_tool]) // You can add tools here
+    ///     .build(llm);
+    /// ```
+    #[must_use]
     pub fn builder<'a, 'b>() -> OpenAiToolAgentBuilder<'a, 'b, I, O> {
         OpenAiToolAgentBuilder::new()
     }

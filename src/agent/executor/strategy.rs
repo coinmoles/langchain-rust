@@ -133,6 +133,7 @@ pub trait Strategy: Default + Send + Sync {
     async fn finalize(self) -> Result<Self::Output, ChainError>;
 }
 
+/// The default strategy without any special behavior.
 #[derive(Default)]
 pub struct DefaultStrategy;
 
