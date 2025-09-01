@@ -47,8 +47,12 @@ pub fn extract_from_tag<'a>(text: &'a str, tag: &str) -> &'a str {
 }
 
 pub fn extract_json(s: &str) -> &str {
+    if s.is_empty() {
+        return s;
+    }
+
     let start = s.find('{').unwrap_or(0);
-    let end = s.rfind('}').unwrap_or(s.len());
+    let end = s.rfind('}').unwrap_or(s.len() - 1);
     &s[start..=end]
 }
 
