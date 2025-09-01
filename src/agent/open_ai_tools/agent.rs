@@ -99,9 +99,3 @@ impl<I: InputCtor, O: OutputCtor> Agent<I, O> for OpenAiToolAgent<I, O> {
         self.llm_chain.get_prompt(input)
     }
 }
-
-impl<I: InputCtor, O: OutputCtor> GetPrompt<I::Target<'_>> for OpenAiToolAgent<I, O> {
-    fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, TemplateError> {
-        self.llm_chain.get_prompt(&AgentInput::new(input))
-    }
-}
