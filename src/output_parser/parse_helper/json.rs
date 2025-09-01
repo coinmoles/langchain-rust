@@ -1,6 +1,8 @@
 use serde_json::{Map, Value};
 use uuid::Uuid;
 
+use crate::output_parser::extract_json;
+
 use super::{balance_parenthesis, remove_multiline, remove_trailing_commas};
 
 pub fn parse_partial_json(s: &str, strict: bool) -> Result<Value, serde_json::Error> {
@@ -23,7 +25,12 @@ pub fn parse_partial_json(s: &str, strict: bool) -> Result<Value, serde_json::Er
 
     // Step 3: Attempt to balance braces/brackets
     let balanced = balance_parenthesis(&comma_cleaned);
-    serde_json::from_str(&balanced)
+    if let Ok(val) = serde_json::from_str(&balanced) {
+        return Ok(val);
+    }
+
+    let found = extract_json(&balanced);
+    serde_json::from_str(found)
 }
 
 /// Helper function to extract the action from the JSON value.

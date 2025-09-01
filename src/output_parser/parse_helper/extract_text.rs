@@ -46,6 +46,12 @@ pub fn extract_from_tag<'a>(text: &'a str, tag: &str) -> &'a str {
         .unwrap_or_else(|| text.trim())
 }
 
+pub fn extract_json(s: &str) -> &str {
+    let start = s.find('{').unwrap_or(0);
+    let end = s.rfind('}').unwrap_or(s.len());
+    &s[start..=end]
+}
+
 #[cfg(test)]
 mod tests {
     use indoc::indoc;
@@ -145,6 +151,31 @@ mod tests {
         }
         </tool_call>"#};
         let result = extract_from_tag(text, "tool_call");
+        assert_eq!(
+            result,
+            indoc! {r#"
+            {
+                "name": "test_tool",
+                "arguments": {
+                    "arg1": "value1"
+                }
+            }"#}
+        );
+    }
+
+    #[test]
+    fn test_extract_json() {
+        let text = indoc! {r#"
+        So I decided to call this because of that:
+        
+        {
+            "name": "test_tool",
+            "arguments": {
+                "arg1": "value1"
+            }
+        }"#};
+
+        let result = extract_json(text);
         assert_eq!(
             result,
             indoc! {r#"
