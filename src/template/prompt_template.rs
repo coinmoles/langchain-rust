@@ -49,7 +49,7 @@ impl PromptTemplate {
         let messages = self
             .messages
             .iter()
-            .flat_map(|m| -> Result<Vec<Message>, TemplateError> {
+            .map(|m| -> Result<Vec<Message>, TemplateError> {
                 match m {
                     MessageOrTemplate::Message(m) => Ok(vec![m.clone()]),
                     MessageOrTemplate::Template(t) => Ok(vec![t.format(&text_replacements)?]),
@@ -61,8 +61,8 @@ impl PromptTemplate {
                     }
                 }
             })
-            .flatten()
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<Vec<Message>>, TemplateError>>()?
+            .concat();
 
         Ok(Prompt::new(messages))
     }
