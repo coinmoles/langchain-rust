@@ -74,13 +74,14 @@ impl Default for OpenAI<OpenAIConfig> {
 impl<C: Config + Send + Sync + 'static> LLM for OpenAI<C> {
     async fn generate(&self, prompt: Vec<Message>) -> Result<WithUsage<LLMOutput>, LLMError> {
         let messages = self.process_prompt(prompt);
+        let options = self.call_options.clone();
+        let request = OpenAIRequest::new(&self.model, messages)?.with_options(options);
 
         let client = self.client.clone().with_http_client(
             reqwest::Client::builder()
                 .connection_verbose(true)
                 .build()?,
         );
-        let request = OpenAIRequest::build_request(&self.model, messages, &self.call_options)?;
 
         let response = match &self.call_options.stream_option {
             Some(stream_option) => {
@@ -113,8 +114,8 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAI<C> {
         messages: Vec<Message>,
     ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, LLMError>> + Send>>, LLMError> {
         let messages = self.process_prompt(messages);
-
-        let request = OpenAIRequest::build_request(&self.model, messages, &self.call_options)?;
+        let options = self.call_options.clone();
+        let request = OpenAIRequest::new(&self.model, messages)?.with_options(options);
 
         let original_stream = self
             .client
