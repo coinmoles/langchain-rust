@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[async_trait]
-pub trait LLM: Sync + Send + LLMClone {
+pub trait LLM: Sync + Send {
     async fn generate(&self, messages: Vec<Message>) -> Result<WithUsage<LLMOutput>, LLMError>;
 
     async fn invoke(&self, prompt: &str) -> Result<String, LLMError> {
@@ -37,19 +37,6 @@ pub trait LLM: Sync + Send + LLMClone {
             .map(|m| m.to_string())
             .collect::<Vec<String>>()
             .join("\n")
-    }
-}
-
-pub trait LLMClone {
-    fn clone_box(&self) -> Box<dyn LLM>;
-}
-
-impl<T> LLMClone for T
-where
-    T: 'static + LLM + Clone,
-{
-    fn clone_box(&self) -> Box<dyn LLM> {
-        Box::new(self.clone())
     }
 }
 
