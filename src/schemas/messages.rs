@@ -137,12 +137,14 @@ impl Message {
 impl fmt::Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(tool_calls) = &self.tool_calls {
-            write!(
-                f,
-                "Tool call:\n{}",
-                serde_json::to_string_pretty(&tool_calls)
-                    .unwrap_or("Tool call details unknown".into())
-            )
+            writeln!(f, "Tool call:",)?;
+            for (i, tool_call) in tool_calls.iter().enumerate() {
+                if i > 0 {
+                    writeln!(f)?;
+                }
+                write!(f, "{tool_call}")?;
+            }
+            Ok(())
         } else if let Some(images) = &self.images {
             write!(
                 f,

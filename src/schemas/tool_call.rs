@@ -2,7 +2,6 @@ use std::fmt::{self, Display};
 
 use async_openai::types::{ChatCompletionMessageToolCall, ChatCompletionToolType, FunctionCall};
 use indoc::indoc;
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::utils::helper::add_indent;
@@ -71,39 +70,6 @@ impl TryFrom<ToolCall> for FunctionCall {
             name: value.name,
             arguments: serde_json::to_string(&value.arguments)?,
         })
-    }
-}
-
-impl Serialize for ToolCall {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let openai_rep: Result<ChatCompletionMessageToolCall, _> = self.clone().try_into();
-
-        if let Ok(tool_call) = openai_rep {
-            return tool_call.serialize(serializer);
-        }
-
-        let function_call: Result<FunctionCall, _> = self.clone().try_into();
-        if let Ok(function_call) = function_call {
-            return function_call.serialize(serializer);
-        }
-
-        Err(serde::ser::Error::custom(
-            "Failed to serialize ToolCall as ChatCompletionMessageToolCall or FunctionCall",
-        ))
-    }
-}
-
-impl<'de> Deserialize<'de> for ToolCall {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let openai_rep = ChatCompletionMessageToolCall::deserialize(deserializer)?;
-
-        openai_rep.try_into().map_err(serde::de::Error::custom)
     }
 }
 

@@ -16,7 +16,11 @@ impl LLMOutput {
     pub fn into_text(self) -> Result<String, serde_json::Error> {
         let text = match self {
             LLMOutput::Text(text) => text,
-            LLMOutput::ToolCall(t) => serde_json::to_string_pretty(&t)?,
+            LLMOutput::ToolCall(tool_calls) => tool_calls
+                .iter()
+                .map(|tool_call| tool_call.to_string())
+                .collect::<Vec<_>>()
+                .join("\n"),
         };
         Ok(text)
     }
@@ -132,8 +136,11 @@ impl Display for LLMOutput {
             LLMOutput::Text(text) => write!(f, "{text}"),
             LLMOutput::ToolCall(tool_calls) => {
                 writeln!(f, "Structured tool call:")?;
-                for tool_call in tool_calls {
-                    writeln!(f, "{tool_call}")?;
+                for (i, tool_call) in tool_calls.iter().enumerate() {
+                    if i > 0 {
+                        writeln!(f)?;
+                    }
+                    write!(f, "{tool_call}")?;
                 }
                 Ok(())
             }
