@@ -10,7 +10,7 @@ use async_trait::async_trait;
 
 #[derive(Debug)]
 pub struct OpenAiEmbedder<C: Config> {
-    api_config: C,
+    client: OpenAIClient<C>,
     model: String,
 }
 
@@ -22,8 +22,9 @@ impl<C: Config + Send + Sync + 'static> From<OpenAiEmbedder<C>> for Box<dyn Embe
 
 impl<C: Config> OpenAiEmbedder<C> {
     pub fn new(config: C) -> Self {
+        let client = OpenAIClient::with_config(config);
         OpenAiEmbedder {
-            api_config: config,
+            client,
             model: String::from("text-embedding-ada-002"),
         }
     }
@@ -34,7 +35,7 @@ impl<C: Config> OpenAiEmbedder<C> {
     }
 
     pub fn with_api_config(mut self, api_config: C) -> Self {
-        self.api_config = api_config;
+        self.client = OpenAIClient::with_config(api_config);
         self
     }
 }
@@ -48,14 +49,12 @@ impl Default for OpenAiEmbedder<OpenAIConfig> {
 #[async_trait]
 impl<C: Config + Send + Sync> Embedder for OpenAiEmbedder<C> {
     async fn embed_documents(&self, documents: &[String]) -> Result<Vec<Vec<f64>>, EmbedderError> {
-        let client = OpenAIClient::with_config(self.api_config.clone());
-
         let request = CreateEmbeddingRequestArgs::default()
             .model(&self.model)
             .input(EmbeddingInput::StringArray(documents.into()))
             .build()?;
 
-        let response = client.embeddings().create(request).await?;
+        let response = self.client.embeddings().create(request).await?;
 
         let embeddings = response
             .data
@@ -73,14 +72,12 @@ impl<C: Config + Send + Sync> Embedder for OpenAiEmbedder<C> {
     }
 
     async fn embed_query(&self, text: &str) -> Result<Vec<f64>, EmbedderError> {
-        let client = OpenAIClient::with_config(self.api_config.clone());
-
         let request = CreateEmbeddingRequestArgs::default()
             .model(&self.model)
             .input(text)
             .build()?;
 
-        let mut response = client.embeddings().create(request).await?;
+        let mut response = self.client.embeddings().create(request).await?;
 
         let item = response.data.swap_remove(0);
 
