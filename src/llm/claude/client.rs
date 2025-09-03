@@ -151,7 +151,7 @@ impl Claude {
 impl LLM for Claude {
     async fn generate(&self, messages: Vec<Message>) -> Result<WithUsage<LLMOutput>, LLMError> {
         match &self.options.stream_option {
-            Some(stream_option) => {
+            Some(_) => {
                 let mut complete_response = String::new();
                 let mut usage = None;
                 let mut stream = self.stream(messages).await?;
@@ -159,11 +159,6 @@ impl LLM for Claude {
                     let data = data?;
                     usage = TokenUsage::merge_options([&usage, &data.tokens]);
                     complete_response.push_str(&data.content);
-
-                    if let Some(streaming_func) = &stream_option.streaming_func {
-                        let mut func = streaming_func.lock().await;
-                        let _ = func(&data.content).await;
-                    }
                 }
 
                 Ok(LLMOutput::Text(complete_response).with_usage(usage))

@@ -1,6 +1,5 @@
 use futures::{Stream, StreamExt};
-use std::{collections::HashMap, ops::Add, sync::Arc};
-use tokio::sync::Mutex;
+use std::{collections::HashMap, ops::Add};
 
 use async_openai::{
     error::OpenAIError,
@@ -11,8 +10,6 @@ use async_openai::{
         FunctionCall, PromptTokensDetails, Role,
     },
 };
-
-use crate::schemas::StreamingFunc;
 
 fn add_option_numbers<T>(a: Option<T>, b: Option<T>) -> Option<T>
 where
@@ -167,7 +164,6 @@ pub async fn construct_chat_completion_response(
     mut stream: impl Stream<Item = Result<CreateChatCompletionStreamResponse, async_openai::error::OpenAIError>>
         + Send
         + Unpin,
-    streaming_func: &Option<Arc<Mutex<StreamingFunc>>>,
 ) -> Result<CreateChatCompletionResponse, OpenAIError> {
     let mut choices_map: HashMap<u32, ChatChoice> = HashMap::new();
     let mut usage: Option<CompletionUsage> = None;
@@ -195,13 +191,6 @@ pub async fn construct_chat_completion_response(
         usage = merge_usage(usage, chunk.usage);
 
         for choice_stream in chunk.choices {
-            if let Some(content) = choice_stream.delta.content.as_deref() {
-                if let Some(streaming_func) = &streaming_func {
-                    let mut func = streaming_func.lock().await;
-                    let _ = func(content).await;
-                }
-            }
-
             #[allow(deprecated)]
             let choice = choices_map
                 .entry(choice_stream.index)

@@ -1,40 +1,20 @@
 use async_openai::types::{ChatCompletionTool, ChatCompletionToolChoiceOption, ResponseFormat};
-use futures::Future;
-use std::{error::Error, fmt, pin::Pin, sync::Arc};
-use tokio::sync::Mutex;
-
-use crate::schemas::StreamingFunc;
+use std::fmt;
 
 #[derive(Clone, Default)]
 pub struct StreamOption {
-    pub streaming_func: Option<Arc<Mutex<StreamingFunc>>>,
     pub include_usage: bool,
 }
 
 impl fmt::Debug for StreamOption {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("StreamOption")
-            .field("streaming_func", &self.streaming_func.is_some())
             .field("include_usage", &self.include_usage)
             .finish()
     }
 }
 
 impl StreamOption {
-    pub fn with_streaming_func<F, Fut>(mut self, mut func: F) -> Self
-    where
-        F: FnMut(&str) -> Fut + Send + 'static,
-        Fut: Future<Output = Result<(), Box<dyn Error + Send + Sync>>> + Send + 'static,
-    {
-        let func = Arc::new(Mutex::new(move |s: &str| {
-            Box::pin(func(s))
-                as Pin<Box<dyn Future<Output = Result<(), Box<dyn Error + Send + Sync>>> + Send>>
-        }));
-
-        self.streaming_func = Some(func);
-        self
-    }
-
     pub fn with_stream_usage(mut self, stream_usage: bool) -> Self {
         self.include_usage = stream_usage;
         self

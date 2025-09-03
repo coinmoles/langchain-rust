@@ -78,14 +78,14 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAI<C> {
         let request = OpenAIRequest::new(&self.model, messages)?.with_options(options);
 
         let response = match &self.call_options.stream_option {
-            Some(stream_option) => {
+            Some(_) => {
                 let stream = self
                     .client
                     .chat()
                     .create_stream_byot::<_, CreateChatCompletionStreamResponse>(request)
                     .await?;
 
-                construct_chat_completion_response(stream, &stream_option.streaming_func).await?
+                construct_chat_completion_response(stream).await?
             }
             None => {
                 self.client
@@ -160,9 +160,7 @@ mod tests {
 
     use super::*;
 
-    use async_openai::types::{
-        ChatChoiceStream, ChatCompletionToolArgs, ChatCompletionToolType, FunctionObjectArgs,
-    };
+    use async_openai::types::{ChatCompletionToolArgs, ChatCompletionToolType, FunctionObjectArgs};
     use base64::prelude::*;
     use serde_json::json;
     use std::sync::Arc;
@@ -173,26 +171,9 @@ mod tests {
     #[ignore]
     async fn test_invoke() {
         let message_complete = Arc::new(Mutex::new(String::new()));
-
-        // Define the streaming function
-        // This function will append the content received from the stream to `message_complete`
-        let streaming_func = {
-            let message_complete = message_complete.clone();
-            move |content: &str| {
-                let message_complete = message_complete.clone();
-                let content = content.to_owned();
-                async move {
-                    let mut message_complete_lock = message_complete.lock().await;
-                    println!("Content: {content:?}");
-                    message_complete_lock.push_str(&content);
-                    Ok(())
-                }
-            }
-        };
-        let call_options = CallOptions::new()
-            .with_stream(StreamOption::default().with_streaming_func(streaming_func));
+        let call_options = CallOptions::new().with_stream(StreamOption::default());
         // Setup the OpenAI client with the necessary options
-        let open_ai: OpenAI<OpenAIConfig> = OpenAI::builder()
+        let llm: OpenAI<OpenAIConfig> = OpenAI::builder()
             .with_model(OpenAIModel::Gpt35.to_string()) // You can change the model as needed
             .with_call_options(call_options)
             .build();
@@ -200,7 +181,7 @@ mod tests {
         // Define a set of messages to send to the generate function
 
         // Call the generate function
-        match open_ai.invoke("hola").await {
+        match llm.invoke("hola").await {
             Ok(result) => {
                 // Print the response from the generate function
                 println!("Generate Result: {result:?}");
@@ -215,33 +196,11 @@ mod tests {
 
     #[test]
     #[ignore]
-    async fn test_generate_function() {
-        let message_complete = Arc::new(Mutex::new(String::new()));
-
-        // Define the streaming function
-        // This function will append the content received from the stream to `message_complete`
-        let streaming_func = {
-            let message_complete = message_complete.clone();
-            move |content: &str| {
-                let message_complete = message_complete.clone();
-                let content = content.to_owned();
-                async move {
-                    let content = serde_json::from_str::<ChatChoiceStream>(&content).unwrap();
-                    if content.finish_reason.is_some() {
-                        return Ok(());
-                    }
-                    let mut message_complete_lock = message_complete.lock().await;
-                    println!("Content: {content:?}");
-                    message_complete_lock.push_str(&content.delta.content.unwrap());
-                    Ok(())
-                }
-            }
-        };
+    async fn test_generate() {
         // Define the streaming function as an async block without capturing external references directly
-        let call_options = CallOptions::new()
-            .with_stream(StreamOption::default().with_streaming_func(streaming_func));
+        let call_options = CallOptions::new().with_stream(StreamOption::default());
         // Setup the OpenAI client with the necessary options
-        let open_ai: OpenAI<OpenAIConfig> = OpenAI::builder()
+        let llm: OpenAI<OpenAIConfig> = OpenAI::builder()
             .with_model(OpenAIModel::Gpt35.to_string()) // You can change the model as needed
             .with_call_options(call_options)
             .build();
@@ -250,11 +209,10 @@ mod tests {
         let messages = vec![Message::new_human_message("Hello, how are you?")];
 
         // Call the generate function
-        match open_ai.generate(messages).await {
+        match llm.generate(messages).await {
             Ok(result) => {
                 // Print the response from the generate function
                 println!("Generate Result: {result:?}");
-                println!("Message Complete: {:?}", message_complete.lock().await);
             }
             Err(e) => {
                 // Handle any errors

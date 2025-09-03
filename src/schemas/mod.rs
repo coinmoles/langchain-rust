@@ -13,9 +13,6 @@ pub use document::*;
 mod retrievers;
 pub use retrievers::*;
 
-pub mod streaming_func;
-pub use streaming_func::*;
-
 mod stream;
 pub use stream::*;
 
