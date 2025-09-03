@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use proc_macro_error::{ResultExt, proc_macro_error};
+use proc_macro_error2::{ResultExt, proc_macro_error};
 use syn::{DeriveInput, parse_macro_input};
 
 mod attr;

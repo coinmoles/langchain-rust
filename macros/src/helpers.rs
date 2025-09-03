@@ -1,4 +1,4 @@
-use proc_macro_error::{Diagnostic, Level};
+use proc_macro_error2::{Diagnostic, Level};
 use syn::{Data, Fields, FieldsNamed, LitStr};
 
 use crate::rename::RenameAll;

@@ -1,4 +1,4 @@
-use proc_macro_error::{Diagnostic, abort};
+use proc_macro_error2::{Diagnostic, abort};
 use quote::{ToTokens, quote};
 use syn::{Field, LitStr, spanned::Spanned};
 

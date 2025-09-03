@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use proc_macro_error::{Diagnostic, Level};
+use proc_macro_error2::{Diagnostic, Level};
 use syn::{Attribute, LitStr, Path, parse_str, spanned::Spanned};
 
 use crate::rename::RenameAll;

@@ -1,4 +1,4 @@
-use proc_macro_error::{Diagnostic, Level};
+use proc_macro_error2::{Diagnostic, Level};
 use quote::{ToTokens, format_ident, quote};
 use syn::{LitStr, parse_quote_spanned, spanned::Spanned};
 
@@ -153,7 +153,7 @@ impl ChainOutputStructSpec {
 
 pub fn derive_chain_output(
     input: syn::DeriveInput,
-) -> Result<proc_macro2::TokenStream, proc_macro_error::Diagnostic> {
+) -> Result<proc_macro2::TokenStream, Diagnostic> {
     let struct_name = &input.ident;
     let fields = &get_fields(&input.data)?.named;
 

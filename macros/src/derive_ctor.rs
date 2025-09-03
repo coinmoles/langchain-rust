@@ -1,4 +1,4 @@
-use proc_macro_error::Diagnostic;
+use proc_macro_error2::Diagnostic;
 use quote::{format_ident, quote};
 use syn::{WherePredicate, punctuated::Punctuated};
 
