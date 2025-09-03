@@ -9,10 +9,11 @@ use indoc::indoc;
 
 use crate::{
     chain::{
-        Chain, ChainError, ChainOutput, InputCtor, LLMChain, OutputCtor, StringCtor, StuffQACtor,
+        Chain, ChainError, ChainOutput, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor,
+        StuffQACtor,
     },
     llm::LLM,
-    schemas::{GetPrompt, MessageType, Prompt, StreamData, WithUsage},
+    schemas::{MessageType, Prompt, StreamData, WithUsage},
     template::{MessageTemplate, TemplateError},
 };
 

@@ -2,6 +2,9 @@
 mod chain;
 pub use chain::*;
 
+mod get_prompt;
+pub use get_prompt::*;
+
 mod pure_chain;
 pub use pure_chain::*;
 

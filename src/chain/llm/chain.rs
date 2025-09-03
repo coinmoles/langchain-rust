@@ -4,10 +4,10 @@ use async_trait::async_trait;
 use futures::{Stream, TryStreamExt};
 
 use crate::{
-    chain::{Chain, ChainError, ChainOutput, InputCtor, OutputCtor, StringCtor},
+    chain::{Chain, ChainError, ChainOutput, GetPrompt, InputCtor, OutputCtor, StringCtor},
     llm::{LLMError, LLMOutput, LLM},
     output_parser::OutputParser,
-    schemas::{GetPrompt, IntoWithUsage, Prompt, StreamData, WithUsage},
+    schemas::{IntoWithUsage, Prompt, StreamData, WithUsage},
     template::{PromptTemplate, TemplateError},
 };
 

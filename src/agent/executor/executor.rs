@@ -6,9 +6,9 @@ use tokio::sync::RwLock;
 
 use crate::{
     agent::{Agent, AgentInput, DefaultStrategy, ExecutionContext, Strategy},
-    chain::{Chain, ChainError, ChainOutput, InputCtor, OutputCtor},
+    chain::{Chain, ChainError, ChainOutput, GetPrompt, InputCtor, OutputCtor},
     memory::Memory,
-    schemas::{GetPrompt, Prompt, WithUsage},
+    schemas::{Prompt, WithUsage},
     template::TemplateError,
 };
 

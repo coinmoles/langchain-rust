@@ -8,12 +8,12 @@ use tokio::sync::{Mutex, RwLock};
 
 use crate::{
     chain::{
-        Chain, ChainError, ChainOutput, DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor,
-        StringCtor,
+        Chain, ChainError, ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain,
+        OutputCtor, StringCtor,
     },
     llm::{LLMOutput, LLMOutputCtor},
     memory::Memory,
-    schemas::{messages::Message, GetPrompt, IntoWithUsage, Prompt, StreamData, WithUsage},
+    schemas::{messages::Message, IntoWithUsage, Prompt, StreamData, WithUsage},
     template::TemplateError,
 };
 
