@@ -77,15 +77,10 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAI<C> {
         let options = self.call_options.clone();
         let request = OpenAIRequest::new(&self.model, messages)?.with_options(options);
 
-        let client = self.client.clone().with_http_client(
-            reqwest::Client::builder()
-                .connection_verbose(true)
-                .build()?,
-        );
-
         let response = match &self.call_options.stream_option {
             Some(stream_option) => {
-                let stream = client
+                let stream = self
+                    .client
                     .chat()
                     .create_stream_byot::<_, CreateChatCompletionStreamResponse>(request)
                     .await?;
@@ -93,7 +88,7 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAI<C> {
                 construct_chat_completion_response(stream, &stream_option.streaming_func).await?
             }
             None => {
-                client
+                self.client
                     .chat()
                     .create_byot::<_, CreateChatCompletionResponse>(request)
                     .await?
