@@ -1,11 +1,11 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use crate::{
     agent::create_prompt,
     chain::{DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor, StringCtor},
     instructor::{BoxInstructorExt, DefaultInstructor, Instructor},
     llm::LLM,
-    tools::{ListTools, ToolDyn, Toolbox},
+    tools::FunctionTool,
     utils::helper::normalize_tool_name,
 };
 
@@ -21,9 +21,9 @@ pub struct ConversationalAgentBuilder<
     O: OutputCtor = StringCtor,
 > {
     /// The tools to be used by the agent.
-    tools: Option<Vec<Box<dyn ToolDyn>>>,
-    /// The toolboxes containing additional tools for the agent.
-    toolboxes: Option<Vec<Box<dyn Toolbox>>>,
+    tools: Option<Vec<Box<dyn FunctionTool>>>,
+    // /// The toolboxes containing additional tools for the agent.
+    // toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     /// The system prompt to be used by the agent.
     system_prompt: Option<&'a str>,
     /// The initial user prompt to be used by the agent.
@@ -46,7 +46,7 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> ConversationalAgentBuilder<'a, 'b, I, 
     pub fn new() -> Self {
         Self {
             tools: None,
-            toolboxes: None,
+            // toolboxes: None,
             system_prompt: None,
             initial_prompt: None,
             instructor: None,
@@ -55,16 +55,19 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> ConversationalAgentBuilder<'a, 'b, I, 
     }
 
     /// Adds tools.
-    pub fn tools(mut self, tools: impl IntoIterator<Item = impl Into<Box<dyn ToolDyn>>>) -> Self {
+    pub fn tools(
+        mut self,
+        tools: impl IntoIterator<Item = impl Into<Box<dyn FunctionTool>>>,
+    ) -> Self {
         self.tools = Some(tools.into_iter().map(Into::into).collect());
         self
     }
 
-    /// Adds toolboxes.
-    pub fn toolboxes(mut self, toolboxes: Vec<Box<dyn Toolbox>>) -> Self {
-        self.toolboxes = Some(toolboxes);
-        self
-    }
+    // /// Adds toolboxes.
+    // pub fn toolboxes(mut self, toolboxes: Vec<Box<dyn Toolbox>>) -> Self {
+    //     self.toolboxes = Some(toolboxes);
+    //     self
+    // }
 
     /// Sets the system prompt.
     pub fn system_prompt(mut self, system_prompt: &'a str) -> Self {
@@ -88,21 +91,21 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> ConversationalAgentBuilder<'a, 'b, I, 
 
     /// Returns a [`ConversationalAgent`] that uses this [`ConversationalAgentBuilder`] configuration.
     pub fn build<L: Into<Box<dyn LLM>>>(self, llm: L) -> ConversationalAgent<I, O> {
-        let toolboxes = self
-            .toolboxes
-            .unwrap_or_default()
-            .into_iter()
-            .map(Arc::from)
-            .collect::<Vec<_>>();
+        // let toolboxes = self
+        //     .toolboxes
+        //     .unwrap_or_default()
+        //     .into_iter()
+        //     .map(Arc::from)
+        //     .collect::<Vec<_>>();
 
         let tools = {
-            let toolbox_list_tools = toolboxes
-                .iter()
-                .map(|toolbox| Box::new(ListTools::new(toolbox)) as Box<dyn ToolDyn>);
+            // let toolbox_list_tools = toolboxes
+            //     .iter()
+            //     .map(|toolbox| Box::new(ListTools::new(toolbox)) as Box<dyn FunctionTool>);
             self.tools
                 .unwrap_or_default()
                 .into_iter()
-                .chain(toolbox_list_tools)
+                // .chain(toolbox_list_tools)
                 .map(|tool| (normalize_tool_name(&tool.name()), tool))
                 .collect::<HashMap<_, _>>()
         };
@@ -113,12 +116,12 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> ConversationalAgentBuilder<'a, 'b, I, 
 
         let system_prompt = {
             let body = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
-            let suffix = if tools.is_empty() {
-                String::new()
+            let tool_use_instruction = if tools.is_empty() {
+                ""
             } else {
-                instructor.create_suffix(&tools.values().map(|t| t.as_ref()).collect::<Vec<_>>())
+                instructor.tool_use_instruction()
             };
-            format!("{body}{suffix}")
+            format!("{body}{tool_use_instruction}")
         };
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
 
@@ -133,7 +136,7 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> ConversationalAgentBuilder<'a, 'b, I, 
         ConversationalAgent {
             llm_chain,
             tools,
-            toolboxes,
+            // toolboxes,
             _phantom: std::marker::PhantomData,
         }
     }

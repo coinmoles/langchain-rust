@@ -4,7 +4,7 @@ use crate::{
     agent::{Agent, AgentInput, AgentOutput, AgentStep},
     chain::{ChainError, InputCtor, OutputCtor},
     schemas::{ToolCall, WithUsage},
-    tools::{ToolDyn, ToolOutput},
+    tools::{FunctionTool, ToolOutput},
 };
 
 #[async_trait]
@@ -71,7 +71,7 @@ pub trait Strategy: Default + Send + Sync {
         &'tool mut self,
         agent: &'tool dyn Agent<I, O>,
         tool_name: &str,
-    ) -> Option<&'tool dyn ToolDyn>
+    ) -> Option<&'tool dyn FunctionTool>
     where
         Self: 'tool,
     {

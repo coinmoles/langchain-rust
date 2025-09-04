@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use async_trait::async_trait;
-use langchain_rust::tools::{SpeechStorage, Text2SpeechOpenAI, ToolDyn};
+use langchain_rust::tools::{SpeechStorage, Text2SpeechOpenAI, FunctionTool};
 use serde_json::Value;
 
 #[allow(dead_code)]

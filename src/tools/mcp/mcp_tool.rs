@@ -1,92 +1,92 @@
-use async_trait::async_trait;
-use rmcp::model::CallToolRequestParam;
-use schemars::schema::RootSchema;
-use serde_json::Value;
+use std::{collections::HashMap, sync::Arc};
 
-use std::{borrow::Cow, error::Error, sync::Arc};
+use futures::{stream, StreamExt, TryStreamExt};
+use rmcp::{transport::StreamableHttpClientTransport, ServiceExt};
+use secrecy::{ExposeSecret, SecretString};
 
-use crate::tools::{McpError, Tool};
-
-use super::{parse_mcp_response, McpService, McpServiceExt};
+use crate::{
+    tools::{FunctionTool, McpError, McpFunctionTool, McpService},
+    utils::helper::normalize_tool_name,
+};
 
 pub struct McpTool {
-    client: Arc<McpService>,
-    name: Cow<'static, str>,
-    description: Option<Cow<'static, str>>,
-    parameters: RootSchema,
+    uri: SecretString,
+    name: String,
 }
 
 impl McpTool {
-    pub fn new(
-        client: Arc<McpService>,
-        name: Cow<'static, str>,
-        description: Option<Cow<'static, str>>,
-        parameters: RootSchema,
-    ) -> Self {
+    pub fn new(uri: &str, name: impl Into<String>) -> Self {
         Self {
-            client,
-            name,
-            description,
-            parameters,
+            uri: SecretString::from(uri),
+            name: name.into(),
         }
     }
 
-    pub async fn fetch_tool(
-        client: impl Into<Arc<McpService>>,
-        name: impl AsRef<str> + Send + Sync,
-    ) -> Result<Self, McpError> {
-        let client: Arc<McpService> = client.into();
-        client.fetch_tool(name.as_ref()).await
-    }
-}
-
-#[async_trait]
-impl Tool for McpTool {
-    type Input = Value;
-    type Output = Vec<String>;
-
-    fn name(&self) -> String {
-        self.name.to_string()
-    }
-
-    fn description(&self) -> String {
-        self.description
-            .as_ref()
-            .map_or_else(|| "No description provided".to_string(), |d| d.to_string())
-    }
-
-    fn parameters(&self) -> RootSchema {
-        self.parameters.clone()
-    }
-
-    fn strict(&self) -> bool {
-        false
-    }
-
-    async fn run(&self, input: Self::Input) -> Result<Self::Output, Box<dyn Error + Send + Sync>> {
-        let input = match input {
-            Value::Object(obj) => obj,
-            _ => return Err("Invalid input".into()),
-        };
-
-        let tool_result: rmcp::model::CallToolResult = self
-            .client
-            .call_tool(CallToolRequestParam {
-                name: self.name.clone(),
-                arguments: Some(input),
+    pub async fn as_function_tools(
+        predicates: &[Self],
+    ) -> Result<HashMap<String, Box<dyn FunctionTool>>, McpError> {
+        // Group tools by URI to minimize the number of connections
+        let grouped = group_tools_by_uri(predicates);
+        let merged: HashMap<String, Box<dyn FunctionTool>> = stream::iter(grouped.into_iter())
+            .map(|(uri, preds)| async move {
+                let service = init_service(uri).await?;
+                fetch_tools(service, &preds).await
+            })
+            .buffer_unordered(8)
+            .try_fold(HashMap::new(), |mut acc, map| async move {
+                acc.extend(map);
+                Ok(acc)
             })
             .await?;
 
-        let content = tool_result
-            .content
-            .into_iter()
-            .map(parse_mcp_response)
-            .collect::<Vec<_>>();
-
-        if tool_result.is_error.unwrap_or(false) {
-            Err(content.join("\n").into())
-        } else {
-            Ok(content)
-        }
+        Ok(merged)
     }
+}
+
+/// Helper function to group mcp tools by their URI.
+fn group_tools_by_uri(predicates: &[McpTool]) -> HashMap<&str, Vec<&str>> {
+    let mut m: HashMap<&str, Vec<&str>> = HashMap::new();
+    for p in predicates {
+        let uri = p.uri.expose_secret();
+        m.entry(uri).or_default().push(p.name.as_str());
+    }
+    m
+}
+
+async fn init_service(uri: &str) -> Result<McpService, McpError> {
+    let transport = StreamableHttpClientTransport::from_uri(uri);
+    let client_info = rmcp::model::ClientInfo::default();
+    let service = client_info
+        .serve(transport)
+        .await
+        .inspect_err(|e| tracing::error!("client error: {e:?}"))?;
+
+    Ok(service)
+}
+
+async fn fetch_tools(
+    service: McpService,
+    names: &[&str],
+) -> Result<HashMap<String, Box<dyn FunctionTool>>, McpError> {
+    let service = Arc::new(service);
+    let mut tools = service
+        .list_all_tools()
+        .await?
+        .into_iter()
+        .map(|tool| -> Result<_, McpError> {
+            let tool = McpFunctionTool::from_rmcp_tool(&service, tool)?;
+            Ok((tool.name(), tool))
+        })
+        .collect::<Result<HashMap<_, _>, _>>()?;
+
+    let mut out: HashMap<String, Box<dyn FunctionTool>> = HashMap::new();
+    for name in names {
+        let name = normalize_tool_name(name);
+        let Some(tool) = tools.remove(&name) else {
+            return Err(McpError::ToolNotFound(name));
+        };
+        out.insert(name, Box::new(tool));
+    }
+
+    Ok(out)
 }

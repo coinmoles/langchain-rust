@@ -5,7 +5,7 @@ use scraper::{ElementRef, Html, Node, Selector};
 use serde::Deserialize;
 use std::error::Error;
 
-use crate::tools::Tool;
+use crate::tools::Function;
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -16,7 +16,7 @@ pub struct WebScrapperInput(pub String);
 pub struct WebScrapper {}
 
 #[async_trait]
-impl Tool for WebScrapper {
+impl Function for WebScrapper {
     type Input = WebScrapperInput;
     type Output = Vec<String>;
 
@@ -32,7 +32,7 @@ impl Tool for WebScrapper {
         true
     }
 
-    async fn run(&self, input: Self::Input) -> Result<Self::Output, Box<dyn Error + Send + Sync>> {
+    async fn call(&self, input: Self::Input) -> Result<Self::Output, Box<dyn Error + Send + Sync>> {
         let url = input.0;
         scrape_url(&url).await
     }
@@ -96,7 +96,7 @@ mod tests {
         let url = server.url();
 
         // Call the WebScrapper with the mocked URL
-        let result = scraper.run(WebScrapperInput(url)).await;
+        let result = scraper.call(WebScrapperInput(url)).await;
 
         // Assert that the result is Ok and contains "Hello World"
         assert!(result.is_ok());

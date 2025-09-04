@@ -1,8 +1,10 @@
+use async_openai::types::ChatCompletionTool;
+
 use crate::{
     agent::create_prompt,
     chain::{InputCtor, LLMChain, OutputCtor},
     llm::{options::CallOptions, LLM},
-    tools::{ToolDyn, Toolbox},
+    tools::FunctionTool,
     utils::helper::normalize_tool_name,
 };
 
@@ -18,9 +20,9 @@ use super::{
 /// - `O`: A [constructor](crate::chain::Ctor) for the agent’s output type.
 pub struct OpenAiToolAgentBuilder<'a, 'b, I: InputCtor, O: OutputCtor> {
     /// The tools to be used by the agent.
-    tools: Option<Vec<Box<dyn ToolDyn>>>,
-    /// The toolboxes containing additional tools for the agent.
-    toolboxes: Option<Vec<Box<dyn Toolbox>>>,
+    tools: Option<Vec<Box<dyn FunctionTool>>>,
+    // /// The toolboxes containing additional tools for the agent.
+    // toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     /// The system prompt to be used by the agent.
     system_prompt: Option<&'a str>,
     /// The initial user prompt to be used by the agent.
@@ -36,7 +38,7 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> OpenAiToolAgentBuilder<'a, 'b, I, O> {
     pub fn new() -> Self {
         Self {
             tools: None,
-            toolboxes: None,
+            // toolboxes: None,
             system_prompt: None,
             initial_prompt: None,
             _phantom: std::marker::PhantomData,
@@ -44,16 +46,19 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> OpenAiToolAgentBuilder<'a, 'b, I, O> {
     }
 
     /// Adds tools.
-    pub fn tools(mut self, tools: impl IntoIterator<Item = impl Into<Box<dyn ToolDyn>>>) -> Self {
+    pub fn tools(
+        mut self,
+        tools: impl IntoIterator<Item = impl Into<Box<dyn FunctionTool>>>,
+    ) -> Self {
         self.tools = Some(tools.into_iter().map(Into::into).collect());
         self
     }
 
-    /// Adds toolboxes.
-    pub fn toolboxes(mut self, toolboxes: Vec<Box<dyn Toolbox>>) -> Self {
-        self.toolboxes = Some(toolboxes);
-        self
-    }
+    // /// Adds toolboxes.
+    // pub fn toolboxes(mut self, toolboxes: Vec<Box<dyn Toolbox>>) -> Self {
+    //     self.toolboxes = Some(toolboxes);
+    //     self
+    // }
 
     /// Sets the system prompt.
     pub fn system_prompt(mut self, system_prompt: &'a str) -> Self {
@@ -72,24 +77,22 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> OpenAiToolAgentBuilder<'a, 'b, I, O> {
         let system_prompt = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
 
-        let toolboxes = self.toolboxes.unwrap_or_default();
+        // let toolboxes = self.toolboxes.unwrap_or_default();
         let tools = self.tools.unwrap_or_default();
 
         let tools_openai = {
-            let local_tools = tools
-                .iter()
-                .map(|tool| tool.as_openai_tool())
-                .collect::<Vec<_>>();
+            let local_tools = tools.iter().map(|tool| tool.get_spec()).collect::<Vec<_>>();
 
-            let toolbox_tools = toolboxes
-                .iter()
-                .map(|toolbox| toolbox.get_tools().into_iter())
-                .flat_map(|tools| tools.map(|(_, tool)| tool.as_openai_tool()))
-                .collect::<Vec<_>>();
+            // let toolbox_tools = toolboxes
+            //     .iter()
+            //     .map(|toolbox| toolbox.get_tools().into_iter())
+            //     .flat_map(|tools| tools.map(|(_, tool)| tool.get_spec()))
+            //     .collect::<Vec<_>>();
 
             local_tools
                 .into_iter()
-                .chain(toolbox_tools)
+                // .chain(toolbox_tools)
+                .map(ChatCompletionTool::from)
                 .collect::<Vec<_>>()
         };
 
@@ -110,7 +113,7 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> OpenAiToolAgentBuilder<'a, 'b, I, O> {
         OpenAiToolAgent {
             llm_chain,
             tools: tools_map,
-            toolboxes,
+            // toolboxes,
             _phantom: std::marker::PhantomData,
         }
     }

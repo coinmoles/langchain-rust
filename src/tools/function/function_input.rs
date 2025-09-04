@@ -4,21 +4,21 @@ use serde::Deserialize;
 #[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 #[schemars(description = "The input for the tool")]
-pub struct DefaultToolInput(pub String);
+pub struct DefaultFunctionInput(pub String);
 
-impl DefaultToolInput {
+impl DefaultFunctionInput {
     pub fn new(input: impl Into<String>) -> Self {
         Self(input.into())
     }
 }
 
-impl From<String> for DefaultToolInput {
+impl From<String> for DefaultFunctionInput {
     fn from(input: String) -> Self {
         Self(input)
     }
 }
 
-impl From<&str> for DefaultToolInput {
+impl From<&str> for DefaultFunctionInput {
     fn from(input: &str) -> Self {
         Self(input.to_string())
     }
@@ -33,7 +33,7 @@ mod tests {
 
     #[test]
     fn test_default_tool_input_schema() {
-        let schema = schema_for!(DefaultToolInput);
+        let schema = schema_for!(DefaultFunctionInput);
         let schema = serde_json::to_value(schema).unwrap();
 
         assert_eq!(

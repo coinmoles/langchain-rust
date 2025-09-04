@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::tools::{tool_input::DefaultToolInput, Tool};
+use crate::tools::{DefaultFunctionInput, Function};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 struct WolframError {
@@ -112,8 +112,8 @@ impl Default for Wolfram {
 }
 
 #[async_trait]
-impl Tool for Wolfram {
-    type Input = DefaultToolInput;
+impl Function for Wolfram {
+    type Input = DefaultFunctionInput;
     type Output = Vec<String>;
 
     fn name(&self) -> String {
@@ -128,7 +128,7 @@ impl Tool for Wolfram {
             .into()
     }
 
-    async fn run(
+    async fn call(
         &self,
         input: Self::Input,
     ) -> Result<Self::Output, Box<dyn std::error::Error + Send + Sync>> {
@@ -176,7 +176,7 @@ mod tests {
     async fn test_wolfram() {
         let wolfram = Wolfram::default().with_excludes(&["Plot"]);
         let input = "Solve x^2 - 2x + 1 = 0";
-        let result = wolfram.run(input.into()).await;
+        let result = wolfram.call(input.into()).await;
 
         assert!(result.is_ok());
         println!("{:?}", result.unwrap());

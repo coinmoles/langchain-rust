@@ -3,7 +3,7 @@ use std::error::Error;
 use async_trait::async_trait;
 use serde_json::Value;
 
-use crate::tools::{tool_input::DefaultToolInput, Tool};
+use crate::tools::{DefaultFunctionInput, Function};
 
 pub struct SerpApi {
     api_key: String,
@@ -148,8 +148,8 @@ fn get_organic_result(result: &Value) -> String {
 }
 
 #[async_trait]
-impl Tool for SerpApi {
-    type Input = DefaultToolInput;
+impl Function for SerpApi {
+    type Input = DefaultFunctionInput;
     type Output = String;
 
     fn name(&self) -> String {
@@ -164,7 +164,7 @@ impl Tool for SerpApi {
             .into()
     }
 
-    async fn run(&self, input: Self::Input) -> Result<Self::Output, Box<dyn Error + Send + Sync>> {
+    async fn call(&self, input: Self::Input) -> Result<Self::Output, Box<dyn Error + Send + Sync>> {
         self.simple_search(&input.0).await
     }
 }

@@ -9,8 +9,6 @@ use crate::{
         is_malformed_event_str, parse_partial_json, remove_thought, OutputParseError,
     },
     schemas::ToolCall,
-    tools::ToolDyn,
-    utils::helper::normalize_tool_name,
 };
 
 use super::Instructor;
@@ -27,12 +25,12 @@ const DEFAULT_TOOL_PROMPT: &str = r#"
 
 Option 1 : Use a tool (If you have tools and you need to use them)
 The following is the description of the tools available to you:
-{{tools}}
+{{?tools}}
 - IF YOU DON'T HAVE TOOLS, PASS THIS OPTION
 
 <TOOL_USAGE_OUTPUT_FORMAT>
 {
-    "action": (string), The action to take; MUST BE one of [{{tool_names}}]
+    "action": (string), The action to take; MUST BE one of [{{?tool_names}}]
     "action_input": (object), The input to the action, JSON object. The structure object depends on the action you are taking, and is specified in the tool description below.
 }
 </TOOL_USAGE_OUTPUT_FORMAT>
@@ -120,23 +118,11 @@ impl DefaultInstructor {
 }
 
 impl Instructor for DefaultInstructor {
-    fn create_suffix(&self, tools: &[&dyn ToolDyn]) -> String {
-        let tool_names = tools
-            .iter()
-            .map(|tool| normalize_tool_name(&tool.name()))
-            .collect::<Vec<_>>()
-            .join(", ");
-        let tool_string = tools
-            .iter()
-            .map(|tool| tool.to_plain_description())
-            .collect::<Vec<_>>()
-            .join("\n");
+    fn tool_use_instruction(&self) -> &'static str {
         DEFAULT_TOOL_PROMPT
-            .replace("{{tool_names}}", &tool_names)
-            .replace("{{tools}}", &tool_string)
     }
 
-    fn parse_from_text(&self, output: String) -> Result<AgentOutput, OutputParseError> {
+    fn parse_tool_use(&self, output: String) -> Result<AgentOutput, OutputParseError> {
         let text = remove_thought(&output);
         let text = extract_from_codeblock(text);
 
@@ -175,7 +161,7 @@ mod tests {
             ```
         "#};
 
-        let parsed_output = DefaultInstructor.parse_from_text(test_output.into());
+        let parsed_output = DefaultInstructor.parse_tool_use(test_output.into());
 
         match parsed_output {
             Ok(AgentOutput::Action(tool_calls)) => {
@@ -195,7 +181,7 @@ mod tests {
             ```
         "#};
 
-        let parsed_output = DefaultInstructor.parse_from_text(test_final_answer.into());
+        let parsed_output = DefaultInstructor.parse_tool_use(test_final_answer.into());
 
         match parsed_output {
             Ok(AgentOutput::Finish(final_answer)) => {
@@ -237,7 +223,7 @@ mod tests {
             ```
         "#};
 
-        let result = DefaultInstructor.parse_from_text(test_final_answer.into());
+        let result = DefaultInstructor.parse_tool_use(test_final_answer.into());
 
         match result {
             Ok(AgentOutput::Finish(final_answer)) => {
@@ -257,7 +243,7 @@ mod tests {
             ```
         "#};
 
-        let result = DefaultInstructor.parse_from_text(test_final_answer.into());
+        let result = DefaultInstructor.parse_tool_use(test_final_answer.into());
 
         match result {
             Ok(AgentOutput::Finish(final_answer)) => {
@@ -275,7 +261,7 @@ mod tests {
             }
         "#};
 
-        let result = DefaultInstructor.parse_from_text(test_final_answer.into());
+        let result = DefaultInstructor.parse_tool_use(test_final_answer.into());
 
         match result {
             Ok(AgentOutput::Finish(final_answer)) => {
@@ -295,7 +281,7 @@ mod tests {
             }
         "#};
 
-        let result = DefaultInstructor.parse_from_text(text.into()).unwrap();
+        let result = DefaultInstructor.parse_tool_use(text.into()).unwrap();
         match result {
             AgentOutput::Action(tool_calls) => {
                 assert_eq!(tool_calls.len(), 1);
@@ -318,7 +304,7 @@ mod tests {
         The precise mechanisms linking CDK inhibition to NF-κB activation remain incompletely understood but likely involve complex interactions between multiple signalling pathways. While the precise molecular details are still under investigation, potential mechanisms include altered regulation of upstream kinases (such as RIP1 and IKK) involved in NF-κB activation, and/or modulation of NF-κB transcriptional activity itself. A comprehensive understanding of these mechanisms is crucial not only for elucidating the immunological consequences of CDK inhibitor therapy, but also for developing strategies to mitigate potential immune-related toxicities and maximize therapeutic benefit. Further investigation into the underlying mechanisms is therefore warranted and will be a focus of current research."
         }"#};
 
-        let result = DefaultInstructor.parse_from_text(text.into()).unwrap();
+        let result = DefaultInstructor.parse_tool_use(text.into()).unwrap();
         match result {
             AgentOutput::Finish(final_answer) => {
                 println!("{final_answer}");
@@ -332,7 +318,7 @@ mod tests {
         let text = indoc! {"
         My final answer is 5"};
 
-        let result = DefaultInstructor.parse_from_text(text.into()).unwrap();
+        let result = DefaultInstructor.parse_tool_use(text.into()).unwrap();
 
         match result {
             AgentOutput::Finish(final_answer) => assert_eq!(final_answer, "My final answer is 5"),
@@ -363,7 +349,7 @@ mod tests {
             ]
             ```"#};
 
-        let result = DefaultInstructor.parse_from_text(text.into()).unwrap();
+        let result = DefaultInstructor.parse_tool_use(text.into()).unwrap();
 
         match result {
             AgentOutput::Finish(final_answer) => {
@@ -385,7 +371,7 @@ mod tests {
         }
         "#;
 
-        let result = DefaultInstructor.parse_from_text(text.into());
+        let result = DefaultInstructor.parse_tool_use(text.into());
 
         assert!(result.is_err(), "Expected err, got {result:#?}");
     }
@@ -395,7 +381,7 @@ mod tests {
         let text = r#"["`hypoxia` AND `endothelial mitotic activity` AND `vascular remodeling` AND `cellular response`", "`regulatory motifs` AND `hypoxia` AND `gene regulation` AND `DNA binding`", "`vascular responses` AND `genomic data` AND `hypoxia` AND `molecular mechanisms`"]
 "#;
 
-        let result = DefaultInstructor.parse_from_text(text.into());
+        let result = DefaultInstructor.parse_tool_use(text.into());
 
         println!("{result:#?}");
     }

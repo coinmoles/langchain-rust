@@ -8,7 +8,6 @@ use crate::{
         is_malformed_event_str, parse_partial_json, remove_thought, OutputParseError,
     },
     schemas::ToolCall,
-    tools::ToolDyn,
 };
 
 use super::Instructor;
@@ -21,7 +20,7 @@ You may call one or more functions to assist with the user query.
 
 You are provided with function signatures within <tools></tools> XML tags:
 <tools>
-{{tools}}
+{{?tools}}
 </tools>
 
 For each function call, return a json object with function name and arguments within <tool_call></tool-call> XML tags:
@@ -82,19 +81,11 @@ impl Qwen3Instructor {
 }
 
 impl Instructor for Qwen3Instructor {
-    fn create_suffix(&self, tools: &[&dyn ToolDyn]) -> String {
-        let tools_json = tools
-            .iter()
-            .map(|tool| {
-                let tool = tool.as_openai_tool();
-                serde_json::to_string_pretty(&tool).unwrap_or_else(|_| format!("{tool:#?}"))
-            })
-            .collect::<Vec<_>>()
-            .join("\n\n");
-        QWEN3_TOOL_PROMPT.replace("{{tools}}", &tools_json)
+    fn tool_use_instruction(&self) -> &'static str {
+        QWEN3_TOOL_PROMPT
     }
 
-    fn parse_from_text<'a>(&self, output: String) -> Result<AgentOutput, OutputParseError> {
+    fn parse_tool_use<'a>(&self, output: String) -> Result<AgentOutput, OutputParseError> {
         let text = remove_thought(&output);
         let text = extract_from_tag(text, "tool_call");
         let text = extract_from_codeblock(text);

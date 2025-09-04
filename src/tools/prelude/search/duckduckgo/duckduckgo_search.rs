@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 
-use crate::tools::{search::article::Article, Tool};
+use crate::tools::{Article, Function};
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -78,7 +78,7 @@ impl DuckDuckGoSearch {
 }
 
 #[async_trait]
-impl Tool for DuckDuckGoSearch {
+impl Function for DuckDuckGoSearch {
     type Input = DuckDuckGoSearchInput;
     type Output = Vec<Article>;
 
@@ -105,7 +105,7 @@ impl Tool for DuckDuckGoSearch {
         Ok(DuckDuckGoSearchInput { query })
     }
 
-    async fn run(
+    async fn call(
         &self,
         input: DuckDuckGoSearchInput,
     ) -> Result<Vec<Article>, Box<dyn Error + Send + Sync>> {
@@ -126,7 +126,7 @@ impl Default for DuckDuckGoSearch {
 #[cfg(test)]
 mod tests {
     use super::DuckDuckGoSearch;
-    use crate::tools::ToolDyn;
+    use crate::tools::FunctionTool;
     use serde_json::json;
 
     #[tokio::test]

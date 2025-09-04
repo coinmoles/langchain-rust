@@ -210,13 +210,13 @@ mod tests {
     use indoc::indoc;
     use schemars::{schema_for, JsonSchema};
 
-    use crate::tools::tool_input::DefaultToolInput;
+    use crate::tools::DefaultFunctionInput;
 
     use super::*;
 
     #[test]
     fn test_describe_parameters() {
-        let schema = schema_for!(DefaultToolInput);
+        let schema = schema_for!(DefaultFunctionInput);
         let description = describe_parameters(&schema).unwrap();
 
         assert_eq!(description, "string // The input for the tool");

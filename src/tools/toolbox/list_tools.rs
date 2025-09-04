@@ -6,7 +6,7 @@ use std::{
 use async_trait::async_trait;
 use serde_json::Value;
 
-use crate::tools::Tool;
+use crate::tools::Function;
 
 use super::Toolbox;
 
@@ -44,7 +44,7 @@ where
 }
 
 #[async_trait]
-impl<T> Tool for ListTools<T>
+impl<T> Function for ListTools<T>
 where
     T: Toolbox + ?Sized,
 {
@@ -63,7 +63,7 @@ where
         Ok(())
     }
 
-    async fn run(&self, _: ()) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    async fn call(&self, _: ()) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let tools = self.0.get_tools();
         let tool_descriptions: Vec<String> = tools
             .values()

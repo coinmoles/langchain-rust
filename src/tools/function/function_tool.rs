@@ -1,21 +1,19 @@
 use std::string::String;
 
-use async_openai::types::{
-    ChatCompletionTool, ChatCompletionToolArgs, ChatCompletionToolType, FunctionObjectArgs,
-};
 use async_trait::async_trait;
 use indoc::formatdoc;
 use schemars::{schema::RootSchema, schema_for};
 use serde_json::Value;
 
 use crate::{
-    tools::{Tool, ToolData, ToolOutput},
+    schemas::ToolSpec,
+    tools::{describe_parameters, Function, ToolData, ToolError, ToolOutput},
     utils::helper::normalize_tool_name,
 };
 
-use super::{describe_parameters, tool_input::DefaultToolInput, ToolError};
+use super::function_input::DefaultFunctionInput;
 
-mod sealed {
+pub(crate) mod sealed {
     /// A sealed trait to prevent external implementations of the `ToolInternal` trait.
     pub trait Sealed {}
 }
@@ -25,7 +23,7 @@ mod sealed {
 /// This trait is "sealed", meaning it cannot be implemented outside of this module.
 /// This trait should only be implemented via a blanket impl, which automatically implements this trait for any type that implements `Tool`.
 #[async_trait]
-pub trait ToolDyn: sealed::Sealed + Send + Sync {
+pub trait FunctionTool: sealed::Sealed + Send + Sync {
     /// Returns the name of the tool.
     fn name(&self) -> String;
 
@@ -47,7 +45,7 @@ pub trait ToolDyn: sealed::Sealed + Send + Sync {
     /// }
     /// ```
     fn parameters(&self) -> RootSchema {
-        schema_for!(DefaultToolInput)
+        schema_for!(DefaultFunctionInput)
     }
 
     /// Value for `strict` in the OpenAI function call
@@ -88,7 +86,7 @@ pub trait ToolDyn: sealed::Sealed + Send + Sync {
         }
     }
 
-    fn as_openai_tool(&self) -> ChatCompletionTool {
+    fn get_spec(&self) -> ToolSpec {
         let parameters = serde_json::to_value(self.parameters()).unwrap_or_else(|e| {
             log::warn!(
                 "Failed to serialize parameters for tool {}: {e}",
@@ -97,28 +95,21 @@ pub trait ToolDyn: sealed::Sealed + Send + Sync {
             Value::Null
         });
 
-        let tool = FunctionObjectArgs::default()
-            .name(self.name().to_lowercase().replace(" ", "_"))
-            .description(self.description())
-            .parameters(parameters)
-            .strict(self.strict())
-            .build()
-            .unwrap_or_else(|e| unreachable!("All fields must be set: {}", e));
-
-        ChatCompletionToolArgs::default()
-            .r#type(ChatCompletionToolType::Function)
-            .function(tool)
-            .build()
-            .unwrap_or_else(|e| unreachable!("All fields must be set: {}", e))
+        ToolSpec::new(
+            self.name(),
+            Some(self.description()),
+            parameters,
+            self.strict(),
+        )
     }
 }
 
-impl<T> sealed::Sealed for T where T: Tool {}
+impl<T> sealed::Sealed for T where T: Function {}
 
 #[async_trait]
-impl<T> ToolDyn for T
+impl<T> FunctionTool for T
 where
-    T: Tool + sealed::Sealed,
+    T: Function + sealed::Sealed,
 {
     fn name(&self) -> String {
         self.name()
@@ -139,7 +130,7 @@ where
     async fn call(&self, input: Value) -> Result<ToolOutput, ToolError> {
         let input: T::Input = self.parse_input(input).await?;
         let input_summary = self.summarize_input(&input);
-        let result: T::Output = self.run(input).await.map_err(ToolError::ExecutionError)?;
+        let result: T::Output = self.call(input).await.map_err(ToolError::ExecutionError)?;
         let output_summary = self.summarize_output(&result);
 
         let data: ToolData = result.into();
@@ -158,9 +149,9 @@ where
     }
 }
 
-impl<'a, T> From<T> for Box<dyn ToolDyn + 'a>
+impl<'a, T> From<T> for Box<dyn FunctionTool + 'a>
 where
-    T: ToolDyn + 'a,
+    T: FunctionTool + 'a,
 {
     fn from(val: T) -> Self {
         Box::new(val)

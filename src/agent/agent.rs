@@ -7,7 +7,7 @@ use crate::{
     chain::{ChainOutput, InputCtor, OutputCtor},
     schemas::{Message, Prompt, WithUsage},
     template::TemplateError,
-    tools::ToolDyn,
+    tools::FunctionTool,
 };
 
 use super::{AgentError, AgentExecutor, AgentInput};
@@ -64,7 +64,7 @@ pub trait Agent<I: InputCtor, O: OutputCtor>: Send + Sync {
     ///
     /// # Returns
     /// An optional reference to a [`ToolDyn`] trait object, or [`None`] if the tool is not found.
-    fn get_tool(&self, tool_name: &str) -> Option<&dyn ToolDyn>;
+    fn get_tool(&self, tool_name: &str) -> Option<&dyn FunctionTool>;
 
     /// Generates the prompt for the agent based on the current input.
     ///

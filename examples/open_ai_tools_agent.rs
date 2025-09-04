@@ -6,7 +6,7 @@ use langchain_rust::{
     chain::{Chain, DefaultChainInput, DefaultChainInputCtor},
     llm::openai::OpenAI,
     memory::SimpleMemory,
-    tools::{CommandExecutor, DuckDuckGoSearch, SerpApi, Tool},
+    tools::{CommandExecutor, DuckDuckGoSearch, Function, SerpApi},
     tools_vec,
 };
 
@@ -16,7 +16,7 @@ use serde_json::Value;
 struct Date {}
 
 #[async_trait]
-impl Tool for Date {
+impl Function for Date {
     type Input = ();
     type Output = String;
 
@@ -32,7 +32,7 @@ impl Tool for Date {
         Ok(())
     }
 
-    async fn run(&self, _input: ()) -> Result<String, Box<dyn Error + Send + Sync>> {
+    async fn call(&self, _input: ()) -> Result<String, Box<dyn Error + Send + Sync>> {
         Ok("25 of november of 2025".to_string())
     }
 }

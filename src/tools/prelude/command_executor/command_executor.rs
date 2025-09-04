@@ -5,7 +5,7 @@ use indoc::formatdoc;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::tools::Tool;
+use crate::tools::Function;
 
 pub struct CommandExecutor {
     platform: String,
@@ -47,7 +47,7 @@ pub struct Command {
 pub struct CommandExecutorInput(pub Vec<Command>);
 
 #[async_trait]
-impl Tool for CommandExecutor {
+impl Function for CommandExecutor {
     type Input = CommandExecutorInput;
     type Output = String;
 
@@ -69,7 +69,7 @@ impl Tool for CommandExecutor {
         true
     }
 
-    async fn run(&self, input: Self::Input) -> Result<Self::Output, Box<dyn Error + Send + Sync>> {
+    async fn call(&self, input: Self::Input) -> Result<Self::Output, Box<dyn Error + Send + Sync>> {
         let commands = input.0;
         let mut result = String::new();
 
@@ -111,7 +111,7 @@ mod test {
             cmd: "ls".into(),
             args: vec![],
         }]);
-        let result = tool.run(input).await.unwrap();
+        let result = tool.call(input).await.unwrap();
         println!("Res: {result}");
     }
 

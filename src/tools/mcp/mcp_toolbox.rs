@@ -2,21 +2,21 @@ use std::{borrow::Cow, collections::HashMap, error::Error, sync::Arc};
 
 use async_trait::async_trait;
 
-use crate::tools::{ToolDyn, Toolbox};
+use crate::tools::{FunctionTool, Toolbox};
 
-use super::{McpService, McpServiceExt, McpTool};
+use super::{McpFunctionTool, McpService, McpServiceExt};
 
 pub struct McpToolbox {
     pub client: Arc<McpService>,
     pub name: Cow<'static, str>,
-    pub tools: HashMap<String, McpTool>,
+    pub tools: HashMap<String, McpFunctionTool>,
 }
 
 impl McpToolbox {
     pub fn new(
         client: impl Into<Arc<McpService>>,
         name: impl Into<Cow<'static, str>>,
-        tools: HashMap<String, McpTool>,
+        tools: HashMap<String, McpFunctionTool>,
     ) -> Self {
         Self {
             client: client.into(),
@@ -43,10 +43,10 @@ impl Toolbox for McpToolbox {
         self.name.to_string()
     }
 
-    fn get_tools(&self) -> HashMap<&str, &dyn ToolDyn> {
+    fn get_tools(&self) -> HashMap<&str, &dyn FunctionTool> {
         self.tools
             .iter()
-            .map(|(k, v)| (k.as_str(), v as &dyn ToolDyn))
+            .map(|(k, v)| (k.as_str(), v as &dyn FunctionTool))
             .collect()
     }
 }
@@ -68,7 +68,7 @@ mod tests {
         let toolbox = McpToolbox::fetch(client, "Test", None).await.unwrap();
 
         let list_tools_tool = ListTools::new(&Arc::new(toolbox));
-        println!("{:#?}", list_tools_tool.as_openai_tool());
+        println!("{:#?}", list_tools_tool.get_spec());
         println!("{}", list_tools_tool.call(json!({})).await.unwrap().data);
     }
 
@@ -99,7 +99,7 @@ mod tests {
         let tools = tools.values().collect::<Vec<_>>();
 
         for tool in tools {
-            println!("{:#?}", tool.as_openai_tool());
+            println!("{:#?}", tool.get_spec());
             println!("{:#?}", tool.usage_limit());
         }
     }

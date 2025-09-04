@@ -9,7 +9,7 @@ use crate::{
     },
     chain::{ChainError, ChainOutput, InputCtor, OutputCtor},
     schemas::{IntoWithUsage, TokenUsage, ToolCall, WithUsage},
-    tools::ToolDyn,
+    tools::FunctionTool,
     utils::helper::normalize_tool_name,
 };
 
@@ -235,7 +235,7 @@ where
         Ok(ExecutionOutput::new(content, extra_content, usage))
     }
 
-    fn get_tool_with_use_count_check(&mut self, tool_name: &str) -> Option<&dyn ToolDyn> {
+    fn get_tool_with_use_count_check(&mut self, tool_name: &str) -> Option<&dyn FunctionTool> {
         let Some(tool) = self
             .strategy
             .resolve_tool(self.executor.agent.as_ref(), tool_name)

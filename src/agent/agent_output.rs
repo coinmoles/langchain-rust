@@ -13,7 +13,7 @@ pub enum AgentOutput {
 
 impl<T> ChainOutput<T> for AgentOutput {
     fn from_text(text: impl Into<String>) -> Result<Self, crate::output_parser::OutputParseError> {
-        DefaultInstructor.parse_from_text(text.into())
+        DefaultInstructor.parse_tool_use(text.into())
     }
 
     fn from_tool_call(

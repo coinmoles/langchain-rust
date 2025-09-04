@@ -8,7 +8,7 @@ use crate::{
     chain::{DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor},
     schemas::{Message, Prompt, WithUsage},
     template::TemplateError,
-    tools::{ToolDyn, Toolbox},
+    tools::FunctionTool,
 };
 
 use super::OpenAiToolAgentBuilder;
@@ -28,9 +28,9 @@ pub struct OpenAiToolAgent<I: InputCtor = DefaultChainInputCtor, O: OutputCtor =
     /// The inner [`LLMChain`] used for prompt construction and LLM invocation.
     pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
     /// A map of registered tool names to their implementations.
-    pub(super) tools: HashMap<String, Box<dyn ToolDyn>>,
-    /// A list of toolboxes used to dynamically provide tools at runtime.
-    pub(super) toolboxes: Vec<Box<dyn Toolbox>>,
+    pub(super) tools: HashMap<String, Box<dyn FunctionTool>>,
+    // /// A list of toolboxes used to dynamically provide tools at runtime.
+    // pub(super) toolboxes: Vec<Box<dyn Toolbox>>,
     pub(super) _phantom: std::marker::PhantomData<O>,
 }
 
@@ -81,16 +81,16 @@ impl<I: InputCtor, O: OutputCtor> Agent<I, O> for OpenAiToolAgent<I, O> {
         Ok(plan)
     }
 
-    fn get_tool(&self, tool_name: &str) -> Option<&dyn ToolDyn> {
+    fn get_tool(&self, tool_name: &str) -> Option<&dyn FunctionTool> {
         if let Some(tool) = self.tools.get(tool_name).map(|t| t.as_ref()) {
             return Some(tool);
         }
 
-        for toolbox in &self.toolboxes {
-            if let Some(tool) = toolbox.get_tool(tool_name) {
-                return Some(tool);
-            }
-        }
+        // for toolbox in &self.toolboxes {
+        //     if let Some(tool) = toolbox.get_tool(tool_name) {
+        //         return Some(tool);
+        //     }
+        // }
 
         None
     }

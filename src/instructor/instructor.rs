@@ -2,13 +2,12 @@ use crate::{
     agent::{AgentOutput, AgentOutputCtor},
     chain::{InputCtor, OutputCtor},
     output_parser::{OutputParseError, OutputParser},
-    tools::ToolDyn,
 };
 
 pub trait Instructor: Send + Sync {
-    fn create_suffix(&self, tools: &[&dyn ToolDyn]) -> String;
+    fn tool_use_instruction(&self) -> &'static str;
 
-    fn parse_from_text(&self, output: String) -> Result<AgentOutput, OutputParseError>;
+    fn parse_tool_use(&self, output: String) -> Result<AgentOutput, OutputParseError>;
 }
 
 pub trait BoxInstructorExt {
@@ -29,6 +28,6 @@ impl<I: InputCtor> OutputParser<I, AgentOutputCtor> for InstructParser {
         &self,
         output: String,
     ) -> Result<<AgentOutputCtor as OutputCtor>::Target<'a>, OutputParseError> {
-        self.0.parse_from_text(output)
+        self.0.parse_tool_use(output)
     }
 }

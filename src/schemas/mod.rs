@@ -22,6 +22,9 @@ pub use builder_error::*;
 mod tool_call;
 pub use tool_call::*;
 
+mod tool_spec;
+pub use tool_spec::*;
+
 mod with_usage;
 pub use with_usage::*;
 

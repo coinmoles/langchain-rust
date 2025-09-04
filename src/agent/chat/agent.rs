@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 
@@ -9,7 +9,7 @@ use crate::{
     chain::{DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor},
     schemas::{Message, Prompt, WithUsage},
     template::TemplateError,
-    tools::{ToolDyn, Toolbox},
+    tools::FunctionTool,
 };
 
 use super::ConversationalAgentBuilder;
@@ -33,9 +33,9 @@ pub struct ConversationalAgent<I: InputCtor = DefaultChainInputCtor, O: OutputCt
     /// The inner [`LLMChain`] used for prompt construction and LLM invocation.
     pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
     /// A map of registered tool names to their implementations.
-    pub(super) tools: HashMap<String, Box<dyn ToolDyn>>,
-    /// A list of toolboxes used to dynamically provide tools at runtime.
-    pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
+    pub(super) tools: HashMap<String, Box<dyn FunctionTool>>,
+    // /// A list of toolboxes used to dynamically provide tools at runtime.
+    // pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
     pub(super) _phantom: std::marker::PhantomData<O>,
 }
 
@@ -85,16 +85,16 @@ impl<I: InputCtor, O: OutputCtor> Agent<I, O> for ConversationalAgent<I, O> {
         Ok(plan)
     }
 
-    fn get_tool(&self, tool_name: &str) -> Option<&dyn ToolDyn> {
+    fn get_tool(&self, tool_name: &str) -> Option<&dyn FunctionTool> {
         if let Some(tool) = self.tools.get(tool_name).map(|t| t.as_ref()) {
             return Some(tool);
         }
 
-        for toolbox in &self.toolboxes {
-            if let Some(tool) = toolbox.get_tool(tool_name) {
-                return Some(tool);
-            }
-        }
+        // for toolbox in &self.toolboxes {
+        //     if let Some(tool) = toolbox.get_tool(tool_name) {
+        //         return Some(tool);
+        //     }
+        // }
 
         None
     }
@@ -117,14 +117,14 @@ mod tests {
         chain::{Chain, DefaultChainInput},
         llm::openai::{OpenAI, OpenAIModel},
         memory::SimpleMemory,
-        tools::Tool,
+        tools::Function,
     };
 
     #[derive(Default)]
     struct Calc {}
 
     #[async_trait]
-    impl Tool for Calc {
+    impl Function for Calc {
         type Input = String;
         type Output = String;
 
@@ -137,7 +137,7 @@ mod tests {
         async fn parse_input(&self, input: Value) -> Result<String, serde_json::Error> {
             Ok(input.to_string())
         }
-        async fn run(
+        async fn call(
             &self,
             _input: Self::Input,
         ) -> Result<Self::Output, Box<dyn Error + Send + Sync>> {
