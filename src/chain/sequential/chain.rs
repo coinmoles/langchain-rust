@@ -77,7 +77,7 @@ mod tests {
 
     use crate::{
         chain::{ChainInput, ChainOutput, Ctor, LLMChain},
-        llm::openai::OpenAI,
+        llm::OpenAIChat,
         schemas::MessageType,
         sequential_chain,
         template::MessageTemplate,
@@ -103,7 +103,7 @@ mod tests {
             palabra: Cow<'a, str>,
         }
 
-        let llm = OpenAI::default();
+        let llm = OpenAIChat::default();
         let chain1: LLMChain<Chain1InputCtor, Chain2InputCtor> = LLMChain::builder()
             .prompt(MessageTemplate::from_fstring(
                 MessageType::Human,

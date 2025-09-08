@@ -1,13 +1,12 @@
-use std::{borrow::Cow, collections::HashMap, pin::Pin};
+use std::{borrow::Cow, collections::HashMap};
 
 use crate::{
     chain::{Chain, ChainInput, Ctor, InputCtor, StringCtor, TextReplacements},
-    llm::LLM,
-    schemas::{messages::Message, Document, MessageType, StreamData, WithUsage},
+    llm::{LLMStream, LLM},
+    schemas::{messages::Message, Document, MessageType, WithUsage},
     template::MessageTemplate,
 };
 use async_trait::async_trait;
-use futures::Stream;
 use indoc::indoc;
 
 use super::{ChainError, LLMChain};
@@ -82,11 +81,7 @@ impl<I: InputCtor> Chain<I, StringCtor> for CondenseQuestionGeneratorChain<I> {
         self.chain.call(input).await
     }
 
-    async fn stream(
-        &self,
-        input: I::Target<'_>,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
-    {
+    async fn stream(&self, input: I::Target<'_>) -> Result<LLMStream, ChainError> {
         self.chain.stream(input).await
     }
 }
@@ -145,23 +140,23 @@ mod tests {
 
     use crate::{
         chain::{Chain, StuffDocument, StuffQA},
-        llm::openai::OpenAI,
+        llm::OpenAIChat,
         schemas::Document,
     };
 
     #[tokio::test]
     #[ignore]
     async fn test_qa() {
-        let llm = OpenAI::default();
+        let llm = OpenAIChat::default();
         let chain = StuffDocument::load_stuff_qa(llm);
         let documents = [
             Document::new(indoc! {"
-                    Question: Which is the favorite text editor of luis
-                    Answer: Nvim"
+                Question: Which is the favorite text editor of luis
+                Answer: Nvim"
             }),
             Document::new(indoc! {"
-                    Question: How old is Luis
-                    Answer: 24"
+                Question: How old is Luis
+                Answer: 24"
             }),
         ];
         let input = StuffQA::new()

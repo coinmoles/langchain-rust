@@ -2,16 +2,23 @@
 mod llm;
 pub use llm::*;
 
-mod llm_output;
-pub use llm_output::*;
+mod chat;
+pub use chat::*;
+
+mod output;
+pub use output::*;
+
+mod stream;
+pub use stream::*;
+
+mod capabilities;
+pub use capabilities::*;
+
+mod models;
+pub use models::*;
+
+mod options;
+pub use options::*;
 
 mod error;
 pub use error::*;
-
-pub mod options;
-
-pub mod openai;
-pub use openai::*;
-
-pub mod claude;
-pub use claude::*;

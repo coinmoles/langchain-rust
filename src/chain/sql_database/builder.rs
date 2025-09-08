@@ -1,6 +1,6 @@
 use crate::{
     chain::{LLMChain, SqlChainLLMChainInputCtor, StringCtor},
-    llm::{options::CallOptions, LLM},
+    llm::{CallOptions, LLM},
     output_parser::OutputParser,
     prompt_template,
     schemas::{BuilderError, MessageType},
@@ -78,7 +78,7 @@ impl<'b> SQLDatabaseChainBuilder<'b> {
 
         let llm_chain = {
             let mut llm = llm;
-            llm.add_call_options(CallOptions::new().with_stop_words(vec![STOP_WORD.to_string()]));
+            llm.with_options(CallOptions::new().with_stop_words(vec![STOP_WORD.to_string()]));
 
             let mut builder = LLMChain::builder().prompt(prompt).llm(llm);
 

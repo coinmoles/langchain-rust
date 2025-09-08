@@ -1,23 +1,24 @@
-use async_openai::types::{ChatCompletionTool, ChatCompletionToolChoiceOption, ResponseFormat};
-use std::fmt;
+use async_openai::types::{
+    ChatCompletionStreamOptions, ChatCompletionToolChoiceOption, ResponseFormat,
+};
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct StreamOption {
     pub include_usage: bool,
-}
-
-impl fmt::Debug for StreamOption {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("StreamOption")
-            .field("include_usage", &self.include_usage)
-            .finish()
-    }
 }
 
 impl StreamOption {
     pub fn with_stream_usage(mut self, stream_usage: bool) -> Self {
         self.include_usage = stream_usage;
         self
+    }
+}
+
+impl From<StreamOption> for ChatCompletionStreamOptions {
+    fn from(option: StreamOption) -> Self {
+        ChatCompletionStreamOptions {
+            include_usage: option.include_usage,
+        }
     }
 }
 
@@ -36,9 +37,9 @@ pub struct CallOptions {
     pub repetition_penalty: Option<f32>,
     pub frequency_penalty: Option<f32>,
     pub presence_penalty: Option<f32>,
-    pub tools: Option<Vec<ChatCompletionTool>>,
     pub tool_choice: Option<ChatCompletionToolChoiceOption>,
     pub response_format: Option<ResponseFormat>,
+    pub stream: Option<bool>,
     pub stream_option: Option<StreamOption>,
     pub system_is_assistant: bool,
 }
@@ -48,6 +49,7 @@ impl Default for CallOptions {
         CallOptions::new()
     }
 }
+
 impl CallOptions {
     pub fn new() -> Self {
         CallOptions {
@@ -64,9 +66,9 @@ impl CallOptions {
             repetition_penalty: None,
             frequency_penalty: None,
             presence_penalty: None,
-            tools: None,
             tool_choice: None,
             response_format: None,
+            stream: None,
             stream_option: None,
             system_is_assistant: false,
         }
@@ -138,11 +140,6 @@ impl CallOptions {
         self
     }
 
-    pub fn with_tools(mut self, tools: Vec<ChatCompletionTool>) -> Self {
-        self.tools = Some(tools);
-        self
-    }
-
     pub fn with_tool_choice(mut self, tool_choice: ChatCompletionToolChoiceOption) -> Self {
         self.tool_choice = Some(tool_choice);
         self
@@ -154,6 +151,7 @@ impl CallOptions {
     }
 
     pub fn with_stream(mut self, stream: StreamOption) -> Self {
+        self.stream = Some(true);
         self.stream_option = Some(stream);
         self
     }
@@ -192,15 +190,6 @@ impl CallOptions {
                 existing_stop_words.append(&mut new_stop_words);
             } else {
                 self.stop_words = Some(new_stop_words);
-            }
-        }
-
-        // For `Vec<FunctionDefinition>`, similar logic to `Vec<String>`
-        if let Some(mut incoming_functions) = incoming_options.tools {
-            if let Some(existing_functions) = &mut self.tools {
-                existing_functions.append(&mut incoming_functions);
-            } else {
-                self.tools = Some(incoming_functions);
             }
         }
 

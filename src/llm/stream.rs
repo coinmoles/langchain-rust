@@ -1,16 +1,22 @@
+use futures::Stream;
 use serde_json::Value;
-use std::io::{self, Write};
+use std::{
+    io::{self, Write},
+    pin::Pin,
+};
 
-use super::TokenUsage;
+use crate::{llm::LLMError, schemas::TokenUsage};
+
+pub type LLMStream = Pin<Box<dyn Stream<Item = Result<LLMStreamChunk, LLMError>> + Send>>;
 
 #[derive(Debug, Clone)]
-pub struct StreamData {
+pub struct LLMStreamChunk {
     pub value: Value,
     pub tokens: Option<TokenUsage>,
     pub content: String,
 }
 
-impl StreamData {
+impl LLMStreamChunk {
     pub fn new<S: Into<String>>(value: Value, tokens: Option<TokenUsage>, content: S) -> Self {
         Self {
             value,

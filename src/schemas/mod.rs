@@ -13,9 +13,6 @@ pub use document::*;
 mod retrievers;
 pub use retrievers::*;
 
-mod stream;
-pub use stream::*;
-
 mod builder_error;
 pub use builder_error::*;
 

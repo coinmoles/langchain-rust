@@ -1,13 +1,12 @@
-use {std::borrow::Borrow, std::pin::Pin};
+use std::borrow::Borrow;
 
 use async_trait::async_trait;
-use futures::{Stream, TryStreamExt};
 
 use crate::{
     chain::{Chain, ChainError, ChainOutput, GetPrompt, InputCtor, OutputCtor, StringCtor},
-    llm::{LLMError, LLMOutput, LLM},
+    llm::{LLMError, LLMOutput, LLMStream, LLM},
     output_parser::OutputParser,
-    schemas::{IntoWithUsage, Prompt, StreamData, WithUsage},
+    schemas::{IntoWithUsage, Prompt, ToolSpec, WithUsage},
     template::{PromptTemplate, TemplateError},
 };
 
@@ -34,9 +33,10 @@ where
     pub async fn call_with_reference(
         &self,
         input: &I::Target<'_>,
+        tools: Option<ToolSpec<'_>>,
     ) -> Result<WithUsage<O::Target<'static>>, ChainError> {
         let prompt = self.prompt.format(input)?;
-        let WithUsage { content, usage } = self.llm.generate(prompt.to_messages()).await?;
+        let WithUsage { content, usage } = self.llm.complete(prompt, tools).await?;
 
         log::trace!("\nLLM output:\n{content}");
         if let Some(usage) = &usage {
@@ -54,15 +54,11 @@ where
     pub async fn stream_llm(
         &self,
         input: &I::Target<'_>,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
-    {
+        tools: Option<ToolSpec<'_>>,
+    ) -> Result<LLMStream, ChainError> {
         let prompt = self.prompt.format(input.borrow())?;
-        let llm_stream = self.llm.stream(prompt.to_messages()).await?;
-
-        // Map the errors from LLMError to ChainError
-        let mapped_stream = llm_stream.map_err(ChainError::from);
-
-        Ok(Box::pin(mapped_stream))
+        let stream = self.llm.stream(prompt, tools).await?;
+        Ok(stream)
     }
 }
 
@@ -73,7 +69,7 @@ where
 {
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
         let prompt = self.prompt.format(&input)?;
-        let WithUsage { content, usage } = self.llm.generate(prompt.to_messages()).await?;
+        let WithUsage { content, usage } = self.llm.complete(prompt, None).await?;
 
         if matches!(&content, LLMOutput::ToolCall(tool_calls) if tool_calls.is_empty()) {
             return Err(LLMError::EmptyToolCall.into());
@@ -92,12 +88,8 @@ where
         Ok(content.with_usage(usage))
     }
 
-    async fn stream(
-        &self,
-        input: I::Target<'_>,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
-    {
-        self.stream_llm(&input).await
+    async fn stream(&self, input: I::Target<'_>) -> Result<LLMStream, ChainError> {
+        self.stream_llm(&input, None).await
     }
 }
 
@@ -117,7 +109,7 @@ mod tests {
 
     use crate::{
         chain::{Chain, ChainInput, Ctor},
-        llm::openai::{OpenAI, OpenAIModel},
+        llm::{GenericChat, OpenAIModel},
         prompt_template,
         schemas::MessageType,
         template::MessageTemplate,
@@ -144,7 +136,9 @@ mod tests {
         // Use the `message_formatter` macro to construct the formatter
         let prompt = prompt_template!(human_message_prompt);
 
-        let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt35).build();
+        let llm: GenericChat<OpenAIConfig> = GenericChat::builder()
+            .with_model(OpenAIModel::Gpt35)
+            .build();
         let chain: LLMChain<NombreInputCtor> = LLMChain::builder()
             .prompt(prompt)
             .llm(llm)

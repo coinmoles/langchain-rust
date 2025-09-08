@@ -1,11 +1,9 @@
-use std::pin::Pin;
-
 use async_trait::async_trait;
-use futures::Stream;
 
 use crate::{
     chain::{Chain, ChainError, LLMChain, StringCtor},
-    schemas::{IntoWithUsage, StreamData, TokenUsage, WithUsage},
+    llm::LLMStream,
+    schemas::{IntoWithUsage, TokenUsage, WithUsage},
     tools::SQLDatabase,
 };
 
@@ -137,11 +135,7 @@ impl Chain<SqlChainInputCtor, StringCtor> for SQLDatabaseChain {
         Ok(output.with_usage(total_usage))
     }
 
-    async fn stream(
-        &self,
-        input: SqlChainInput<'_>,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
-    {
+    async fn stream(&self, input: SqlChainInput<'_>) -> Result<LLMStream, ChainError> {
         let (llm_inputs, _) = self.call_builder_chains(&input).await?;
 
         self.llm_chain.stream(llm_inputs).await

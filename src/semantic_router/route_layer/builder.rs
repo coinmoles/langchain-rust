@@ -5,7 +5,7 @@ use futures_util::future::try_join_all;
 use crate::{
     chain::LLMChain,
     embedding::{openai::OpenAiEmbedder, Embedder},
-    llm::{openai::OpenAI, LLM},
+    llm::{OpenAIChat, LLM},
     schemas::MessageType,
     semantic_router::{Index, MemoryIndex, RouteLayerBuilderError, Router},
     template::MessageTemplate,
@@ -54,7 +54,7 @@ impl Default for RouteLayerBuilder {
     fn default() -> Self {
         Self::new()
             .embedder(OpenAiEmbedder::default())
-            .llm(OpenAI::default())
+            .llm(OpenAIChat::default())
             .index(MemoryIndex::new())
     }
 }

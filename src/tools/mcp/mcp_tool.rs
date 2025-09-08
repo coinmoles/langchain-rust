@@ -22,16 +22,13 @@ impl McpTool {
         }
     }
 
-    pub async fn as_function_tools(
+    pub async fn into_function_tools(
         predicates: &[Self],
     ) -> Result<HashMap<String, Box<dyn FunctionTool>>, McpError> {
         // Group tools by URI to minimize the number of connections
         let grouped = group_tools_by_uri(predicates);
         let merged: HashMap<String, Box<dyn FunctionTool>> = stream::iter(grouped.into_iter())
-            .map(|(uri, preds)| async move {
-                let service = init_service(uri).await?;
-                fetch_tools(service, &preds).await
-            })
+            .map(|(uri, preds)| fetch_tools(uri, preds))
             .buffer_unordered(8)
             .try_fold(HashMap::new(), |mut acc, map| async move {
                 acc.extend(map);
@@ -65,10 +62,10 @@ async fn init_service(uri: &str) -> Result<McpService, McpError> {
 }
 
 async fn fetch_tools(
-    service: McpService,
-    names: &[&str],
+    uri: &str,
+    names: Vec<&str>,
 ) -> Result<HashMap<String, Box<dyn FunctionTool>>, McpError> {
-    let service = Arc::new(service);
+    let service = Arc::new(init_service(uri).await?);
     let mut tools = service
         .list_all_tools()
         .await?

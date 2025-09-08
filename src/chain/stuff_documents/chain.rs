@@ -1,10 +1,7 @@
 #![allow(dead_code)]
 // I have no idea how to remove dead codes here.
 
-use std::pin::Pin;
-
 use async_trait::async_trait;
-use futures::Stream;
 use indoc::indoc;
 
 use crate::{
@@ -12,8 +9,8 @@ use crate::{
         Chain, ChainError, ChainOutput, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor,
         StuffQACtor,
     },
-    llm::LLM,
-    schemas::{MessageType, Prompt, StreamData, WithUsage},
+    llm::{LLMStream, LLM},
+    schemas::{MessageType, Prompt, WithUsage},
     template::{MessageTemplate, TemplateError},
 };
 
@@ -119,11 +116,7 @@ where
         self.llm_chain.call(input).await
     }
 
-    async fn stream(
-        &self,
-        input: I::Target<'_>,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
-    {
+    async fn stream(&self, input: I::Target<'_>) -> Result<LLMStream, ChainError> {
         self.llm_chain.stream(input).await
     }
 }

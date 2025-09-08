@@ -6,12 +6,12 @@ use serde::Serialize;
 
 use crate::{
     llm::{options::CallOptions, LLMError},
-    schemas::Message,
+    schemas::{FunctionSpec, Message},
 };
 
 /// Request payload sent to an OpenAPI-compatible API.
 #[derive(Serialize, Debug)]
-pub struct OpenAIRequest {
+pub struct ChatRequest {
     pub messages: Vec<ChatCompletionRequestMessage>,
     pub model: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -52,18 +52,20 @@ pub struct OpenAIRequest {
     pub response_format: Option<ResponseFormat>,
 }
 
-impl OpenAIRequest {
+impl ChatRequest {
     /// Creates a new [`OpenAIRequest`].
     pub fn new(
         model: impl Into<String>,
         messages: Vec<Message>,
-    ) -> Result<OpenAIRequest, LLMError> {
+        tools: Option<Vec<FunctionSpec>>,
+    ) -> Result<ChatRequest, LLMError> {
         let messages = messages
             .into_iter()
             .map(TryInto::try_into)
             .collect::<Result<Vec<_>, _>>()?;
+        let tools = tools.map(|t| t.into_iter().map(Into::into).collect());
 
-        Ok(OpenAIRequest {
+        Ok(ChatRequest {
             messages,
             model: model.into(),
             stream: None,
@@ -81,7 +83,7 @@ impl OpenAIRequest {
             repetition_penalty: None,
             frequency_penalty: None,
             presence_penalty: None,
-            tools: None,
+            tools,
             tool_choice: None,
             response_format: None,
         })
@@ -89,13 +91,12 @@ impl OpenAIRequest {
 
     /// Adds options to the request.
     pub fn with_options(self, options: CallOptions) -> Self {
-        OpenAIRequest {
-            stream: Some(options.stream_option.is_some()),
-            stream_options: options.stream_option.as_ref().map(|stream| {
-                ChatCompletionStreamOptions {
-                    include_usage: stream.include_usage,
-                }
-            }),
+        ChatRequest {
+            stream: options.stream,
+            stream_options: options
+                .stream_option
+                .clone()
+                .map(ChatCompletionStreamOptions::from),
             candidate_count: options.candidate_count,
             max_tokens: options.max_tokens,
             temperature: options.temperature,
@@ -109,7 +110,6 @@ impl OpenAIRequest {
             repetition_penalty: options.repetition_penalty,
             frequency_penalty: options.frequency_penalty,
             presence_penalty: options.presence_penalty,
-            tools: options.tools,
             tool_choice: options.tool_choice,
             response_format: options.response_format,
             ..self

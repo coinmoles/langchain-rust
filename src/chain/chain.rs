@@ -1,11 +1,9 @@
-use std::pin::Pin;
-
 use async_trait::async_trait;
-use futures::Stream;
 
 use crate::{
     chain::{InputCtor, OutputCtor},
-    schemas::{OutputTrace, StreamData, WithUsage},
+    llm::LLMStream,
+    schemas::{OutputTrace, WithUsage},
 };
 
 use super::ChainError;
@@ -68,11 +66,7 @@ pub trait Chain<I: InputCtor, O: OutputCtor>: Sync + Send {
     /// # };
     /// ```
     ///
-    async fn stream(
-        &self,
-        _input: I::Target<'_>,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
-    {
+    async fn stream(&self, _input: I::Target<'_>) -> Result<LLMStream, ChainError> {
         unimplemented!("Streaming is not implemented for this chain")
     }
 }

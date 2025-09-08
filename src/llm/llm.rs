@@ -1,43 +1,45 @@
-use std::pin::Pin;
-
 use async_trait::async_trait;
-use futures::Stream;
 
 use crate::{
-    llm::{options::CallOptions, LLMError, LLMOutput},
-    schemas::{Message, StreamData, WithUsage},
+    llm::{options::CallOptions, LLMError, LLMOutput, LLMStream, LlmCapabilities},
+    schemas::{Prompt, ToolSpec, WithUsage},
 };
 
+/// A trait representing a wrapper arround Large Language Models (LLMs).
+///
+/// This trait defines a common interface for interacting with LLM backends.
+/// The methods defined here accepts crate-specific schema types.
+/// The implementors should convert these into the format required by the API.
 #[async_trait]
 pub trait LLM: Sync + Send {
-    async fn generate(&self, messages: Vec<Message>) -> Result<WithUsage<LLMOutput>, LLMError>;
+    /// Returns the capabilities of the LLM.
+    fn capabilities(&self) -> LlmCapabilities;
 
-    async fn invoke(&self, prompt: &str) -> Result<String, LLMError> {
-        let result = self
-            .generate(vec![Message::new_human_message(prompt)])
-            .await?
-            .content
-            .into_text()?;
+    /// Generates a response from the LLM based on the provided prompt.
+    async fn complete(
+        &self,
+        prompt: Prompt,
+        tools: Option<ToolSpec<'_>>,
+    ) -> Result<WithUsage<LLMOutput>, LLMError>;
+
+    /// Invokes the LLM with a single human message as prompt.
+    async fn invoke(&self, msg: &str) -> Result<String, LLMError> {
+        let prompt = Prompt::single(msg);
+        let result = self.complete(prompt, None).await?.content.into_text()?;
         Ok(result)
     }
 
+    /// Generates a response from the LLM based on the provided prompt in a stream.
     async fn stream(
         &self,
-        _messages: Vec<Message>,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, LLMError>> + Send>>, LLMError>;
+        prompt: Prompt,
+        tools: Option<ToolSpec<'_>>,
+    ) -> Result<LLMStream, LLMError>;
 
-    /// This is useful when you want to create a chain and override
-    /// LLM options
-    fn add_call_options(&mut self, call_options: CallOptions);
-
-    //This is usefull when using non chat models
-    fn messages_to_string(&self, messages: &[Message]) -> String {
-        messages
-            .iter()
-            .map(|m| m.to_string())
-            .collect::<Vec<String>>()
-            .join("\n")
-    }
+    /// Configure the call options for the LLM.
+    ///
+    /// This includes parameters like temperature, max tokens, etc.
+    fn with_options(&mut self, options: CallOptions);
 }
 
 impl<L> From<L> for Box<dyn LLM>

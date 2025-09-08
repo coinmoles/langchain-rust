@@ -6,7 +6,7 @@ use schemars::{schema::RootSchema, schema_for};
 use serde_json::Value;
 
 use crate::{
-    schemas::ToolSpec,
+    schemas::FunctionSpec,
     tools::{describe_parameters, Function, ToolData, ToolError, ToolOutput},
     utils::helper::normalize_tool_name,
 };
@@ -86,7 +86,7 @@ pub trait FunctionTool: sealed::Sealed + Send + Sync {
         }
     }
 
-    fn get_spec(&self) -> ToolSpec {
+    fn get_spec(&self) -> FunctionSpec {
         let parameters = serde_json::to_value(self.parameters()).unwrap_or_else(|e| {
             log::warn!(
                 "Failed to serialize parameters for tool {}: {e}",
@@ -95,7 +95,7 @@ pub trait FunctionTool: sealed::Sealed + Send + Sync {
             Value::Null
         });
 
-        ToolSpec::new(
+        FunctionSpec::new(
             self.name(),
             Some(self.description()),
             parameters,

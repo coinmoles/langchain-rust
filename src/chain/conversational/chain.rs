@@ -1,8 +1,7 @@
-use std::{fmt::Display, pin::Pin, sync::Arc};
+use std::{fmt::Display, sync::Arc};
 
 use async_stream::stream;
 use async_trait::async_trait;
-use futures::Stream;
 use futures_util::{pin_mut, StreamExt};
 use tokio::sync::{Mutex, RwLock};
 
@@ -11,9 +10,9 @@ use crate::{
         Chain, ChainError, ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain,
         OutputCtor, StringCtor,
     },
-    llm::{LLMOutput, LLMOutputCtor},
+    llm::{LLMOutput, LLMOutputCtor, LLMStream},
     memory::Memory,
-    schemas::{messages::Message, IntoWithUsage, Prompt, StreamData, WithUsage},
+    schemas::{messages::Message, IntoWithUsage, Prompt, WithUsage},
     template::TemplateError,
 };
 
@@ -54,7 +53,7 @@ where
             memory.to_string()
         };
         let input = ConversationalChainInput::new(input).with_history(history);
-        let result = self.llm_chain.call_with_reference(&input).await?;
+        let result = self.llm_chain.call_with_reference(&input, None).await?;
 
         let mut memory = self.memory.write().await;
         memory.add_message(human_message);
@@ -74,11 +73,7 @@ where
         Ok(content.with_usage(result.usage))
     }
 
-    async fn stream(
-        &self,
-        input: I::Target<'_>,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamData, ChainError>> + Send>>, ChainError>
-    {
+    async fn stream(&self, input: I::Target<'_>) -> Result<LLMStream, ChainError> {
         let human_message = Message::new_human_message(input.to_string());
 
         let history = {
@@ -137,7 +132,7 @@ mod tests {
 
     use crate::{
         chain::DefaultChainInput,
-        llm::openai::{OpenAI, OpenAIModel},
+        llm::{GenericChat, OpenAIModel},
     };
 
     use super::*;
@@ -145,7 +140,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_invoke_conversational() {
-        let llm: OpenAI<OpenAIConfig> = OpenAI::builder()
+        let llm: GenericChat<OpenAIConfig> = GenericChat::builder()
             .with_model(OpenAIModel::Gpt35.to_string())
             .build();
         let chain: ConversationalChain = ConversationalChain::builder()

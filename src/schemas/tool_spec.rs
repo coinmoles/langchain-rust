@@ -1,5 +1,15 @@
-use async_openai::types::{responses::Function, ChatCompletionTool, FunctionObject};
+use async_openai::types::{
+    responses::{Function, ToolDefinition},
+    ChatCompletionTool, FunctionObject,
+};
 use serde_json::Value;
+
+use crate::tools::McpTool;
+
+pub struct ToolSpec<'a> {
+    pub functions: &'a [FunctionSpec],
+    pub mcps: &'a [McpTool],
+}
 
 /// A struct representing the tool definition payload.
 ///
@@ -8,14 +18,14 @@ use serde_json::Value;
 /// and the chat completions api [`FunctionObject`](async_openai::types::FunctionObject)).
 /// This struct provides a unified api for internal use with easy conversion into the two structs.
 #[derive(Debug, Clone)]
-pub struct ToolSpec {
+pub struct FunctionSpec {
     pub name: String,
     pub description: Option<String>,
     pub parameters: Value,
     pub strict: bool,
 }
 
-impl ToolSpec {
+impl FunctionSpec {
     pub fn new(name: String, description: Option<String>, parameters: Value, strict: bool) -> Self {
         Self {
             name,
@@ -26,9 +36,9 @@ impl ToolSpec {
     }
 }
 
-impl From<Function> for ToolSpec {
+impl From<Function> for FunctionSpec {
     fn from(function: Function) -> Self {
-        ToolSpec {
+        FunctionSpec {
             name: function.name,
             description: function.description,
             parameters: function.parameters,
@@ -37,8 +47,8 @@ impl From<Function> for ToolSpec {
     }
 }
 
-impl From<ToolSpec> for Function {
-    fn from(tool: ToolSpec) -> Self {
+impl From<FunctionSpec> for Function {
+    fn from(tool: FunctionSpec) -> Self {
         Function {
             name: tool.name,
             description: tool.description,
@@ -48,15 +58,15 @@ impl From<ToolSpec> for Function {
     }
 }
 
-impl From<ToolSpec> for async_openai::types::responses::ToolDefinition {
-    fn from(tool: ToolSpec) -> Self {
-        async_openai::types::responses::ToolDefinition::Function(Function::from(tool))
+impl From<FunctionSpec> for ToolDefinition {
+    fn from(tool: FunctionSpec) -> Self {
+        ToolDefinition::Function(Function::from(tool))
     }
 }
 
-impl From<FunctionObject> for ToolSpec {
+impl From<FunctionObject> for FunctionSpec {
     fn from(function: FunctionObject) -> Self {
-        ToolSpec {
+        FunctionSpec {
             name: function.name,
             description: function.description,
             parameters: function.parameters.unwrap_or(Value::Null),
@@ -65,8 +75,8 @@ impl From<FunctionObject> for ToolSpec {
     }
 }
 
-impl From<ToolSpec> for FunctionObject {
-    fn from(tool: ToolSpec) -> Self {
+impl From<FunctionSpec> for FunctionObject {
+    fn from(tool: FunctionSpec) -> Self {
         FunctionObject {
             name: tool.name,
             description: tool.description,
@@ -76,8 +86,8 @@ impl From<ToolSpec> for FunctionObject {
     }
 }
 
-impl From<ToolSpec> for ChatCompletionTool {
-    fn from(tool: ToolSpec) -> Self {
+impl From<FunctionSpec> for ChatCompletionTool {
+    fn from(tool: FunctionSpec) -> Self {
         ChatCompletionTool {
             r#type: async_openai::types::ChatCompletionToolType::Function,
             function: FunctionObject::from(tool),
