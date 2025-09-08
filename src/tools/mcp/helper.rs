@@ -10,6 +10,7 @@ pub(super) fn parse_mcp_response(response: Annotated<RawContent>) -> String {
                 uri,
                 mime_type,
                 text,
+                ..
             } => {
                 format!(
                     "[Resource]({uri}){}: {text}",
@@ -20,6 +21,7 @@ pub(super) fn parse_mcp_response(response: Annotated<RawContent>) -> String {
                 uri,
                 mime_type,
                 blob,
+                ..
             } => {
                 format!(
                     "[Resource]({uri}){}: {blob}",

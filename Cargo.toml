@@ -68,7 +68,7 @@ mistralai-client = { version = "0.14.0", optional = true }
 qdrant-client = { version = "1.15.0", optional = true }
 tiktoken-rs = "0.7.0"
 
-rmcp = { version = "0.6.1", features = [
+rmcp = { version = "0.6.3", features = [
     "client",
     "reqwest",
     "tower",
