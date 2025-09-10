@@ -2,12 +2,12 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use crate::{
-    agent::AgentOutput,
+    llm::LLMOutput,
     output_parser::{
         extract_from_codeblock, extract_from_tag, flatten_final_answer, is_malformed_event,
         is_malformed_event_str, parse_partial_json, remove_thought, OutputParseError,
     },
-    schemas::ToolCall,
+    schemas::{FunctionSpec, ToolCall},
 };
 
 use super::Instructor;
@@ -44,7 +44,7 @@ impl Default for Qwen3Instructor {
 }
 
 impl Qwen3Instructor {
-    fn value_to_agent_event(&self, value: Value) -> Result<AgentOutput, serde_json::Error> {
+    fn deserialize_tool_call(&self, value: Value) -> Result<LLMOutput, serde_json::Error> {
         #[derive(Deserialize)]
         #[serde(untagged)]
         enum AgentOutputHelp {
@@ -67,13 +67,13 @@ impl Qwen3Instructor {
                 id,
                 name,
                 arguments,
-            } => AgentOutput::Action(vec![ToolCall::new(
-                id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
-                name,
-                arguments.unwrap_or(Value::Null),
-            )]),
+            } => {
+                let tool_call = ToolCall::new(id, name, arguments);
+                LLMOutput::ToolCall(vec![tool_call])
+            }
             AgentOutputHelp::FinalAnswer { final_answer } => {
-                AgentOutput::Finish(flatten_final_answer(final_answer)?)
+                let final_answer = flatten_final_answer(final_answer)?;
+                LLMOutput::Text(final_answer)
             }
         };
         Ok(agent_output)
@@ -81,11 +81,16 @@ impl Qwen3Instructor {
 }
 
 impl Instructor for Qwen3Instructor {
-    fn tool_use_instruction(&self) -> &'static str {
-        QWEN3_TOOL_PROMPT
+    fn tool_use_instruction(&self, tools: &[FunctionSpec]) -> String {
+        let tools_str = tools
+            .iter()
+            .map(FunctionSpec::as_json)
+            .collect::<Vec<_>>()
+            .join("\n");
+        QWEN3_TOOL_PROMPT.replace("{{?tools}}", &tools_str)
     }
 
-    fn parse_tool_use<'a>(&self, output: String) -> Result<AgentOutput, OutputParseError> {
+    fn parse_tool_use<'a>(&self, output: String) -> Result<LLMOutput, OutputParseError> {
         let text = remove_thought(&output);
         let text = extract_from_tag(text, "tool_call");
         let text = extract_from_codeblock(text);
@@ -102,10 +107,14 @@ impl Instructor for Qwen3Instructor {
             }
         };
 
-        match json.and_then(|json| self.value_to_agent_event(json)) {
-            Ok(agent_event) => Ok(agent_event),
-            Err(_) if !is_malformed_event => Ok(AgentOutput::Finish(text.into())),
+        match json.and_then(|json| self.deserialize_tool_call(json)) {
+            Ok(llm_output) => Ok(llm_output),
+            Err(_) if !is_malformed_event => Ok(LLMOutput::Text(text.into())),
             Err(e) => Err(OutputParseError::Deserialize(e, text.into())),
         }
+    }
+
+    fn clone_box(&self) -> Box<dyn Instructor> {
+        Box::new(Self)
     }
 }

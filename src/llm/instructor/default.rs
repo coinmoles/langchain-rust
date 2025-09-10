@@ -3,12 +3,12 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use crate::{
-    agent::AgentOutput,
+    llm::LLMOutput,
     output_parser::{
         extract_from_codeblock, fix_text, flatten_final_answer, is_malformed_event,
         is_malformed_event_str, parse_partial_json, remove_thought, OutputParseError,
     },
-    schemas::ToolCall,
+    schemas::{FunctionSpec, ToolCall},
 };
 
 use super::Instructor;
@@ -57,7 +57,7 @@ const VALID_KEYS: &[&[&str]] = &[&[ACTION_KEY, ACTION_INPUT_KEY], &[FINAL_ANSWER
 pub struct DefaultInstructor;
 
 impl DefaultInstructor {
-    fn value_to_agent_event(&self, value: Value) -> Result<AgentOutput, serde_json::Error> {
+    fn deserialize_llm_output(&self, value: Value) -> Result<LLMOutput, serde_json::Error> {
         #[derive(Debug, Deserialize)]
         #[serde(untagged)]
         enum AgentOutputHelp {
@@ -74,55 +74,67 @@ impl DefaultInstructor {
         }
 
         let helper: AgentOutputHelp = serde_json::from_value(value)?;
-        let agent_output = match helper {
+        let llm_output = match helper {
             AgentOutputHelp::Action {
                 id,
                 action,
                 action_input,
-            } => AgentOutput::Action(vec![ToolCall {
-                id: id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
-                name: action,
-                arguments: action_input.unwrap_or(Value::Null),
-            }]),
+            } => {
+                let tool_call = ToolCall::new(id, action, action_input);
+                LLMOutput::ToolCall(vec![tool_call])
+            }
             AgentOutputHelp::FinalAnswer { final_answer } => {
-                AgentOutput::Finish(flatten_final_answer(final_answer)?)
+                let final_answer = flatten_final_answer(final_answer)?;
+                LLMOutput::Text(final_answer)
             }
         };
-
-        Ok(agent_output)
+        Ok(llm_output)
     }
 
-    fn parse_with_regex(&self, text: &str) -> Option<AgentOutput> {
+    fn parse_with_regex(&self, text: &str) -> Option<LLMOutput> {
         let final_answer_re = Regex::new(r#"(?m)"final_answer"\s*:\s*"(.*)"\s*\n"#).unwrap();
         let action_regex = Regex::new(r#"(?m)"action"\s*:\s*"(.*)"\s*\n"#).unwrap();
         let action_input_regex = Regex::new(r#"(?m)"action_input"\s*:\s*"(.*)"\s*\n"#).unwrap();
 
         if let Some(final_answer) = final_answer_re.captures(text) {
             let final_answer = final_answer.get(1)?.as_str();
-            Some(AgentOutput::Finish(fix_text(final_answer)))
-        } else if let (Some(action), Some(action_input)) = (
+            return Some(LLMOutput::Text(fix_text(final_answer)));
+        }
+
+        if let (Some(action), Some(action_input)) = (
             action_regex.captures(text),
             action_input_regex.captures(text),
         ) {
             let action = action.get(1)?.as_str();
             let action_input = action_input.get(1)?.as_str();
-            Some(AgentOutput::Action(vec![ToolCall {
-                id: uuid::Uuid::new_v4().to_string(),
-                name: fix_text(action),
-                arguments: serde_json::from_str(action_input).ok()?,
-            }]))
-        } else {
-            None
+            let action = fix_text(action);
+            let action_input = serde_json::from_str(action_input).ok()?;
+            let tool_call = ToolCall::new(None, action.to_string(), Some(action_input));
+            return Some(LLMOutput::ToolCall(vec![tool_call]));
         }
+
+        None
     }
 }
 
 impl Instructor for DefaultInstructor {
-    fn tool_use_instruction(&self) -> &'static str {
+    fn tool_use_instruction(&self, tools: &[FunctionSpec]) -> String {
+        let tool_names = tools
+            .iter()
+            .map(|t| t.name.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let tool_descriptions = tools
+            .iter()
+            .map(FunctionSpec::describe)
+            .collect::<Vec<_>>()
+            .join("\n");
         DEFAULT_TOOL_PROMPT
+            .replace("{{tool_names}}", &tool_names)
+            .replace("{{tools}}", &tool_descriptions)
     }
 
-    fn parse_tool_use(&self, output: String) -> Result<AgentOutput, OutputParseError> {
+    fn parse_tool_use(&self, output: String) -> Result<LLMOutput, OutputParseError> {
         let text = remove_thought(&output);
         let text = extract_from_codeblock(text);
 
@@ -134,13 +146,17 @@ impl Instructor for DefaultInstructor {
         };
 
         match json
-            .and_then(|json| self.value_to_agent_event(json))
+            .and_then(|json| self.deserialize_llm_output(json))
             .or_else(|e| self.parse_with_regex(text).ok_or(e))
         {
-            Ok(agent_event) => Ok(agent_event),
-            Err(_) if !is_malformed_event => Ok(AgentOutput::Finish(text.into())),
+            Ok(llm_output) => Ok(llm_output),
+            Err(_) if !is_malformed_event => Ok(LLMOutput::Text(text.into())),
             Err(e) => Err(OutputParseError::Deserialize(e, text.into())),
         }
+    }
+
+    fn clone_box(&self) -> Box<dyn Instructor> {
+        Box::new(Self)
     }
 }
 
@@ -164,7 +180,7 @@ mod tests {
         let parsed_output = DefaultInstructor.parse_tool_use(test_output.into());
 
         match parsed_output {
-            Ok(AgentOutput::Action(tool_calls)) => {
+            Ok(LLMOutput::ToolCall(tool_calls)) => {
                 assert!(tool_calls.len() == 1);
                 let tool_call = &tool_calls[0];
                 assert_eq!(tool_call.name, "generate");
@@ -184,10 +200,10 @@ mod tests {
         let parsed_output = DefaultInstructor.parse_tool_use(test_final_answer.into());
 
         match parsed_output {
-            Ok(AgentOutput::Finish(final_answer)) => {
+            Ok(LLMOutput::Text(final_answer)) => {
                 assert_eq!(final_answer, "Goodbye, world!");
             }
-            _ => panic!("Expected AgentEvent::Finish, got {parsed_output:#?}"),
+            _ => panic!("Expected LLMOutput::Text, got {parsed_output:#?}"),
         }
     }
 
@@ -226,10 +242,10 @@ mod tests {
         let result = DefaultInstructor.parse_tool_use(test_final_answer.into());
 
         match result {
-            Ok(AgentOutput::Finish(final_answer)) => {
+            Ok(LLMOutput::Text(final_answer)) => {
                 println!("{final_answer}");
             }
-            _ => panic!("Expected AgentEvent::Finish, got {result:#?}"),
+            _ => panic!("Expected LLMOutput::Text, got {result:#?}"),
         }
     }
 
@@ -246,10 +262,10 @@ mod tests {
         let result = DefaultInstructor.parse_tool_use(test_final_answer.into());
 
         match result {
-            Ok(AgentOutput::Finish(final_answer)) => {
+            Ok(LLMOutput::Text(final_answer)) => {
                 println!("{final_answer}");
             }
-            _ => panic!("Expected AgentEvent::Finish, got {result:#?}"),
+            _ => panic!("Expected LLMOutput::Text, got {result:#?}"),
         }
     }
 
@@ -264,10 +280,10 @@ mod tests {
         let result = DefaultInstructor.parse_tool_use(test_final_answer.into());
 
         match result {
-            Ok(AgentOutput::Finish(final_answer)) => {
+            Ok(LLMOutput::Text(final_answer)) => {
                 println!("{final_answer}");
             }
-            _ => panic!("Expected AgentEvent::Finish, got {result:#?}"),
+            _ => panic!("Expected LLMOutput::Text, got {result:#?}"),
         }
     }
 
@@ -283,7 +299,7 @@ mod tests {
 
         let result = DefaultInstructor.parse_tool_use(text.into()).unwrap();
         match result {
-            AgentOutput::Action(tool_calls) => {
+            LLMOutput::ToolCall(tool_calls) => {
                 assert_eq!(tool_calls.len(), 1);
                 let tool_call = &tool_calls[0];
                 assert_eq!(tool_call.name, "generate");
@@ -306,10 +322,10 @@ mod tests {
 
         let result = DefaultInstructor.parse_tool_use(text.into()).unwrap();
         match result {
-            AgentOutput::Finish(final_answer) => {
+            LLMOutput::Text(final_answer) => {
                 println!("{final_answer}");
             }
-            _ => panic!("Expected AgentEvent::Finish, got {result:#?}"),
+            _ => panic!("Expected LLMOutput::Text, got {result:#?}"),
         }
     }
 
@@ -321,8 +337,8 @@ mod tests {
         let result = DefaultInstructor.parse_tool_use(text.into()).unwrap();
 
         match result {
-            AgentOutput::Finish(final_answer) => assert_eq!(final_answer, "My final answer is 5"),
-            _ => panic!("Expected AgentEvent::Finish, got {result:#?}"),
+            LLMOutput::Text(final_answer) => assert_eq!(final_answer, "My final answer is 5"),
+            _ => panic!("Expected LLMOutput::Text, got {result:#?}"),
         }
     }
 
@@ -352,10 +368,10 @@ mod tests {
         let result = DefaultInstructor.parse_tool_use(text.into()).unwrap();
 
         match result {
-            AgentOutput::Finish(final_answer) => {
+            LLMOutput::Text(final_answer) => {
                 println!("{final_answer}");
             }
-            _ => panic!("Expected AgentEvent::Finish, got {result:#?}"),
+            _ => panic!("Expected LLMOutput::Text, got {result:#?}"),
         }
     }
 

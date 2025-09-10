@@ -1,10 +1,7 @@
 use async_openai::{config::Config, Client as OpenAIClient};
 use reqwest::Client;
 
-use crate::{
-    instructor::{DefaultInstructor, Instructor},
-    llm::options::CallOptions,
-};
+use crate::llm::{options::CallOptions, DefaultInstructor, Instructor};
 
 use super::GenericChat;
 

@@ -6,11 +6,11 @@ use async_openai::{
 use async_trait::async_trait;
 
 use crate::{
-    instructor::{DefaultInstructor, Instructor},
     llm::{
         chat::helper::{generate, map_stream},
         options::CallOptions,
-        GenericChatBuilder, LLMError, LLMOutput, LLMStream, LlmCapabilities, OpenAIModel, LLM,
+        DefaultInstructor, GenericChatBuilder, Instructor, LLMError, LLMOutput, LLMStream,
+        LlmCapabilities, OpenAIModel, LLM,
     },
     schemas::{
         messages::Message, FunctionSpec, IntoWithUsage, MessageType, Prompt, ToolSpec, WithUsage,
@@ -19,7 +19,6 @@ use crate::{
 
 use super::{helper::select_choice, request::ChatRequest};
 
-#[derive(Clone)]
 pub struct GenericChat<C: Config> {
     client: OpenAIClient<C>,
     model: String,
@@ -55,7 +54,8 @@ impl<C: Config> GenericChat<C> {
             }
             if first_system && message.message_type == MessageType::System {
                 if let Some(tools) = tools {
-                    message.content.push_str(&self.inst);
+                    let instruction = self.instructor.tool_use_instruction(tools);
+                    message.content.push_str(&instruction);
                 }
                 first_system = false;
             }
@@ -78,6 +78,17 @@ impl Default for GenericChat<OpenAIConfig> {
             Box::new(DefaultInstructor),
             CallOptions::default(),
         )
+    }
+}
+
+impl<C: Config + Clone> Clone for GenericChat<C> {
+    fn clone(&self) -> Self {
+        Self {
+            client: self.client.clone(),
+            model: self.model.clone(),
+            instructor: self.instructor.clone_box(),
+            call_options: self.call_options.clone(),
+        }
     }
 }
 
