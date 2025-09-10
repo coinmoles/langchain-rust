@@ -130,8 +130,8 @@ impl Instructor for DefaultInstructor {
             .collect::<Vec<_>>()
             .join("\n");
         DEFAULT_TOOL_PROMPT
-            .replace("{{tool_names}}", &tool_names)
-            .replace("{{tools}}", &tool_descriptions)
+            .replace("{{?tool_names}}", &tool_names)
+            .replace("{{?tools}}", &tool_descriptions)
     }
 
     fn parse_tool_use(&self, output: String) -> Result<LLMOutput, OutputParseError> {
