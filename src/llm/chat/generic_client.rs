@@ -45,22 +45,73 @@ impl<C: Config> GenericChat<C> {
     }
 
     fn process_prompt(&self, prompt: Prompt, tools: Option<&[FunctionSpec]>) -> Vec<Message> {
-        let mut messages = prompt.to_messages();
         let mut first_system = true;
-        for message in messages.iter_mut() {
-            if self.call_options.system_is_assistant && message.message_type == MessageType::System
-            {
-                message.message_type = MessageType::Ai;
-            }
-            if first_system && message.message_type == MessageType::System {
-                if let Some(tools) = tools {
-                    let instruction = self.instructor.tool_use_instruction(tools);
-                    message.content.push_str(&instruction);
+
+        prompt
+            .to_messages()
+            .into_iter()
+            .scan(true, |first_system, mut message| {
+                // Inject tool instruction into the first system message.
+                if *first_system && message.message_type == MessageType::System {
+                    if let Some(tools) = tools {
+                        let instruction = self.instructor.tool_use_instruction(tools);
+                        message.content.push_str(&instruction);
+                    }
+                    *first_system = false;
                 }
-                first_system = false;
-            }
-        }
-        messages
+
+                // Change system message to ai message if configured.
+                if self.call_options.system_is_assistant
+                    && message.message_type == MessageType::System
+                {
+                    message.message_type = MessageType::Ai;
+                }
+
+                // Convert tool call/result messages to normal ai/human messages
+                if let Some(tool_calls) = message.tool_calls {
+                    message.content = tool_calls
+                        .iter()
+                        .map(|tc| tc.to_string())
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    message.tool_calls = None;
+                }
+                if message.message_type == MessageType::Tool {
+                    message.message_type = MessageType::Human;
+                }
+                Some(message)
+            })
+            .map(|mut message| {
+                if self.call_options.system_is_assistant
+                    && message.message_type == MessageType::System
+                {
+                    message.message_type = MessageType::Ai;
+                }
+                if first_system && message.message_type == MessageType::System {
+                    if let Some(tools) = tools {
+                        let instruction = self.instructor.tool_use_instruction(tools);
+                        message.content.push_str(&instruction);
+                    }
+                    first_system = false;
+                }
+
+                // Convert tool call + tool result messages to ai / human messages
+                if message.message_type == MessageType::Ai {
+                    if let Some(tool_calls) = message.tool_calls {
+                        message.content = tool_calls
+                            .iter()
+                            .map(|tc| tc.to_string())
+                            .collect::<Vec<_>>()
+                            .join("\n");
+                        message.tool_calls = None;
+                    }
+                }
+                if message.message_type == MessageType::Tool {
+                    message.message_type = MessageType::Human;
+                }
+                message
+            })
+            .collect::<Vec<_>>()
     }
 }
 
