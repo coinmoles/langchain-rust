@@ -2,9 +2,14 @@ use async_openai::types::{
     responses::{Function, ToolDefinition},
     ChatCompletionTool, FunctionObject,
 };
-use serde_json::Value;
+use indoc::formatdoc;
+use schemars::{schema_for, Schema};
+use serde_json::json;
 
-use crate::tools::McpTool;
+use crate::{
+    tools::{describe_parameters, EmptyFunctionInput, McpTool},
+    utils::helper::normalize_tool_name,
+};
 
 pub struct ToolSpec<'a> {
     pub functions: &'a [FunctionSpec],
@@ -21,12 +26,17 @@ pub struct ToolSpec<'a> {
 pub struct FunctionSpec {
     pub name: String,
     pub description: Option<String>,
-    pub parameters: Value,
+    pub parameters: Schema,
     pub strict: bool,
 }
 
 impl FunctionSpec {
-    pub fn new(name: String, description: Option<String>, parameters: Value, strict: bool) -> Self {
+    pub fn new(
+        name: String,
+        description: Option<String>,
+        parameters: Schema,
+        strict: bool,
+    ) -> Self {
         Self {
             name,
             description,
@@ -34,16 +44,48 @@ impl FunctionSpec {
             strict,
         }
     }
+
+    pub fn as_json(&self) -> String {
+        let json = json!({
+            "name": self.name,
+            "description": self.description,
+            "parameters": self.parameters,
+            "strict": self.strict,
+        });
+        serde_json::to_string_pretty(&json).unwrap_or_else(|_| json.to_string())
+    }
+
+    pub fn describe(&self) -> String {
+        let name = normalize_tool_name(&self.name);
+        let desc = self.description.as_deref().unwrap_or("");
+        let parameters = describe_parameters(&self.parameters);
+
+        match parameters {
+            Ok(parameters) => formatdoc! {"
+                > {name}: {desc}
+                <INPUT_FORMAT>
+                {parameters}
+                </INPUT_FORMAT>"},
+            Err(e) => {
+                log::warn!("Failed to describe parameters for tool {}: {e}", self.name);
+                format!("> {name}: {desc}")
+            }
+        }
+    }
 }
 
-impl From<Function> for FunctionSpec {
-    fn from(function: Function) -> Self {
-        FunctionSpec {
+impl TryFrom<Function> for FunctionSpec {
+    type Error = serde_json::Error;
+
+    fn try_from(function: Function) -> Result<Self, Self::Error> {
+        let parameters = Schema::try_from(function.parameters)?;
+        let spec = FunctionSpec {
             name: function.name,
             description: function.description,
-            parameters: function.parameters,
+            parameters,
             strict: function.strict,
-        }
+        };
+        Ok(spec)
     }
 }
 
@@ -52,7 +94,7 @@ impl From<FunctionSpec> for Function {
         Function {
             name: tool.name,
             description: tool.description,
-            parameters: tool.parameters,
+            parameters: tool.parameters.to_value(),
             strict: tool.strict,
         }
     }
@@ -64,14 +106,21 @@ impl From<FunctionSpec> for ToolDefinition {
     }
 }
 
-impl From<FunctionObject> for FunctionSpec {
-    fn from(function: FunctionObject) -> Self {
-        FunctionSpec {
+impl TryFrom<FunctionObject> for FunctionSpec {
+    type Error = serde_json::Error;
+
+    fn try_from(function: FunctionObject) -> Result<Self, Self::Error> {
+        let parameters = match function.parameters {
+            Some(params) => Schema::try_from(params)?,
+            None => schema_for!(EmptyFunctionInput),
+        };
+        let spec = FunctionSpec {
             name: function.name,
             description: function.description,
-            parameters: function.parameters.unwrap_or(Value::Null),
+            parameters,
             strict: function.strict.unwrap_or_default(),
-        }
+        };
+        Ok(spec)
     }
 }
 
@@ -80,7 +129,7 @@ impl From<FunctionSpec> for FunctionObject {
         FunctionObject {
             name: tool.name,
             description: tool.description,
-            parameters: Some(tool.parameters),
+            parameters: Some(tool.parameters.to_value()),
             strict: Some(tool.strict),
         }
     }

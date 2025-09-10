@@ -1,38 +1,45 @@
 use std::collections::BTreeMap;
 
+use gix::hashtable::hash_set::HashSet;
 use indoc::formatdoc;
 use regex::Regex;
-use schemars::schema::{
-    ArrayValidation, InstanceType, ObjectValidation, RootSchema, Schema, SchemaObject, SingleOrVec,
-};
+use schemars::Schema;
+use serde_json::Value;
 
 use crate::utils::helper::add_indent;
 
-pub fn describe_parameters(parameters: &RootSchema) -> Result<String, String> {
-    let definitions = parameters
-        .definitions
-        .iter()
-        .map(|(k, v)| (k.as_str(), v))
-        .collect();
+pub fn describe_parameters(parameters: &Schema) -> Result<String, String> {
+    let definitions = collect_definitions(parameters)?;
 
-    describe_schema_object(&parameters.schema, true, &definitions, 0)
+    describe_schema(parameters, true, &definitions, 0)
+}
+
+fn collect_definitions(root: &Schema) -> Result<BTreeMap<&str, &Schema>, String> {
+    let mut out = BTreeMap::new();
+
+    // Prefer $defs (2019-09 / 2020-12), but also support older "definitions"
+    for key in ["$defs", "definitions"] {
+        let Some(Value::Object(defs)) = root.get(key) else {
+            continue;
+        };
+        for (k, v) in defs {
+            let def = v
+                .try_into()
+                .map_err(|e| format!("Failed to parse inner definition for {k}: {e}"))?;
+
+            out.insert(k.as_str(), def);
+        }
+    }
+    Ok(out)
 }
 
 fn generate_comment(
     description: Option<&str>,
-    enum_values: Option<&Vec<serde_json::Value>>,
+    enum_values: Option<&[&str]>,
     required: bool,
 ) -> String {
-    let enum_comment = enum_values.map(|values| {
-        format!(
-            "should be one of: [{}]",
-            values
-                .iter()
-                .filter_map(|v| v.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
-        )
-    });
+    let enum_comment =
+        enum_values.map(|values| format!("should be one of: [{}]", values.join(", ")));
     let optional = if required { None } else { Some("(optional)") };
 
     match (description, enum_comment, optional) {
@@ -53,85 +60,86 @@ fn describe_schema(
     definitions: &BTreeMap<&str, &Schema>,
     depth: usize,
 ) -> Result<String, String> {
-    match schema {
-        Schema::Object(schema_object) => {
-            describe_schema_object(schema_object, required, definitions, depth)
-        }
-        Schema::Bool(true) => Ok("any".into()),
-        Schema::Bool(false) => Ok("never".into()),
-    }
-}
-
-fn describe_schema_object(
-    schema_object: &SchemaObject,
-    required: bool,
-    definitions: &BTreeMap<&str, &Schema>,
-    depth: usize,
-) -> Result<String, String> {
     if depth > 10 {
         return Ok("object // Too deep".into());
     }
 
-    if let Some(ref reference) = &schema_object.reference {
+    if let Some(b) = schema.as_bool() {
+        return Ok(if b { "any".into() } else { "never".into() });
+    }
+
+    let Some(obj) = schema.as_object() else {
+        return Err("Schema is not an object or a boolean".into());
+    };
+
+    if let Some(Value::String(reference)) = obj.get("$ref") {
         return resolve_reference(reference, required, definitions, depth);
     }
 
-    let Some(ref instance_type) = schema_object.instance_type else {
-        return Err("Field type is missing".into());
-    };
-
-    let instance_type = match instance_type {
-        SingleOrVec::Single(instance_type) => instance_type,
-        SingleOrVec::Vec(instance_types) => {
-            log::warn!("Union types are not supported, using the first one");
-            instance_types.first().ok_or("Field type is empty")?
+    let instance_type = match obj.get("type") {
+        Some(Value::String(t)) => Some(t.as_str()),
+        Some(Value::Array(arr)) => {
+            let first = arr.iter().filter_map(|v| v.as_str()).next();
+            if first.is_none() {
+                log::warn!("Type array is empty or contains non-string values");
+            }
+            first
         }
-    };
+        _ => None,
+    }
+    .ok_or_else(|| String::from("Field type is missing"))?;
 
-    let description = schema_object
-        .metadata
-        .as_ref()
-        .and_then(|m| m.description.as_deref());
-    let enum_values = schema_object.enum_values.as_ref();
-    let comment = generate_comment(description, enum_values, required);
+    let description = obj.get("description").and_then(|v| v.as_str());
+    let enum_values = obj
+        .get("enum")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>());
+    let comment = generate_comment(description, enum_values.as_deref(), required);
 
     let full_description = match instance_type {
-        InstanceType::Null => "{} // An empty object".to_string(),
-        InstanceType::Boolean => format!("bool {comment}"),
-        InstanceType::Number => format!("number {comment}"),
-        InstanceType::Integer => format!("integer {comment}"),
-        InstanceType::String => format!("string {comment}"),
-        InstanceType::Object => match &schema_object.object {
-            Some(object) => describe_object(object, &comment, definitions, depth)?,
-            None => "{} // An empty object".to_string(),
-        },
-        InstanceType::Array => match &schema_object.array {
-            Some(array) => describe_array(array, &comment, definitions, depth)?,
-            None => "[] // An empty array".to_string(),
-        },
+        "null" => "{} // An empty object".to_string(),
+        "boolean" => format!("bool {comment}"),
+        "number" => format!("number {comment}"),
+        "integer" => format!("integer {comment}"),
+        "string" => format!("string {comment}"),
+        "object" => describe_object(obj, &comment, definitions, depth)?,
+        "array" => describe_array(obj, &comment, definitions, depth)?,
+        other => return Err(format!("Unsupported type: {other}")),
     };
     Ok(full_description)
 }
 
 fn describe_object(
-    object: &ObjectValidation,
+    obj: &serde_json::Map<String, Value>,
     comment: &str,
     definitions: &BTreeMap<&str, &Schema>,
     depth: usize,
 ) -> Result<String, String> {
-    if !object.pattern_properties.is_empty() {
+    if obj.get("patternProperties").is_some() {
         log::warn!("Pattern properties are not supported, they will be ignored");
     }
 
-    let properties = object
-        .properties
+    let required: HashSet<&str> = obj
+        .get("required")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect())
+        .unwrap_or_default();
+
+    let Some(properties) = obj.get("properties").and_then(|v| v.as_object()) else {
+        return Ok(format!("object {comment} {{}}"));
+    };
+
+    let properties = properties
         .iter()
-        .map(|(k, v)| -> Result<String, String> {
-            let required = object.required.contains(k);
-            let description = describe_schema(v, required, definitions, depth + 1)?;
-            Ok(format!("{k}: {description}"))
+        .map(|(name, schema)| {
+            let is_required = required.contains(name.as_str());
+            let subschema = schema
+                .try_into()
+                .map_err(|e| format!("Invalid schema for property {name}: {e}"))?;
+            let description = describe_schema(subschema, is_required, definitions, depth + 1)?;
+            Ok(format!("{name}: {description}"))
         })
-        .collect::<Result<Vec<_>, _>>()?
+        .collect::<Result<Vec<_>, String>>()?
         .join("\n");
 
     Ok(formatdoc! {"
@@ -144,26 +152,29 @@ fn describe_object(
 }
 
 fn describe_array(
-    array: &ArrayValidation,
+    obj: &serde_json::Map<String, Value>,
     comment: &str,
     definitions: &BTreeMap<&str, &Schema>,
     depth: usize,
 ) -> Result<String, String> {
-    let Some(ref items) = array.items else {
+    let Some(items) = obj.get("items") else {
         return Ok(format!("[] {comment}"));
     };
 
     let items_schema = match items {
-        SingleOrVec::Single(items) => items,
-        SingleOrVec::Vec(items) => {
+        Value::Array(arr) => {
             log::warn!("Union types for array items are not supported, using the first one");
-            if let Some(first) = items.first() {
+            if let Some(first) = arr.first() {
                 first
             } else {
                 return Ok(format!("[] {comment}"));
             }
         }
+        other => other,
     };
+    let items_schema = items_schema
+        .try_into()
+        .map_err(|e| format!("Invalid schema for array items: {e}"))?;
 
     let item_description = format!(
         "items: {}",
@@ -189,7 +200,7 @@ fn resolve_reference(
         return Ok("object // Same as the root object".into());
     }
 
-    let re = Regex::new(r"^#\/definitions\/(.+)$").unwrap();
+    let re = Regex::new(r"^#\/(?:\$defs|definitions)\/(.+)$").unwrap();
 
     let Some(captures) = re.captures(reference) else {
         return Err(format!("Invalid reference {reference}"));

@@ -1,14 +1,12 @@
 use std::string::String;
 
 use async_trait::async_trait;
-use indoc::formatdoc;
-use schemars::{schema::RootSchema, schema_for};
+use schemars::{schema_for, Schema};
 use serde_json::Value;
 
 use crate::{
     schemas::FunctionSpec,
-    tools::{describe_parameters, Function, ToolData, ToolError, ToolOutput},
-    utils::helper::normalize_tool_name,
+    tools::{Function, ToolData, ToolError, ToolOutput},
 };
 
 use super::function_input::DefaultFunctionInput;
@@ -44,7 +42,7 @@ pub trait FunctionTool: sealed::Sealed + Send + Sync {
     ///     required: ["input"]
     /// }
     /// ```
-    fn parameters(&self) -> RootSchema {
+    fn parameters(&self) -> Schema {
         schema_for!(DefaultFunctionInput)
     }
 
@@ -62,43 +60,11 @@ pub trait FunctionTool: sealed::Sealed + Send + Sync {
         None
     }
 
-    fn to_plain_description(&self) -> String {
-        let name_and_desc = format!(
-            "> {}: {}",
-            normalize_tool_name(&self.name()),
-            self.description()
-        );
-        let parameters = describe_parameters(&self.parameters());
-
-        match parameters {
-            Ok(parameters) => formatdoc! {"
-                {name_and_desc}
-                <INPUT_FORMAT>
-                {parameters}
-                </INPUT_FORMAT>"},
-            Err(e) => {
-                log::warn!(
-                    "Failed to describe parameters for tool {}: {e}",
-                    self.name(),
-                );
-                name_and_desc
-            }
-        }
-    }
-
     fn get_spec(&self) -> FunctionSpec {
-        let parameters = serde_json::to_value(self.parameters()).unwrap_or_else(|e| {
-            log::warn!(
-                "Failed to serialize parameters for tool {}: {e}",
-                self.name(),
-            );
-            Value::Null
-        });
-
         FunctionSpec::new(
             self.name(),
             Some(self.description()),
-            parameters,
+            self.parameters(),
             self.strict(),
         )
     }
@@ -119,7 +85,7 @@ where
         self.description()
     }
 
-    fn parameters(&self) -> RootSchema {
+    fn parameters(&self) -> Schema {
         self.parameters()
     }
 

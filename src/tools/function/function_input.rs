@@ -6,6 +6,10 @@ use serde::Deserialize;
 #[schemars(description = "The input for the tool")]
 pub struct DefaultFunctionInput(pub String);
 
+#[derive(Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct EmptyFunctionInput;
+
 impl DefaultFunctionInput {
     pub fn new(input: impl Into<String>) -> Self {
         Self(input.into())
@@ -39,8 +43,8 @@ mod tests {
         assert_eq!(
             schema,
             json!({
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "title": "DefaultToolInput",
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "title": "DefaultFunctionInput",
                 "description": "The input for the tool",
                 "type": "string"
             })
@@ -55,8 +59,8 @@ mod tests {
         assert_eq!(
             schema,
             json!({
-                "$schema": "http://json-schema.org/draft-07/schema#",
-                "title": "Null",
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "title": "null",
                 "type": "null",
             })
         )

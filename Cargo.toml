@@ -33,7 +33,7 @@ urlencoding = "2.1.3"
 uuid = { version = "1.18.1", features = ["v4"] }
 
 csv = "1.3.1"
-schemars = { version = "0.8.22", default-features = false, features = [
+schemars = { version = "1.0.4", default-features = false, features = [
     "derive",
     "preserve_order",
 ] }

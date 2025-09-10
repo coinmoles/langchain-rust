@@ -32,7 +32,10 @@ impl Default for CommandExecutor {
 
 #[derive(Deserialize, Serialize, Debug, JsonSchema)]
 #[serde(deny_unknown_fields)]
-#[schemars(description = "Object representing a command and its optional arguments")]
+#[schemars(
+    inline,
+    description = "Object representing a command and its optional arguments"
+)]
 pub struct Command {
     #[schemars(description = "The command to execute")]
     pub cmd: String,
@@ -63,10 +66,6 @@ impl Function for CommandExecutor {
             Should be a comma separated commands"#,
             self.platform
         }
-    }
-
-    fn inline_subschema(&self) -> bool {
-        true
     }
 
     async fn call(&self, input: Self::Input) -> Result<Self::Output, Box<dyn Error + Send + Sync>> {

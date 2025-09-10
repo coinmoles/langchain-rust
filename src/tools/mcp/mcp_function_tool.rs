@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use rmcp::model::CallToolRequestParam;
-use schemars::schema::RootSchema;
+use schemars::Schema;
 use serde::de::Error;
 use serde_json::Value;
 
@@ -21,7 +21,7 @@ pub struct McpFunctionTool {
     client: Arc<McpService>,
     name: String,
     description: Option<String>,
-    parameters: RootSchema,
+    parameters: Schema,
 }
 
 impl McpFunctionTool {
@@ -29,7 +29,7 @@ impl McpFunctionTool {
         client: Arc<McpService>,
         name: String,
         description: Option<String>,
-        parameters: RootSchema,
+        parameters: Schema,
     ) -> Self {
         Self {
             client,
@@ -51,7 +51,7 @@ impl McpFunctionTool {
             Arc::clone(service),
             name.clone(),
             description,
-            serde_json::from_value(parameters)?,
+            Schema::try_from(parameters)?,
         );
         Ok(tool)
     }
@@ -71,7 +71,7 @@ impl FunctionTool for McpFunctionTool {
             .map_or_else(|| "No description provided".to_string(), |d| d.to_string())
     }
 
-    fn parameters(&self) -> RootSchema {
+    fn parameters(&self) -> Schema {
         self.parameters.clone()
     }
 

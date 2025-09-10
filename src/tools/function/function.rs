@@ -1,7 +1,7 @@
 use std::string::String;
 
 use async_trait::async_trait;
-use schemars::{gen::SchemaSettings, schema::RootSchema, schema_for, JsonSchema};
+use schemars::{schema_for, JsonSchema, Schema};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
@@ -27,29 +27,13 @@ pub trait Function: Send + Sync {
     /// Provides a description of what the tool does and when to use it.
     fn description(&self) -> String;
 
-    /// Returns whether the tool has an subschema that should be inlined in the schema.
-    ///
-    /// If not implemented, it will default to `false`.
-    ///
-    /// Implement this method and return `true` if the input type has fields of non-primitive types that should be inlined in the schema.
-    fn inline_subschema(&self) -> bool {
-        false
-    }
-
     /// JSON schema for the tool input parameters.
     ///
     /// Used for OpenAI function call.
     ///
     /// You don't need to implement this method as it is automatically generated based on the `Input` type.
-    fn parameters(&self) -> RootSchema {
-        if self.inline_subschema() {
-            SchemaSettings::default()
-                .with(|s| s.inline_subschemas = true)
-                .into_generator()
-                .into_root_schema_for::<Self::Input>()
-        } else {
-            schema_for!(Self::Input)
-        }
+    fn parameters(&self) -> Schema {
+        schema_for!(Self::Input)
     }
 
     /// Whether the tool should be strict in its input validation.

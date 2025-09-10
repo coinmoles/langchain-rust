@@ -3,6 +3,7 @@ use std::fmt::{self, Display};
 use async_openai::types::{ChatCompletionMessageToolCall, ChatCompletionToolType, FunctionCall};
 use indoc::indoc;
 use serde_json::Value;
+use uuid::Uuid;
 
 use crate::utils::helper::add_indent;
 
@@ -14,11 +15,11 @@ pub struct ToolCall {
 }
 
 impl ToolCall {
-    pub fn new(id: impl Into<String>, name: impl Into<String>, arguments: Value) -> Self {
+    pub fn new(id: Option<String>, name: impl Into<String>, arguments: Option<Value>) -> Self {
         Self {
-            id: id.into(),
+            id: id.unwrap_or_else(|| Uuid::new_v4().to_string()),
             name: name.into(),
-            arguments,
+            arguments: arguments.unwrap_or(Value::Null),
         }
     }
 }
