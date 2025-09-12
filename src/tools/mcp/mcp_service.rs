@@ -3,8 +3,10 @@ use std::{collections::HashMap, sync::Arc};
 use async_trait::async_trait;
 use reqwest::IntoUrl;
 use rmcp::{
-    model::InitializeRequestParam, service::RunningService,
-    transport::StreamableHttpClientTransport, RoleClient, ServiceExt,
+    model::{ClientInfo, InitializeRequestParam},
+    service::RunningService,
+    transport::StreamableHttpClientTransport,
+    RoleClient, ServiceExt,
 };
 
 use crate::{tools::McpError, utils::helper::normalize_tool_name};
@@ -26,14 +28,7 @@ impl McpServiceFromUrl for McpService {
         let url = url.into_url()?;
         let transport = StreamableHttpClientTransport::from_uri(url.as_str());
 
-        let client_info = rmcp::model::ClientInfo {
-            protocol_version: Default::default(),
-            capabilities: Default::default(),
-            client_info: rmcp::model::Implementation {
-                name: "MCP Client".to_string(),
-                version: "0.0.1".to_string(),
-            },
-        };
+        let client_info = ClientInfo::default();
 
         let client = client_info
             .serve(transport)
