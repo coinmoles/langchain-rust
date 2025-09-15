@@ -1,7 +1,7 @@
 use futures::StreamExt;
 use langchain_rust::{
     chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain},
-    llm::openai::OpenAI,
+    llm::openai_chat::OpenAI,
     prompt_template,
     schemas::{Message, MessageType},
     template::MessageTemplate,

@@ -1,11 +1,21 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 
 use crate::{
     agent::{Agent, AgentInput, AgentOutput, AgentStep},
     chain::{ChainError, InputCtor, OutputCtor},
-    schemas::{ToolCall, WithUsage},
-    tools::{FunctionTool, ToolOutput},
+    schemas::{ToolCall, ToolSpec},
+    tools::{FunctionTool, Tool, ToolOutput},
 };
+
+/// The tools resolved for the current execution.
+pub struct ResolvedTools {
+    /// The mapping from the tool name to their implementation. Whether it be local function tools or MCP tools that are treated as function tools.
+    pub mcp_functions: Option<HashMap<String, Box<dyn FunctionTool>>>,
+    /// The tool specification to be sent to the LLM.
+    pub spec: Option<ToolSpec>,
+}
 
 #[async_trait]
 /// A pluggable policy that customizes **how an agent run is executed**.
@@ -39,11 +49,6 @@ pub trait Strategy: Default + Send + Sync {
     /// side artifacts (e.g., tag indices, telemetry, transcripts).
     type Output;
 
-    /// Unique identifier for the agent, used for logging and telemetry.
-    fn agent_id(&self) -> Option<String> {
-        None
-    }
-
     /// Prepare (augment / normalize) the initial `AgentInput` **before the first plan**.
     ///
     /// Typical uses:
@@ -55,9 +60,13 @@ pub trait Strategy: Default + Send + Sync {
     /// retry (until the fail limit) with the same context.
     async fn prepare_input<'input, I: InputCtor>(
         &mut self,
-        agent_input: AgentInput<I::Target<'input>>,
+        input: AgentInput<I::Target<'input>>,
     ) -> Result<AgentInput<I::Target<'input>>, ChainError> {
-        Ok(agent_input)
+        Ok(input)
+    }
+
+    fn additional_tools(&self) -> HashMap<&str, &Tool> {
+        HashMap::new()
     }
 
     /// Resolve the concrete tool implementation to call for `tool_name`.
@@ -69,13 +78,19 @@ pub trait Strategy: Default + Send + Sync {
     /// Default: delegates to `agent.get_tool(tool_name)`.
     fn resolve_tool<'tool, I: InputCtor, O: OutputCtor>(
         &'tool mut self,
-        agent: &'tool dyn Agent<I, O>,
+        agent: &'tool Agent<I, O>,
         tool_name: &str,
     ) -> Option<&'tool dyn FunctionTool>
     where
         Self: 'tool,
     {
-        agent.get_tool(tool_name)
+        if let Some(Tool::Function(func)) = self.additional_tools().get(tool_name) {
+            Some(func.as_ref())
+        } else if let Some(Tool::Function(func)) = agent.tools.get(tool_name) {
+            Some(func.as_ref())
+        } else {
+            None
+        }
     }
 
     /// Inspect, validate, or rewrite the model-produced `AgentOutput` **each loop**.
@@ -87,10 +102,7 @@ pub trait Strategy: Default + Send + Sync {
     ///
     /// Return the (possibly) modified plan. Returning `Err` makes the executor
     /// retry (until the fail limit) with the same context.
-    async fn process_plan(
-        &mut self,
-        plan: WithUsage<AgentOutput>,
-    ) -> Result<WithUsage<AgentOutput>, ChainError> {
+    async fn process_plan(&mut self, plan: AgentOutput) -> Result<AgentOutput, ChainError> {
         Ok(plan)
     }
 

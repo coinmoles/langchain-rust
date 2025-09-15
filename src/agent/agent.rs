@@ -1,30 +1,65 @@
-use std::fmt::Display;
-
-use async_trait::async_trait;
+use std::collections::HashMap;
 
 use crate::{
-    agent::{AgentOutput, AgentStep},
-    chain::{ChainOutput, InputCtor, OutputCtor},
-    schemas::{Message, Prompt, WithUsage},
+    agent::{AgentError, AgentInput, AgentInputCtor, AgentOutputCtor, AgentStep},
+    chain::{DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor},
+    schemas::{Message, Prompt},
     template::TemplateError,
-    tools::FunctionTool,
+    tools::Tool,
 };
 
-use super::{AgentError, AgentExecutor, AgentInput};
-
-/// Defines the interface for an agent capable of reasoning and tool usage within an [`AgentExecutor`] framework.
+/// An agent implementation for agents that do **not** support structured tool calling.
 ///
-/// While this trait defines the core functionality for agents, agents are typically **not used on their own**.
-/// Instead, they are wrapped and driven by an [`AgentExecutor`], which orchestrates the full execution loop and
-/// manages state transitions.
+/// This agent enables tool use by prompting the model to emit tool call as plain text, which are then
+/// manually parsed into tool invocations. You can also provide a custom
+/// [`Instructor`](crate::instructor::Instructor) to customize the tool call format instruction and parsing logic.
 ///
-/// The [`Agent::executor`] method offers a convenient way to wrap an agent into an executable [`AgentExecutor`].
+/// While this works with any language models, it is more error-prone compared to structured tool call.
+/// For OpenAI models that support structured tool calls, consider using
+/// [`OpenAiToolAgent`](crate::agent::OpenAiToolAgent).
 ///
 /// # Type Parameters
-/// - `I`: A [constructor](crate::chain::Ctor) for the input type.
-/// - `O`: A [constructor](crate::chain::Ctor) for the output type.
-#[async_trait]
-pub trait Agent<I: InputCtor, O: OutputCtor>: Send + Sync {
+/// - `I`: A [constructor](crate::chain::Ctor) for the agent’s input type (defaults to
+///   [`DefaultChainInputCtor`], which constructs [`ChainInput`](crate::chain::DefaultChainInput)).
+/// - `O`: A [constructor](crate::chain::Ctor) for the agent’s output type (defaults to
+///   [`StringCtor`], which constructs [`String`]).
+pub struct Agent<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor> {
+    pub(super) id: String,
+    /// The inner [`LLMChain`] used for prompt construction and LLM invocation.
+    pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
+    /// A map of registered tool names to their implementations.
+    pub(super) tools: HashMap<String, Tool>,
+    // /// A list of toolboxes used to dynamically provide tools at runtime.
+    // pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
+    pub(super) _phantom: std::marker::PhantomData<O>,
+}
+
+impl<I: InputCtor, O: OutputCtor> Agent<I, O> {
+    /// Creates a new `AgentStruct` with the given LLM chain and tools.
+    ///
+    /// # Arguments
+    /// - `llm_chain`: The [`LLMChain`] to use for prompt construction and LLM invocation.
+    /// - `tools`: A vector of [`Tool`]s that the agent can use.
+    ///
+    /// # Returns
+    /// A new instance of `AgentStruct`.
+    pub fn new(
+        id: String,
+        llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
+        tools: HashMap<String, Tool>,
+    ) -> Self {
+        Self {
+            id,
+            llm_chain,
+            tools,
+            _phantom: std::marker::PhantomData,
+        }
+    }
+
+    pub fn id(&self) -> &str {
+        self.id.as_str()
+    }
+
     /// Converts prior reasoning steps into a sequence of messages used to populate the prompt.
     ///
     /// Invoked by the [`AgentExecutor`] at each step before `plan` is called, this method takes a sequence of
@@ -36,58 +71,34 @@ pub trait Agent<I: InputCtor, O: OutputCtor>: Send + Sync {
     ///
     /// # Returns
     /// A vector of [`Message`]s suitable for inclusion in the LLM prompt, or an [`AgentError`] if rendering fails.
-    async fn construct_scratchpad(&self, steps: &[AgentStep]) -> Result<Vec<Message>, AgentError>;
+    pub fn construct_scratchpad(&self, steps: &[AgentStep]) -> Vec<Message> {
+        steps
+            .iter()
+            .flat_map(|step| {
+                [
+                    Message::new_tool_call_message([step.tool_call.clone()]),
+                    Message::new_tool_message(Some(&step.tool_call.id), &step.result),
+                ]
+            })
+            .collect::<Vec<_>>()
+    }
 
-    /// Determines the agent’s next action based on the current input and internal reasoning strategy.
-    ///
-    /// Invoked by the [`AgentExecutor`] at each step of the reasoning process, this method produces a plan
-    /// for the next action—either a tool call or a final output.
-    ///
-    /// # Arguments
-    /// - `input`: The current [`AgentInput`].
-    ///
-    /// # Returns
-    /// A [`WithUsage<AgentOutput>`] containing the planned output and token usage,
-    /// or an [`AgentError`] if planning fails.
-    async fn plan<'a>(
-        &self,
-        input: &AgentInput<I::Target<'a>>,
-    ) -> Result<WithUsage<AgentOutput>, AgentError>;
+    pub fn get_prompt(&self, input: &AgentInput<I::Target<'_>>) -> Result<Prompt, TemplateError> {
+        self.llm_chain.get_prompt(input)
+    }
 
-    /// Resolves a tool by name for use during agent execution.
-    ///
-    /// Invoked by the [`AgentExecutor`] when the agent plans to call a tool,
-    /// this method returns a reference to the corresponding tool implementation, if available.
-    ///
-    /// # Arguments
-    /// - `tool_name`: The identifier of the tool to retrieve.
-    ///
-    /// # Returns
-    /// An optional reference to a [`ToolDyn`] trait object, or [`None`] if the tool is not found.
-    fn get_tool(&self, tool_name: &str) -> Option<&dyn FunctionTool>;
+    pub fn log_initial_prompt(&self, input: &AgentInput<I::Target<'_>>) -> Result<(), AgentError> {
+        if !log::log_enabled!(log::Level::Debug) {
+            return Ok(());
+        }
 
-    /// Generates the prompt for the agent based on the current input.
-    ///
-    /// Invoked by the [`AgentExecutor`] before any planning step, this method constructs a [`Prompt`]
-    /// from the given [`AgentInput`]. Which is then used for logging and debugging.
-    ///
-    /// # Arguments
-    /// - `input`: The current [`AgentInput`].
-    ///
-    /// # Returns
-    /// A rendered [`Prompt`] or a [`TemplateError`] if prompt construction fails.
-    fn get_prompt(&self, input: &AgentInput<I::Target<'_>>) -> Result<Prompt, TemplateError>;
-
-    /// A helper method that wraps the agent into an [`AgentExecutor`] for execution.
-    ///
-    /// # Returns
-    /// An [`AgentExecutor`] configured to run the agent.
-    fn executor<'a>(self) -> AgentExecutor<'a, I, O>
-    where
-        Self: Sized + 'a,
-        for<'any> I::Target<'any>: Display,
-        for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
-    {
-        AgentExecutor::from_agent(self)
+        for message in self.get_prompt(input)?.to_messages() {
+            log::debug!(
+                "{}:\n{}",
+                message.message_type.to_string().to_uppercase(),
+                message.content
+            );
+        }
+        Ok(())
     }
 }

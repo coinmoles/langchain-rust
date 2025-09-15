@@ -4,9 +4,9 @@ use langchain_rust::llm::LLM;
 #[cfg(feature = "ollama")]
 #[tokio::main]
 async fn main() {
-    use langchain_rust::llm::{OpenAI, OpenAIConfig};
+    use langchain_rust::llm::{OpenAIChat, OpenAIConfig};
 
-    let ollama = OpenAI::builder()
+    let ollama = OpenAIChat::builder()
         .with_api_config(OpenAIConfig::default().with_api_base("Ollama API base"))
         .with_model("llama3.2")
         .build();

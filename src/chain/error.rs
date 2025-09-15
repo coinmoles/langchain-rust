@@ -1,7 +1,11 @@
 use thiserror::Error;
 
 use crate::{
-    agent::AgentError, llm::LLMError, output_parser::OutputParseError, template::TemplateError,
+    agent::AgentError,
+    llm::LLMError,
+    output_parser::OutputParseError,
+    template::TemplateError,
+    tools::{McpError, ToolError},
 };
 
 #[derive(Error, Debug)]
@@ -28,5 +32,11 @@ pub enum ChainError {
 impl<I> From<(I, OutputParseError)> for ChainError {
     fn from((_, err): (I, OutputParseError)) -> Self {
         ChainError::OutputParseError(err)
+    }
+}
+
+impl From<McpError> for ChainError {
+    fn from(err: McpError) -> Self {
+        ChainError::AgentError(AgentError::ToolError(ToolError::McpError(Box::new(err))))
     }
 }

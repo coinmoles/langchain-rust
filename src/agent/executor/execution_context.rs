@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt::Display};
 
-use tracing::{info_span, Instrument, Span};
+use itertools::{Either, Itertools};
+use tracing::{info_span, Instrument};
 
 use crate::{
     agent::{
@@ -8,8 +9,8 @@ use crate::{
         ExecutionOutput, Strategy,
     },
     chain::{ChainError, ChainOutput, InputCtor, OutputCtor},
-    schemas::{IntoWithUsage, TokenUsage, ToolCall, WithUsage},
-    tools::FunctionTool,
+    schemas::{IntoWithUsage, TokenUsage, ToolCall, ToolSpec, WithUsage},
+    tools::{FunctionTool, McpTool, Tool},
     utils::helper::normalize_tool_name,
 };
 
@@ -26,31 +27,35 @@ enum FinalizeFailure<Ctx> {
 }
 
 /// Runtime context that owns all mutable state during an [`AgentExecutor`] run.
-pub struct ExecutionContext<'exec, 'agent, 'input, I, O, S = DefaultStrategy>
+pub struct ExecutionContext<'exec, 'input, I, O, S = DefaultStrategy>
 where
     I: InputCtor,
     O: OutputCtor,
-    S: Strategy,
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     /// Reference to the [`AgentExecutor`] driving this execution.
-    executor: &'exec AgentExecutor<'agent, I, O>,
+    executor: &'exec AgentExecutor<I, O>,
     /// The execution strategy for the execution.
     strategy: S,
     /// The input provided to this execution.
-    input: AgentInput<I::Target<'input>>,
+    pub input: AgentInput<I::Target<'input>>,
     /// The sequence of tool calls performed so far.
-    steps: Vec<AgentStep>,
+    pub steps: Vec<AgentStep>,
     /// Counts of how many times each tool has been invoked.
-    use_counts: HashMap<String, usize>,
+    pub use_counts: HashMap<String, usize>,
     /// The current number of consecutive failures.
-    consecutive_fails: usize,
+    pub consecutive_fails: usize,
     /// Total token usage.
-    total_usage: Option<TokenUsage>,
+    pub total_usage: Option<TokenUsage>,
+    /// Ephemeral tools
+    pub mcp_functions: Option<HashMap<String, Box<dyn FunctionTool>>>,
+    /// Tool spec for the run
+    pub tool_spec: Option<ToolSpec>,
+    _phantom: std::marker::PhantomData<O>,
 }
 
-impl<'exec, 'agent, 'input, I, O, S> ExecutionContext<'exec, 'agent, 'input, I, O, S>
+impl<'exec, 'input, I, O, S> ExecutionContext<'exec, 'input, I, O, S>
 where
     I: InputCtor,
     O: OutputCtor,
@@ -61,40 +66,34 @@ where
     /// Constructs a new [`ExecutionContext`].
     #[must_use]
     pub fn new(
-        executor: &'exec AgentExecutor<'agent, I, O>,
+        executor: &'exec AgentExecutor<I, O>,
         input: I::Target<'input>,
         strategy: S,
     ) -> Self {
         Self {
             executor,
+            strategy,
             input: AgentInput::new(input),
             steps: Vec::new(),
             use_counts: HashMap::new(),
             consecutive_fails: 0,
             total_usage: None,
-            strategy,
+            mcp_functions: None,
+            tool_spec: None,
+            _phantom: std::marker::PhantomData,
         }
-    }
-
-    /// Set strategy for the execution.
-    pub fn with_strategy(mut self, strategy: S) -> Self {
-        self.strategy = strategy;
-        self
     }
 
     /// Entry point – iteratively plan / execute tool actions until the agent
     /// produces a valid final answer that can be transformed into `O`.
     pub async fn start(mut self) -> Result<ExecutionOutput<'input, O, S>, ChainError> {
-        let span = if let Some(id) = self.strategy.agent_id() {
-            info_span!("agent_execution", %id)
-        } else {
-            Span::none()
-        };
+        let span = info_span!("agent", id = self.executor.agent.id());
 
         async move {
-            self.load_memory().await;
+            self.load_memory().await?;
             self.input = self.strategy.prepare_input::<I>(self.input).await?;
             self.log_initial_prompt()?;
+            self.prepare_tools().await?;
 
             while !self.fail_limit_reached() {
                 let Ok(plan) = self.plan_step().await else {
@@ -131,30 +130,57 @@ where
         Ok(())
     }
 
-    async fn load_memory(&mut self) {
-        if let Some(memory) = &self.executor.memory {
+    async fn prepare_tools(&mut self) -> Result<(), ChainError> {
+        let (functions, mcps): (Vec<_>, Vec<_>) = self
+            .executor
+            .agent
+            .tools
+            .values()
+            .chain(self.strategy.additional_tools().into_values())
+            .partition_map(|tool| match tool {
+                Tool::Function(func) => Either::Left(func.as_ref()),
+                Tool::Mcp(mcp) => Either::Right(mcp.clone()),
+            });
+
+        let (mcp_functions, spec) = if self.executor.agent.llm_chain.capabilities().native_mcp {
+            (None, ToolSpec::from_tools(&functions, mcps))
+        } else {
+            let mcp_functions = McpTool::into_function_tools(mcps).await?;
+            let all_functions = functions
+                .into_iter()
+                .chain(mcp_functions.values().map(|tool| tool.as_ref()))
+                .collect::<Vec<_>>();
+            let spec = ToolSpec::from_tools(&all_functions, Vec::new());
+            (Some(mcp_functions), spec)
+        };
+
+        self.mcp_functions = mcp_functions;
+        self.tool_spec = spec;
+        Ok(())
+    }
+
+    pub async fn load_memory(&mut self) -> Result<(), ChainError> {
+        if let Some(memory) = self.executor.memory.as_ref() {
             self.input.set_chat_history(memory.read().await.messages());
         }
+        Ok(())
     }
 
     async fn plan_step(&mut self) -> Result<AgentOutput, ChainError> {
-        let scratchpad = self
-            .executor
-            .agent
-            .construct_scratchpad(&self.steps)
-            .await?;
+        let scratchpad = self.executor.agent.construct_scratchpad(&self.steps);
         self.input.set_agent_scratchpad(scratchpad);
 
         let plan = self
             .executor
             .agent
-            .plan(&self.input)
+            .llm_chain
+            .call_llm(&self.input, None)
             .await
             .inspect_err(|e| failure!(self, "Failed to plan next step: {e}"))?;
 
-        let plan = self.strategy.process_plan(plan).await?;
         self.add_usage(plan.usage);
-        Ok(plan.content)
+        let plan = self.strategy.process_plan(plan.content).await?;
+        Ok(plan)
     }
 
     async fn handle_tool_calls(&mut self, tool_calls: Vec<ToolCall>) {
@@ -236,13 +262,21 @@ where
     }
 
     fn get_tool_with_use_count_check(&mut self, tool_name: &str) -> Option<&dyn FunctionTool> {
-        let Some(tool) = self
-            .strategy
-            .resolve_tool(self.executor.agent.as_ref(), tool_name)
-        else {
+        let name = normalize_tool_name(tool_name);
+
+        let tool = if let Some(tool) = self
+            .mcp_functions
+            .as_ref()
+            .and_then(|funcs| funcs.get(&name))
+        {
+            tool.as_ref()
+        } else if let Some(tool) = self.strategy.resolve_tool(&self.executor.agent, &name) {
+            tool
+        } else {
             failure!(self, "Failed to fetch tool '{tool_name}'");
             return None;
         };
+
         if let Some(limit) = tool.usage_limit() {
             let count = self.use_counts.entry(tool_name.to_string()).or_default();
             *count += 1;

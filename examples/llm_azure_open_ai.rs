@@ -1,5 +1,5 @@
 use langchain_rust::llm::{
-    openai::{AzureConfig, OpenAI},
+    openai_chat::{AzureConfig, OpenAI},
     LLM,
 };
 

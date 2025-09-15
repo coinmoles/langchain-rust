@@ -1,6 +1,5 @@
 use crate::{
     chain::{ChainOutput, Ctor},
-    instructor::{DefaultInstructor, Instructor},
     schemas::ToolCall,
 };
 
@@ -13,7 +12,7 @@ pub enum AgentOutput {
 
 impl<T> ChainOutput<T> for AgentOutput {
     fn from_text(text: impl Into<String>) -> Result<Self, crate::output_parser::OutputParseError> {
-        DefaultInstructor.parse_tool_use(text.into())
+        Ok(AgentOutput::Finish(text.into()))
     }
 
     fn from_tool_call(

@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use langchain_rust::{
     agent::{Agent, OpenAiToolAgent},
     chain::{Chain, DefaultChainInput, DefaultChainInputCtor},
-    llm::openai::OpenAI,
+    llm::openai_chat::OpenAI,
     memory::SimpleMemory,
     tools::{CommandExecutor, DuckDuckGoSearch, Function, SerpApi},
     tools_vec,

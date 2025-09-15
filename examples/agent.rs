@@ -3,7 +3,7 @@ use langchain_rust::{
     chain::Chain,
     chain::{DefaultChainInput, DefaultChainInputCtor},
     llm::{
-        openai::{OpenAI, OpenAIModel},
+        openai_chat::{OpenAI, OpenAIModel},
         OpenAIConfig,
     },
     memory::SimpleMemory,

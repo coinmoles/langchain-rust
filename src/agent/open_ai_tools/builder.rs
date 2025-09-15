@@ -1,11 +1,8 @@
-use async_openai::types::ChatCompletionTool;
-
 use crate::{
     agent::create_prompt,
     chain::{InputCtor, LLMChain, OutputCtor},
-    llm::{options::CallOptions, LLM},
-    tools::FunctionTool,
-    utils::helper::normalize_tool_name,
+    llm::LLM,
+    tools::Tool,
 };
 
 use super::{
@@ -20,7 +17,7 @@ use super::{
 /// - `O`: A [constructor](crate::chain::Ctor) for the agent’s output type.
 pub struct OpenAiToolAgentBuilder<'a, 'b, I: InputCtor, O: OutputCtor> {
     /// The tools to be used by the agent.
-    tools: Option<Vec<Box<dyn FunctionTool>>>,
+    tools: Option<Vec<Tool>>,
     // /// The toolboxes containing additional tools for the agent.
     // toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     /// The system prompt to be used by the agent.
@@ -38,7 +35,6 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> OpenAiToolAgentBuilder<'a, 'b, I, O> {
     pub fn new() -> Self {
         Self {
             tools: None,
-            // toolboxes: None,
             system_prompt: None,
             initial_prompt: None,
             _phantom: std::marker::PhantomData,
@@ -46,11 +42,8 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> OpenAiToolAgentBuilder<'a, 'b, I, O> {
     }
 
     /// Adds tools.
-    pub fn tools(
-        mut self,
-        tools: impl IntoIterator<Item = impl Into<Box<dyn FunctionTool>>>,
-    ) -> Self {
-        self.tools = Some(tools.into_iter().map(Into::into).collect());
+    pub fn tools(mut self, tools: impl IntoIterator<Item = Tool>) -> Self {
+        self.tools = Some(tools.into_iter().collect());
         self
     }
 
@@ -80,40 +73,16 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> OpenAiToolAgentBuilder<'a, 'b, I, O> {
         // let toolboxes = self.toolboxes.unwrap_or_default();
         let tools = self.tools.unwrap_or_default();
 
-        let tools_openai = {
-            let local_tools = tools.iter().map(|tool| tool.get_spec()).collect::<Vec<_>>();
-
-            // let toolbox_tools = toolboxes
-            //     .iter()
-            //     .map(|toolbox| toolbox.get_tools().into_iter())
-            //     .flat_map(|tools| tools.map(|(_, tool)| tool.get_spec()))
-            //     .collect::<Vec<_>>();
-
-            local_tools
-                .into_iter()
-                // .chain(toolbox_tools)
-                .map(ChatCompletionTool::from)
-                .collect::<Vec<_>>()
-        };
-
         let prompt = create_prompt(system_prompt, initial_prompt);
-        let mut llm = llm;
-        llm.add_call_options(CallOptions::new().with_tools(tools_openai));
         let llm_chain = LLMChain::builder()
             .prompt(prompt)
             .llm(llm)
             .build()
             .unwrap_or_else(|_| unreachable!("All necessary fields are provided"));
 
-        let tools_map = tools
-            .into_iter()
-            .map(|tool| (normalize_tool_name(&tool.name()), tool))
-            .collect();
-
         OpenAiToolAgent {
-            llm_chain,
-            tools: tools_map,
-            // toolboxes,
+            llm: llm_chain,
+            tools,
             _phantom: std::marker::PhantomData,
         }
     }

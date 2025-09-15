@@ -149,17 +149,17 @@ impl<C: Config + Send + Sync + 'static> LLM for GenericChat<C> {
         LlmCapabilities { native_mcp: false }
     }
 
-    async fn complete(
+    async fn generate(
         &self,
         prompt: Prompt,
-        tools: Option<ToolSpec<'_>>,
+        tools: Option<&ToolSpec>,
     ) -> Result<WithUsage<LLMOutput>, LLMError> {
-        if tools.as_ref().is_some_and(|t| !t.mcps.is_empty()) {
+        if tools.is_some_and(|t| !t.mcps.is_empty()) {
             return Err(LLMError::Unsupported(
                 "GenericChat does not support mcp tools natively".into(),
             ));
         }
-        let tools = tools.map(|t| t.functions);
+        let tools = tools.map(|t| t.functions.as_slice());
 
         let messages = self.process_prompt(prompt, tools);
         let options = self.call_options.clone();
@@ -179,14 +179,14 @@ impl<C: Config + Send + Sync + 'static> LLM for GenericChat<C> {
     async fn stream(
         &self,
         prompt: Prompt,
-        tools: Option<ToolSpec<'_>>,
+        tools: Option<&ToolSpec>,
     ) -> Result<LLMStream, LLMError> {
         if tools.as_ref().is_some_and(|t| !t.mcps.is_empty()) {
             return Err(LLMError::Unsupported(
                 "GenericChat does not support mcp tools natively".into(),
             ));
         }
-        let tools = tools.map(|t| t.functions);
+        let tools = tools.map(|t| t.functions.as_slice());
 
         let messages = self.process_prompt(prompt, tools);
         let options = self.call_options.clone();

@@ -1,7 +1,7 @@
 use langchain_rust::{
     chain::{Chain, ChainInput, Ctor, LLMChain},
     llm::{
-        openai::{OpenAI, OpenAIModel},
+        openai_chat::{OpenAI, OpenAIModel},
         OpenAIConfig,
     },
     schemas::MessageType,

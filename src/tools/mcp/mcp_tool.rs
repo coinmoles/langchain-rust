@@ -9,9 +9,10 @@ use crate::{
     utils::helper::normalize_tool_name,
 };
 
+#[derive(Clone)]
 pub struct McpTool {
     uri: SecretString,
-    name: String,
+    pub name: String,
 }
 
 impl McpTool {
@@ -23,17 +24,14 @@ impl McpTool {
     }
 
     pub async fn into_function_tools(
-        predicates: &[Self],
+        predicates: Vec<Self>,
     ) -> Result<HashMap<String, Box<dyn FunctionTool>>, McpError> {
         // Group tools by URI to minimize the number of connections
         let grouped = group_tools_by_uri(predicates);
-        let merged: HashMap<String, Box<dyn FunctionTool>> = stream::iter(grouped.into_iter())
+        let merged = stream::iter(grouped.into_iter())
             .map(|(uri, preds)| fetch_tools(uri, preds))
             .buffer_unordered(8)
-            .try_fold(HashMap::new(), |mut acc, map| async move {
-                acc.extend(map);
-                Ok(acc)
-            })
+            .try_concat()
             .await?;
 
         Ok(merged)
@@ -41,11 +39,11 @@ impl McpTool {
 }
 
 /// Helper function to group mcp tools by their URI.
-fn group_tools_by_uri(predicates: &[McpTool]) -> HashMap<&str, Vec<&str>> {
-    let mut m: HashMap<&str, Vec<&str>> = HashMap::new();
+fn group_tools_by_uri(predicates: Vec<McpTool>) -> HashMap<String, Vec<String>> {
+    let mut m: HashMap<String, Vec<String>> = HashMap::new();
     for p in predicates {
-        let uri = p.uri.expose_secret();
-        m.entry(uri).or_default().push(p.name.as_str());
+        let uri = p.uri.expose_secret().to_string();
+        m.entry(uri).or_default().push(p.name);
     }
     m
 }
@@ -62,24 +60,20 @@ async fn init_service(uri: &str) -> Result<McpService, McpError> {
 }
 
 async fn fetch_tools(
-    uri: &str,
-    names: Vec<&str>,
+    uri: String,
+    names: Vec<String>,
 ) -> Result<HashMap<String, Box<dyn FunctionTool>>, McpError> {
-    let service = Arc::new(init_service(uri).await?);
-    let mut tools = service
-        .list_all_tools()
-        .await?
-        .into_iter()
-        .map(|tool| -> Result<_, McpError> {
-            let tool = McpFunctionTool::from_rmcp_tool(&service, tool)?;
-            Ok((tool.name(), tool))
-        })
-        .collect::<Result<HashMap<_, _>, _>>()?;
+    let service = Arc::new(init_service(&uri).await?);
+    let mut map = HashMap::new();
+    for tool in service.list_all_tools().await? {
+        let tool = McpFunctionTool::from_rmcp_tool(&service, tool)?;
+        map.insert(tool.name(), tool);
+    }
 
     let mut out: HashMap<String, Box<dyn FunctionTool>> = HashMap::new();
     for name in names {
-        let name = normalize_tool_name(name);
-        let Some(tool) = tools.remove(&name) else {
+        let name = normalize_tool_name(&name);
+        let Some(tool) = map.remove(&name) else {
             return Err(McpError::ToolNotFound(name));
         };
         out.insert(name, Box::new(tool));

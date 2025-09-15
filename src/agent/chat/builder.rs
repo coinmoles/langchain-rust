@@ -5,7 +5,7 @@ use crate::{
     chain::{DefaultChainInputCtor, InputCtor, LLMChain, OutputCtor, StringCtor},
     instructor::{BoxInstructorExt, DefaultInstructor, Instructor},
     llm::LLM,
-    tools::FunctionTool,
+    tools::Tool,
     utils::helper::normalize_tool_name,
 };
 
@@ -21,7 +21,7 @@ pub struct ConversationalAgentBuilder<
     O: OutputCtor = StringCtor,
 > {
     /// The tools to be used by the agent.
-    tools: Option<Vec<Box<dyn FunctionTool>>>,
+    tools: Option<Vec<Tool>>,
     // /// The toolboxes containing additional tools for the agent.
     // toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     /// The system prompt to be used by the agent.
@@ -55,11 +55,8 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> ConversationalAgentBuilder<'a, 'b, I, 
     }
 
     /// Adds tools.
-    pub fn tools(
-        mut self,
-        tools: impl IntoIterator<Item = impl Into<Box<dyn FunctionTool>>>,
-    ) -> Self {
-        self.tools = Some(tools.into_iter().map(Into::into).collect());
+    pub fn tools(mut self, tools: impl IntoIterator<Item = Tool>) -> Self {
+        self.tools = Some(tools.into_iter().collect());
         self
     }
 

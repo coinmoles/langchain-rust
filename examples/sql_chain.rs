@@ -3,7 +3,7 @@
 #[cfg(feature = "postgres")]
 use langchain_rust::{
     chain::Chain,
-    llm::openai::OpenAI,
+    llm::openai_chat::OpenAI,
     tools::{postgres::PostgreSQLEngine, SQLDatabaseBuilder},
 };
 

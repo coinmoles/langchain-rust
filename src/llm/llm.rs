@@ -16,25 +16,22 @@ pub trait LLM: Sync + Send {
     fn capabilities(&self) -> LlmCapabilities;
 
     /// Generates a response from the LLM based on the provided prompt.
-    async fn complete(
+    async fn generate(
         &self,
         prompt: Prompt,
-        tools: Option<ToolSpec<'_>>,
+        tools: Option<&ToolSpec>,
     ) -> Result<WithUsage<LLMOutput>, LLMError>;
 
     /// Invokes the LLM with a single human message as prompt.
     async fn invoke(&self, msg: &str) -> Result<String, LLMError> {
         let prompt = Prompt::single(msg);
-        let result = self.complete(prompt, None).await?.content.into_text()?;
+        let result = self.generate(prompt, None).await?.content.into_text()?;
         Ok(result)
     }
 
     /// Generates a response from the LLM based on the provided prompt in a stream.
-    async fn stream(
-        &self,
-        prompt: Prompt,
-        tools: Option<ToolSpec<'_>>,
-    ) -> Result<LLMStream, LLMError>;
+    async fn stream(&self, prompt: Prompt, tools: Option<&ToolSpec>)
+        -> Result<LLMStream, LLMError>;
 
     /// Configure the call options for the LLM.
     ///

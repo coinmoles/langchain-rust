@@ -69,10 +69,10 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
         LlmCapabilities { native_mcp: false }
     }
 
-    async fn complete(
+    async fn generate(
         &self,
         prompt: Prompt,
-        tools: Option<ToolSpec<'_>>,
+        tools: Option<&ToolSpec>,
     ) -> Result<WithUsage<LLMOutput>, LLMError> {
         if tools.as_ref().is_some_and(|t| !t.mcps.is_empty()) {
             return Err(LLMError::Unsupported(
@@ -99,7 +99,7 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
     async fn stream(
         &self,
         prompt: Prompt,
-        tools: Option<ToolSpec<'_>>,
+        tools: Option<&ToolSpec>,
     ) -> Result<LLMStream, LLMError> {
         if tools.as_ref().is_some_and(|t| !t.mcps.is_empty()) {
             return Err(LLMError::Unsupported(
@@ -180,7 +180,7 @@ mod tests {
         let prompt = Prompt::single("Hello, how are you?");
 
         // Call the generate function
-        match llm.complete(prompt, None).await {
+        match llm.generate(prompt, None).await {
             Ok(result) => {
                 // Print the response from the generate function
                 println!("Generate Result: {result:?}");
@@ -212,7 +212,7 @@ mod tests {
         ]);
 
         // Call the generate function
-        let response = open_ai.complete(prompt, None).await.unwrap();
+        let response = open_ai.generate(prompt, None).await.unwrap();
         println!("Response: {response:?}");
     }
 }

@@ -1,7 +1,7 @@
 use indoc::indoc;
 use langchain_rust::{
     chain::{Chain, StuffDocument, StuffQA, StuffQACtor},
-    llm::openai::OpenAI,
+    llm::openai_chat::OpenAI,
     schemas::Document,
 };
 

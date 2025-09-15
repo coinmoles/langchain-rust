@@ -4,7 +4,7 @@ use futures_util::StreamExt;
 use langchain_rust::{
     chain::{Chain, ConversationalChain},
     chain::{DefaultChainInput, DefaultChainInputCtor},
-    llm::{openai::OpenAI, OpenAIConfig, OpenAIModel},
+    llm::{openai_chat::OpenAI, OpenAIConfig, OpenAIModel},
     memory::SimpleMemory,
 };
 

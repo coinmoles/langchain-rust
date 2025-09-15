@@ -1,6 +1,5 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
-use gix::hashtable::hash_set::HashSet;
 use indoc::formatdoc;
 use regex::Regex;
 use schemars::Schema;

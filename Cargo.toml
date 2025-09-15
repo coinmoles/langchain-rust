@@ -124,6 +124,7 @@ opensearch = { version = "2", optional = true, default-features = false, feature
     "rustls-tls",
 ] }
 tracing = "0.1.41"
+itertools = "0.14.0"
 
 [features]
 default = ["rustls"]

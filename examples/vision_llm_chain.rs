@@ -1,7 +1,7 @@
 use base64::prelude::*;
 use langchain_rust::{
     chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain},
-    llm::OpenAI,
+    llm::OpenAIChat,
     prompt_template,
     schemas::{Message, MessageType},
     template::MessageTemplate,
@@ -21,7 +21,7 @@ async fn main() {
 
     // let open_ai = OpenAI::new(langchain_rust::llm::ollama::openai::OllamaConfig::default())
     //     .with_model("llava");
-    let open_ai = OpenAI::default();
+    let open_ai = OpenAIChat::default();
     let chain: LLMChain<DefaultChainInputCtor> = LLMChain::builder()
         .prompt(prompt)
         .llm(open_ai)

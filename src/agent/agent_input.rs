@@ -1,5 +1,10 @@
+use std::sync::Arc;
+
+use tokio::sync::RwLock;
+
 use crate::{
     chain::{ChainInput, Ctor},
+    memory::Memory,
     schemas::Message,
 };
 
@@ -55,6 +60,12 @@ impl<I: ChainInput> AgentInput<I> {
     /// Sets the `chat_history` value.
     pub fn set_chat_history(&mut self, chat_history: Vec<Message>) {
         self.chat_history = Some(chat_history);
+    }
+
+    pub async fn load_memory(&mut self, memory: Option<&Arc<RwLock<dyn Memory>>>) {
+        if let Some(memory) = memory {
+            self.set_chat_history(memory.read().await.messages());
+        }
     }
 
     /// Enables ultimatum which forces LLM to provide a final answer on the next step.

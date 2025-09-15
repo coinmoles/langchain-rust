@@ -1,6 +1,6 @@
 use langchain_rust::llm::OpenAIConfig;
 
-use langchain_rust::{llm::openai::OpenAI, llm::LLM};
+use langchain_rust::{llm::openai_chat::OpenAI, llm::LLM};
 
 #[tokio::main]
 async fn main() {

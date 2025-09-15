@@ -1,6 +1,5 @@
 use thiserror::Error;
 
-#[cfg(feature = "mcp")]
 use crate::tools::McpError;
 
 #[derive(Error, Debug)]
@@ -11,7 +10,6 @@ pub enum ToolError {
     #[error("Input parsing error: {0}")]
     InputParseError(#[from] serde_json::Error),
 
-    #[cfg(feature = "mcp")]
     #[error("MCP error: {0}")]
     McpError(Box<McpError>),
 
@@ -28,7 +26,6 @@ impl ToolError {
     }
 }
 
-#[cfg(feature = "mcp")]
 impl From<McpError> for ToolError {
     fn from(error: McpError) -> Self {
         ToolError::McpError(Box::new(error))

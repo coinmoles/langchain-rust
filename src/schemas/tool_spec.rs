@@ -7,13 +7,31 @@ use schemars::{schema_for, Schema};
 use serde_json::json;
 
 use crate::{
-    tools::{describe_parameters, EmptyFunctionInput, McpTool},
+    tools::{describe_parameters, EmptyFunctionInput, FunctionTool, McpTool},
     utils::helper::normalize_tool_name,
 };
 
-pub struct ToolSpec<'a> {
-    pub functions: &'a [FunctionSpec],
-    pub mcps: &'a [McpTool],
+pub struct ToolSpec {
+    pub functions: Vec<FunctionSpec>,
+    pub mcps: Vec<McpTool>,
+}
+
+impl ToolSpec {
+    pub fn new(functions: Vec<FunctionSpec>, mcps: Vec<McpTool>) -> Option<Self> {
+        if functions.is_empty() && mcps.is_empty() {
+            return None;
+        }
+        Some(Self { functions, mcps })
+    }
+
+    pub fn from_tools(functions: &[&dyn FunctionTool], mcps: Vec<McpTool>) -> Option<Self> {
+        let functions = functions.iter().map(|f| f.get_spec()).collect();
+        Self::new(functions, mcps)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.functions.is_empty() && self.mcps.is_empty()
+    }
 }
 
 /// A struct representing the tool definition payload.

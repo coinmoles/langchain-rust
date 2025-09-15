@@ -1,6 +1,6 @@
 use langchain_rust::{
     chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain},
-    llm::{openai::OpenAI, OpenAIConfig, LLM},
+    llm::{openai_chat::OpenAI, OpenAIConfig, LLM},
     prompt_template,
     schemas::{messages::Message, MessageType},
     template::MessageTemplate,

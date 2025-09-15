@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 use crate::{
     chain::{Chain, ChainError, ChainOutput, GetPrompt, InputCtor, OutputCtor, StringCtor},
-    llm::{LLMError, LLMOutput, LLMStream, LLM},
+    llm::{LLMError, LLMOutput, LLMStream, LlmCapabilities, LLM},
     output_parser::OutputParser,
     schemas::{IntoWithUsage, Prompt, ToolSpec, WithUsage},
     template::{PromptTemplate, TemplateError},
@@ -30,13 +30,17 @@ where
         LLMChainBuilder::new()
     }
 
-    pub async fn call_with_reference(
+    pub fn capabilities(&self) -> LlmCapabilities {
+        self.llm.capabilities()
+    }
+
+    pub async fn call_llm(
         &self,
         input: &I::Target<'_>,
-        tools: Option<ToolSpec<'_>>,
+        tools: Option<&ToolSpec>,
     ) -> Result<WithUsage<O::Target<'static>>, ChainError> {
         let prompt = self.prompt.format(input)?;
-        let WithUsage { content, usage } = self.llm.complete(prompt, tools).await?;
+        let WithUsage { content, usage } = self.llm.generate(prompt, tools).await?;
 
         log::trace!("\nLLM output:\n{content}");
         if let Some(usage) = &usage {
@@ -54,7 +58,7 @@ where
     pub async fn stream_llm(
         &self,
         input: &I::Target<'_>,
-        tools: Option<ToolSpec<'_>>,
+        tools: Option<&ToolSpec>,
     ) -> Result<LLMStream, ChainError> {
         let prompt = self.prompt.format(input.borrow())?;
         let stream = self.llm.stream(prompt, tools).await?;
@@ -69,7 +73,7 @@ where
 {
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
         let prompt = self.prompt.format(&input)?;
-        let WithUsage { content, usage } = self.llm.complete(prompt, None).await?;
+        let WithUsage { content, usage } = self.llm.generate(prompt, None).await?;
 
         if matches!(&content, LLMOutput::ToolCall(tool_calls) if tool_calls.is_empty()) {
             return Err(LLMError::EmptyToolCall.into());

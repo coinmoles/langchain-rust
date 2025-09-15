@@ -6,9 +6,10 @@ use crate::{
         Agent, AgentError, AgentInput, AgentInputCtor, AgentOutput, AgentOutputCtor, AgentStep,
     },
     chain::{DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor},
+    llm::LLM,
     schemas::{Message, Prompt, WithUsage},
     template::TemplateError,
-    tools::FunctionTool,
+    tools::Tool,
 };
 
 use super::OpenAiToolAgentBuilder;
@@ -26,12 +27,12 @@ use super::OpenAiToolAgentBuilder;
 ///   [`StringCtor`], which constructs [`String`]).
 pub struct OpenAiToolAgent<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor> {
     /// The inner [`LLMChain`] used for prompt construction and LLM invocation.
-    pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
+    pub(super) llm: Box<dyn LLM>,
     /// A map of registered tool names to their implementations.
-    pub(super) tools: HashMap<String, Box<dyn FunctionTool>>,
+    pub(super) tools: Option<Vec<Tool>>,
     // /// A list of toolboxes used to dynamically provide tools at runtime.
     // pub(super) toolboxes: Vec<Box<dyn Toolbox>>,
-    pub(super) _phantom: std::marker::PhantomData<O>,
+    pub(super) _phantom: std::marker::PhantomData<(I, O)>,
 }
 
 impl<I: InputCtor, O: OutputCtor> OpenAiToolAgent<I, O> {
@@ -73,16 +74,8 @@ impl<I: InputCtor, O: OutputCtor> Agent<I, O> for OpenAiToolAgent<I, O> {
         Ok(scratchpad)
     }
 
-    async fn plan<'i>(
-        &self,
-        input: &AgentInput<I::Target<'i>>,
-    ) -> Result<WithUsage<AgentOutput>, AgentError> {
-        let plan = self.llm_chain.call_with_reference(input).await?;
-        Ok(plan)
-    }
-
-    fn get_tool(&self, tool_name: &str) -> Option<&dyn FunctionTool> {
-        if let Some(tool) = self.tools.get(tool_name).map(|t| t.as_ref()) {
+    fn get_tool(&self, tool_name: &str) -> Option<&Tool> {
+        if let Some(tool) = self.tools.get(tool_name) {
             return Some(tool);
         }
 
@@ -96,6 +89,6 @@ impl<I: InputCtor, O: OutputCtor> Agent<I, O> for OpenAiToolAgent<I, O> {
     }
 
     fn get_prompt(&self, input: &AgentInput<I::Target<'_>>) -> Result<Prompt, TemplateError> {
-        self.llm_chain.get_prompt(input)
+        self.llm.get_prompt(input)
     }
 }

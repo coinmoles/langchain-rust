@@ -18,9 +18,7 @@ mod tools_vec;
 mod describe_parameters;
 pub use describe_parameters::*;
 
-#[cfg(feature = "mcp")]
 mod mcp;
-#[cfg(feature = "mcp")]
 pub use mcp::*;
 
 mod error;

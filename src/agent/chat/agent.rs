@@ -9,7 +9,7 @@ use crate::{
     chain::{DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor},
     schemas::{Message, Prompt, WithUsage},
     template::TemplateError,
-    tools::FunctionTool,
+    tools::Tool,
 };
 
 use super::ConversationalAgentBuilder;
@@ -33,7 +33,7 @@ pub struct ConversationalAgent<I: InputCtor = DefaultChainInputCtor, O: OutputCt
     /// The inner [`LLMChain`] used for prompt construction and LLM invocation.
     pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
     /// A map of registered tool names to their implementations.
-    pub(super) tools: HashMap<String, Box<dyn FunctionTool>>,
+    pub(super) tools: HashMap<String, Tool>,
     // /// A list of toolboxes used to dynamically provide tools at runtime.
     // pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
     pub(super) _phantom: std::marker::PhantomData<O>,
@@ -86,15 +86,9 @@ impl<I: InputCtor, O: OutputCtor> Agent<I, O> for ConversationalAgent<I, O> {
     }
 
     fn get_tool(&self, tool_name: &str) -> Option<&dyn FunctionTool> {
-        if let Some(tool) = self.tools.get(tool_name).map(|t| t.as_ref()) {
+        if let Some(tool) = self.tools.get(tool_name) {
             return Some(tool);
         }
-
-        // for toolbox in &self.toolboxes {
-        //     if let Some(tool) = toolbox.get_tool(tool_name) {
-        //         return Some(tool);
-        //     }
-        // }
 
         None
     }
@@ -115,9 +109,9 @@ mod tests {
     use crate::{
         agent::{Agent, ConversationalAgent},
         chain::{Chain, DefaultChainInput},
-        llm::openai::{OpenAI, OpenAIModel},
+        llm::openai_chat::{OpenAI, OpenAIModel},
         memory::SimpleMemory,
-        tools::Function,
+        tools::{Function, Tool},
     };
 
     #[derive(Default)]
@@ -153,8 +147,9 @@ mod tests {
             .build();
         let memory = SimpleMemory::new();
         let tool_calc = Calc::default();
-        let agent: ConversationalAgent =
-            ConversationalAgent::builder().tools([tool_calc]).build(llm);
+        let agent: ConversationalAgent = ConversationalAgent::builder()
+            .tools([Tool::Function(Box::new(tool_calc))])
+            .build(llm);
         let input = DefaultChainInput::new(
             "hola,Me llamo luis, y tengo 10 anos, y estudio Computer scinence",
         );

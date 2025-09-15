@@ -53,7 +53,7 @@ where
             memory.to_string()
         };
         let input = ConversationalChainInput::new(input).with_history(history);
-        let result = self.llm_chain.call_with_reference(&input, None).await?;
+        let result = self.llm_chain.call_llm(&input, None).await?;
 
         let mut memory = self.memory.write().await;
         memory.add_message(human_message);

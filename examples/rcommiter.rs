@@ -4,7 +4,7 @@ use std::process::{Command, Stdio};
 use indoc::indoc;
 use langchain_rust::{
     chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain},
-    llm::openai::OpenAI,
+    llm::openai_chat::OpenAI,
     schemas::MessageType,
     template::MessageTemplate,
 };
