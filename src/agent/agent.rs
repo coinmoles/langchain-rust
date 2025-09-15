@@ -1,8 +1,13 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use crate::{
-    agent::{AgentError, AgentInput, AgentInputCtor, AgentOutputCtor, AgentStep},
-    chain::{DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor},
+    agent::{
+        AgentBuilder, AgentError, AgentExecutor, AgentInput, AgentInputCtor, AgentOutputCtor,
+        AgentStep,
+    },
+    chain::{
+        ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor,
+    },
     schemas::{Message, Prompt},
     template::TemplateError,
     tools::Tool,
@@ -54,6 +59,35 @@ impl<I: InputCtor, O: OutputCtor> Agent<I, O> {
             tools,
             _phantom: std::marker::PhantomData,
         }
+    }
+
+    /// Creates a [`AgentBuilder`] to configure an [`Agent`].
+    ///
+    /// This is the same as calling [`AgentBuilder::new()`].
+    ///
+    /// # Example:
+    /// ```
+    /// use langchain_rust::{agent::Agent, llm::{OpenAIChat, OpenAIModel}};
+    /// use async_openai::config::OpenAIConfig;
+    ///
+    /// let llm: OpenAIChat<OpenAIConfig> = OpenAIChat::builder().with_model(OpenAIModel::Gpt4o).build();
+    ///
+    /// let agent: Agent = Agent::builder()
+    ///     .system_prompt("You are a helpful assistant.")
+    ///     .initial_prompt("Help me find {{input}}.")
+    ///     // .tools(vec![my_tool]) // You can add tools here
+    ///     .build(llm);
+    /// ```
+    pub fn builder<'a, 'b>() -> AgentBuilder<'a, 'b, I, O> {
+        AgentBuilder::new()
+    }
+
+    pub fn executor(self) -> AgentExecutor<I, O>
+    where
+        for<'any> I::Target<'any>: Display,
+        for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
+    {
+        AgentExecutor::from_agent(self)
     }
 
     pub fn id(&self) -> &str {
