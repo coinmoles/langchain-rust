@@ -6,11 +6,17 @@ pub enum McpError {
     #[error("Service error: {0}")]
     ServiceError(#[from] rmcp::ServiceError),
     #[error("Client initialize error: {0}")]
-    ClientInitializeError(#[from] ClientInitializeError),
+    ClientInitializeError(Box<ClientInitializeError>),
     #[error("Reqwest error: {0}")]
     ReqwestError(#[from] reqwest::Error),
     #[error("Parameter specification deserialization error: {0}")]
     ParaSpecDeserializeError(#[from] serde_json::Error),
     #[error("Tool not found: {0}")]
     ToolNotFound(String),
+}
+
+impl From<ClientInitializeError> for McpError {
+    fn from(error: ClientInitializeError) -> Self {
+        McpError::ClientInitializeError(Box::new(error))
+    }
 }
