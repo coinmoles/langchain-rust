@@ -123,7 +123,7 @@ mod tests {
         let schema = serde_json::to_value(schema).unwrap();
 
         let expected = json!({
-            "$schema": "http://json-schema.org/draft-07/schema#",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "WebScrapperInput",
             "type": "string",
             "description": "The URL to scrape, MUST be a working URL"

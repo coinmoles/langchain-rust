@@ -193,7 +193,7 @@ mod tests {
             .collect::<Vec<_>>()
             .await;
 
-        let expected = "Chew dad's slippers\n\n# Instead of drinking water from the cat bowl, make sure to steal water from the toilet\n\n## Chase the red dot\n\nMunch, munch, chomp, chomp hate dogs. Spill litter box, scratch at owner, destroy all furniture, especially couch get scared by sudden appearance of cucumber cat is love, cat is life fat baby cat best buddy little guy for catch eat throw up catch eat throw up bad birds jump on fridge. Purr like a car engine oh yes, there is my human woman she does best pats ever that all i like about her hiss meow . \n\nDead stare with ears cocked when owners are asleep, cry for no apparent reason meow all night. Plop down in the middle where everybody walks favor packaging over toy. Sit on the laptop kitty pounce, trip, faceplant.";
+        let expected = "Chew dad's slippers \n\n# Instead of drinking water from the cat bowl, make sure to steal water from the toilet\n\n## Chase the red dot\n\nMunch, munch, chomp, chomp hate dogs. Spill litter box, scratch at owner, destroy all furniture, especially couch get scared by sudden appearance of cucumber cat is love, cat is life fat baby cat best buddy little guy for catch eat throw up catch eat throw up bad birds jump on fridge. Purr like a car engine oh yes, there is my human woman she does best pats ever that all i like about her hiss meow . \n\nDead stare with ears cocked when owners are asleep, cry for no apparent reason meow all night. Plop down in the middle where everybody walks favor packaging over toy. Sit on the laptop kitty pounce, trip, faceplant.";
 
         assert_eq!(documents.len(), 1);
         assert_eq!(

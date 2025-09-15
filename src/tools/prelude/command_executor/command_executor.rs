@@ -120,7 +120,7 @@ mod test {
         let schema = serde_json::to_value(schema).unwrap();
 
         let expected = json!({
-            "$schema": "http://json-schema.org/draft-07/schema#",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "CommandExecutorInput",
             "type": "array",
             "description": "An array of commands to be executed",
