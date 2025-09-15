@@ -13,8 +13,6 @@ pub use prelude::*;
 mod tool_output;
 pub use tool_output::*;
 
-mod tools_vec;
-
 mod describe_parameters;
 pub use describe_parameters::*;
 

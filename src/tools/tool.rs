@@ -15,3 +15,15 @@ impl Tool {
         }
     }
 }
+
+impl<F: FunctionTool + 'static> From<F> for Tool {
+    fn from(tool: F) -> Self {
+        Tool::Function(Box::new(tool))
+    }
+}
+
+impl From<McpTool> for Tool {
+    fn from(tool: McpTool) -> Self {
+        Tool::Mcp(tool)
+    }
+}
