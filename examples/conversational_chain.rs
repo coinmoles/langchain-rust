@@ -1,16 +1,18 @@
 use std::io::{stdout, Write};
 
+use async_openai::config::OpenAIConfig;
 use futures_util::StreamExt;
 use langchain_rust::{
     chain::{Chain, ConversationalChain},
     chain::{DefaultChainInput, DefaultChainInputCtor},
-    llm::{openai_chat::OpenAI, OpenAIConfig, OpenAIModel},
+    llm::{OpenAIChat, OpenAIModel},
     memory::SimpleMemory,
 };
 
 #[tokio::main]
 async fn main() {
-    let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt35).build();
+    let llm: OpenAIChat<OpenAIConfig> =
+        OpenAIChat::builder().with_model(OpenAIModel::Gpt35).build();
     //We initialise a simple memory. By default conversational chain have this memory, but we
     //initialise it as an example, if you dont want to have memory use DummyMemory
     let memory = SimpleMemory::new();

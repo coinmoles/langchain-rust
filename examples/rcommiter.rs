@@ -2,9 +2,9 @@ use std::io::{self, BufRead};
 use std::process::{Command, Stdio};
 
 use indoc::indoc;
+use langchain_rust::llm::OpenAIChat;
 use langchain_rust::{
     chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain},
-    llm::openai_chat::OpenAI,
     schemas::MessageType,
     template::MessageTemplate,
 };
@@ -24,7 +24,7 @@ async fn main() -> io::Result<()> {
         "},
     );
 
-    let llm = OpenAI::default();
+    let llm = OpenAIChat::default();
     let chain: LLMChain<DefaultChainInputCtor> = LLMChain::builder()
         .prompt(prompt)
         .llm(llm)

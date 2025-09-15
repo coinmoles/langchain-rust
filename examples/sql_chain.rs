@@ -1,21 +1,21 @@
 // To run this example execute: cargo run --example sql_chain --features postgres
 
 #[cfg(feature = "postgres")]
-use langchain_rust::{
-    chain::Chain,
-    llm::openai_chat::OpenAI,
-    tools::{postgres::PostgreSQLEngine, SQLDatabaseBuilder},
-};
+use std::io::{self, Write}; // Include io Library for terminal input
 
 #[cfg(feature = "postgres")]
-use std::io::{self, Write}; // Include io Library for terminal input
+use langchain_rust::{
+    chain::Chain,
+    llm::OpenAIChat,
+    tools::{postgres::PostgreSQLEngine, SQLDatabaseBuilder},
+};
 
 #[cfg(feature = "postgres")]
 #[tokio::main]
 async fn main() {
     use langchain_rust::chain::SQLDatabaseChain;
 
-    let llm = OpenAI::default();
+    let llm = OpenAIChat::default();
 
     let db = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let engine = PostgreSQLEngine::new(&db).await.unwrap();

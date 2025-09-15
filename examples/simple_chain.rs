@@ -1,9 +1,7 @@
+use async_openai::config::OpenAIConfig;
 use langchain_rust::{
     chain::{Chain, ChainInput, Ctor, LLMChain},
-    llm::{
-        openai_chat::{OpenAI, OpenAIModel},
-        OpenAIConfig,
-    },
+    llm::{OpenAIChat, OpenAIModel},
     schemas::MessageType,
     template::MessageTemplate,
 };
@@ -25,7 +23,8 @@ async fn main() {
         "Give me a creative name for a store that sells: {{producto}}",
     );
 
-    let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt35).build();
+    let llm: OpenAIChat<OpenAIConfig> =
+        OpenAIChat::builder().with_model(OpenAIModel::Gpt35).build();
     let chain: LLMChain<ProductoInputCtor> =
         LLMChain::builder().prompt(prompt).llm(llm).build().unwrap();
 

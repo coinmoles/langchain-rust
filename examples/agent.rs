@@ -1,23 +1,20 @@
+use async_openai::config::OpenAIConfig;
 use langchain_rust::{
-    agent::{Agent, ConversationalAgent},
-    chain::Chain,
-    chain::{DefaultChainInput, DefaultChainInputCtor},
-    llm::{
-        openai_chat::{OpenAI, OpenAIModel},
-        OpenAIConfig,
-    },
+    agent::Agent,
+    chain::{Chain, DefaultChainInput, DefaultChainInputCtor},
+    llm::{OpenAIChat, OpenAIModel},
     memory::SimpleMemory,
     tools::CommandExecutor,
 };
 
 #[tokio::main]
 async fn main() {
-    let llm: OpenAI<OpenAIConfig> = OpenAI::builder().with_model(OpenAIModel::Gpt4Turbo).build();
+    let llm: OpenAIChat<OpenAIConfig> = OpenAIChat::builder()
+        .with_model(OpenAIModel::Gpt4oMini)
+        .build();
     let memory = SimpleMemory::new();
-    let command_executor = CommandExecutor::default();
-    let agent: ConversationalAgent<DefaultChainInputCtor> = ConversationalAgent::builder()
-        .tools([command_executor])
-        .build(llm);
+    let command_executor = CommandExecutor::default().into();
+    let agent: Agent<DefaultChainInputCtor> = Agent::builder().tools([command_executor]).build(llm);
 
     let executor = agent.executor().with_memory(memory.into());
 

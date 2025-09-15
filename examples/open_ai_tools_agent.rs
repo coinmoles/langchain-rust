@@ -2,12 +2,11 @@ use std::error::Error;
 
 use async_trait::async_trait;
 use langchain_rust::{
-    agent::{Agent, OpenAiToolAgent},
+    agent::Agent,
     chain::{Chain, DefaultChainInput, DefaultChainInputCtor},
-    llm::openai_chat::OpenAI,
+    llm::OpenAIChat,
     memory::SimpleMemory,
     tools::{CommandExecutor, DuckDuckGoSearch, Function, SerpApi},
-    tools_vec,
 };
 
 use serde_json::Value;
@@ -39,14 +38,14 @@ impl Function for Date {
 
 #[tokio::main]
 async fn main() {
-    let llm = OpenAI::default();
+    let llm = OpenAIChat::default();
     let memory = SimpleMemory::new();
-    let agent: OpenAiToolAgent<DefaultChainInputCtor> = OpenAiToolAgent::builder()
-        .tools(tools_vec![
-            SerpApi::default(),
-            Date::default(),
-            DuckDuckGoSearch::default(),
-            CommandExecutor::default(),
+    let agent: Agent<DefaultChainInputCtor> = Agent::builder()
+        .tools([
+            SerpApi::default().into(),
+            Date::default().into(),
+            DuckDuckGoSearch::default().into(),
+            CommandExecutor::default().into(),
         ])
         .build(llm);
 

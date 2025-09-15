@@ -1,7 +1,5 @@
-use langchain_rust::llm::{
-    openai_chat::{AzureConfig, OpenAI},
-    LLM,
-};
+use async_openai::config::AzureConfig;
+use langchain_rust::llm::{OpenAIChat, LLM};
 
 #[tokio::main]
 async fn main() {
@@ -11,7 +9,7 @@ async fn main() {
         .with_api_version("2024-02-15-preview")
         .with_deployment_id("chatGPT_GPT35-turbo-0301");
 
-    let open_ai = OpenAI::builder().with_api_config(azure_config).build();
+    let open_ai = OpenAIChat::builder().with_api_config(azure_config).build();
     let response = open_ai.invoke("Why is the sky blue?").await.unwrap();
     println!("{response}");
 }

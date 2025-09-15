@@ -1,13 +1,13 @@
 use indoc::indoc;
 use langchain_rust::{
     chain::{Chain, StuffDocument, StuffQA, StuffQACtor},
-    llm::openai_chat::OpenAI,
+    llm::OpenAIChat,
     schemas::Document,
 };
 
 #[tokio::main]
 async fn main() {
-    let llm = OpenAI::default();
+    let llm = OpenAIChat::default();
 
     let chain: StuffDocument<StuffQACtor> = StuffDocument::builder()
         .llm(llm)

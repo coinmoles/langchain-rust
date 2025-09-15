@@ -1,16 +1,15 @@
-use langchain_rust::llm::OpenAIConfig;
-
-use langchain_rust::{llm::openai_chat::OpenAI, llm::LLM};
+use async_openai::config::OpenAIConfig;
+use langchain_rust::{llm::OpenAIChat, llm::LLM};
 
 #[tokio::main]
 async fn main() {
     //OpenAI Example
-    let open_ai = OpenAI::default();
+    let open_ai = OpenAIChat::default();
     let response = open_ai.invoke("hola").await.unwrap();
     println!("{response}");
 
     //or we can set config as
-    let open_ai = OpenAI::builder()
+    let open_ai = OpenAIChat::builder()
         .with_api_config(
             OpenAIConfig::default()
                 .with_api_base("xxx") //if you want to specify base url

@@ -1,7 +1,7 @@
 use futures::StreamExt;
 use langchain_rust::{
     chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain},
-    llm::openai_chat::OpenAI,
+    llm::OpenAIChat,
     prompt_template,
     schemas::{Message, MessageType},
     template::MessageTemplate,
@@ -9,7 +9,7 @@ use langchain_rust::{
 
 #[tokio::main]
 async fn main() {
-    let open_ai = OpenAI::default();
+    let open_ai = OpenAIChat::default();
 
     let prompt = prompt_template![
         Message::new_system_message("You are world class technical documentation writer."),

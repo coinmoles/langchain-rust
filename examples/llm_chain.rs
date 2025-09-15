@@ -1,6 +1,6 @@
 use langchain_rust::{
     chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain},
-    llm::{openai_chat::OpenAI, OpenAIConfig, LLM},
+    llm::{OpenAIChat, LLM},
     prompt_template,
     schemas::{messages::Message, MessageType},
     template::MessageTemplate,
@@ -13,7 +13,7 @@ async fn main() {
     // let open_ai = OpenAI::builder()
     //     .with_api_config(OpenAIConfig::default().with_api_key("..."))
     //     .build();
-    let open_ai: OpenAI<OpenAIConfig> = OpenAI::default();
+    let open_ai = OpenAIChat::default();
 
     //Once you've installed and initialized the LLM of your choice, we can try using it! Let's ask it what LangSmith is - this is something that wasn't present in the training data so it shouldn't have a very good response.
     let resp = open_ai.invoke("What is rust").await.unwrap();
