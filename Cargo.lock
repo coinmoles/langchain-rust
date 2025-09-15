@@ -4298,6 +4298,7 @@ dependencies = [
  "htmd",
  "html-escape",
  "indoc",
+ "itertools 0.14.0",
  "log",
  "lopdf 0.38.0",
  "macros",

@@ -73,7 +73,7 @@ rmcp = { version = "=0.6.4", features = [
     "reqwest",
     "tower",
     "transport-streamable-http-client-reqwest",
-], optional = true }
+] }
 
 # Vector stores
 pgvector = { version = "0.4.1", features = [
@@ -167,7 +167,6 @@ language-parser = [
     "dep:tree-sitter-typescript",
 ]
 lopdf = ["dep:lopdf"]
-mcp = ["dep:rmcp"]
 pdf-extract = ["dep:lopdf", "dep:pdf-extract"]
 postgres = ["pgvector", "sqlx"]
 qdrant = ["qdrant-client"]
