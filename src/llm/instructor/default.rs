@@ -9,6 +9,7 @@ use crate::{
         is_malformed_event_str, parse_partial_json, remove_thought, OutputParseError,
     },
     schemas::{FunctionSpec, ToolCall},
+    utils::helper::normalize_tool_name,
 };
 
 use super::Instructor;
@@ -121,7 +122,7 @@ impl Instructor for DefaultInstructor {
     fn tool_use_instruction(&self, tools: &[FunctionSpec]) -> String {
         let tool_names = tools
             .iter()
-            .map(|t| t.name.as_str())
+            .map(|t| normalize_tool_name(t.name.as_str()))
             .collect::<Vec<_>>()
             .join(", ");
         let tool_descriptions = tools
