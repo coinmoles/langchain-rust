@@ -11,6 +11,7 @@ use crate::{
     utils::helper::normalize_tool_name,
 };
 
+#[derive(Debug)]
 pub struct ToolSpec {
     pub functions: Vec<FunctionSpec>,
     pub mcps: Vec<McpTool>,

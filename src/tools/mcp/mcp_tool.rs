@@ -5,7 +5,7 @@ use secrecy::{ExposeSecret, SecretString};
 
 use crate::tools::{mcp::fetch_tools, FunctionTool, McpError};
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct McpTool {
     uri: SecretString,
     pub name: String,
