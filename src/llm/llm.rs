@@ -1,9 +1,8 @@
 use async_trait::async_trait;
 
-use crate::{
-    llm::{options::CallOptions, LLMError, LLMOutput, LLMStream, LlmCapabilities},
-    schemas::{Prompt, ToolSpec, WithUsage},
-};
+use crate::llm::options::CallOptions;
+use crate::llm::{LLMError, LLMOutput, LLMStream, LlmCapabilities};
+use crate::schemas::{Prompt, ToolSpec, WithUsage};
 
 /// A trait representing a wrapper arround Large Language Models (LLMs).
 ///
@@ -31,7 +30,7 @@ pub trait LLM: Sync + Send {
 
     /// Generates a response from the LLM based on the provided prompt in a stream.
     async fn stream(&self, prompt: Prompt, tools: Option<&ToolSpec>)
-        -> Result<LLMStream, LLMError>;
+    -> Result<LLMStream, LLMError>;
 
     /// Configure the call options for the LLM.
     ///

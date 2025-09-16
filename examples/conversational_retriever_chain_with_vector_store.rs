@@ -1,4 +1,5 @@
-// // To run this example execute: cargo run --example conversational_retriever_chain --features postgres
+// // To run this example execute: cargo run --example conversational_retriever_chain --features
+// postgres
 
 // #[cfg(feature = "postgres")]
 // use futures_util::StreamExt;
@@ -65,7 +66,8 @@
 //         MessageTemplate::from_jinja2(
 //             MessageType::HumanMessage,
 //             indoc! {"
-//                 Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+//                 Use the following pieces of context to answer the question at the end. If you
+// don't know the answer, just say that you don't know, don't try to make up an answer.
 
 //                 {{context}}
 
@@ -87,7 +89,8 @@
 //         .build()
 //         .expect("Error building ConversationalChain");
 
-//     let mut input_variables: InputVariables = StuffQABuilder::new().question("Hi").build().into();
+//     let mut input_variables: InputVariables =
+// StuffQABuilder::new().question("Hi").build().into();
 
 //     let result = chain.invoke(&mut input_variables).await;
 //     if let Ok(result) = result {

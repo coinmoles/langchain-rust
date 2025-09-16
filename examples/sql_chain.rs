@@ -7,7 +7,7 @@ use std::io::{self, Write}; // Include io Library for terminal input
 use langchain_rust::{
     chain::Chain,
     llm::OpenAIChat,
-    tools::{postgres::PostgreSQLEngine, SQLDatabaseBuilder},
+    tools::{SQLDatabaseBuilder, postgres::PostgreSQLEngine},
 };
 
 #[cfg(feature = "postgres")]

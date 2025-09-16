@@ -1,7 +1,10 @@
-pub use macros::ChainInput;
-use std::{borrow::Cow, collections::HashMap};
+use std::borrow::Cow;
+use std::collections::HashMap;
 
-use crate::{chain::Ctor, schemas::Message};
+pub use macros::ChainInput;
+
+use crate::chain::Ctor;
+use crate::schemas::Message;
 
 pub type TextReplacements<'a> = HashMap<&'a str, Cow<'a, str>>;
 pub type PlaceholderReplacements<'a> = HashMap<&'a str, Cow<'a, [Message]>>;

@@ -1,17 +1,14 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use rmcp::model::CallToolRequestParam;
 use schemars::Schema;
 use serde::de::Error;
 use serde_json::Value;
 
-use std::sync::Arc;
-
-use crate::{
-    tools::{sealed, FunctionTool, McpError, ToolError, ToolOutput},
-    utils::helper::normalize_tool_name,
-};
-
-use super::{parse_mcp_response, McpService};
+use super::{McpService, parse_mcp_response};
+use crate::tools::{FunctionTool, McpError, ToolError, ToolOutput, sealed};
+use crate::utils::helper::normalize_tool_name;
 
 /// A function tool representation of an MCP tool.
 ///
@@ -85,7 +82,7 @@ impl FunctionTool for McpFunctionTool {
             _ => {
                 return Err(ToolError::InputParseError(serde_json::Error::custom(
                     "Expected a JSON object as input",
-                )))
+                )));
             }
         };
 

@@ -1,9 +1,8 @@
 use serde_json::{Map, Value};
 use uuid::Uuid;
 
-use crate::output_parser::extract_json;
-
 use super::{balance_parenthesis, remove_multiline, remove_trailing_commas};
+use crate::output_parser::extract_json;
 
 pub fn parse_partial_json(s: &str, strict: bool) -> Result<Value, serde_json::Error> {
     match serde_json::from_str::<Value>(s) {

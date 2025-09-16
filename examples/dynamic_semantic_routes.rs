@@ -1,8 +1,6 @@
-use langchain_rust::{
-    embedding::openai::OpenAiEmbedder,
-    semantic_router::{AggregationMethod, RouteLayerBuilder, Router},
-    tools::{FunctionTool, SerpApi},
-};
+use langchain_rust::embedding::openai::OpenAiEmbedder;
+use langchain_rust::semantic_router::{AggregationMethod, RouteLayerBuilder, Router};
+use langchain_rust::tools::{FunctionTool, SerpApi};
 
 #[tokio::main]
 async fn main() {

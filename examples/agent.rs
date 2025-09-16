@@ -1,11 +1,9 @@
 use async_openai::config::OpenAIConfig;
-use langchain_rust::{
-    agent::Agent,
-    chain::{Chain, DefaultChainInput, DefaultChainInputCtor},
-    llm::{OpenAIChat, OpenAIModel},
-    memory::SimpleMemory,
-    tools::CommandExecutor,
-};
+use langchain_rust::agent::Agent;
+use langchain_rust::chain::{Chain, DefaultChainInput, DefaultChainInputCtor};
+use langchain_rust::llm::{OpenAIChat, OpenAIModel};
+use langchain_rust::memory::SimpleMemory;
+use langchain_rust::tools::CommandExecutor;
 
 #[tokio::main]
 async fn main() {

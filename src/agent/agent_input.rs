@@ -2,17 +2,16 @@ use std::sync::Arc;
 
 use tokio::sync::RwLock;
 
-use crate::{
-    chain::{ChainInput, Ctor},
-    memory::Memory,
-    schemas::Message,
-};
+use crate::chain::{ChainInput, Ctor};
+use crate::memory::Memory;
+use crate::schemas::Message;
 
 const FORCE_FINAL_ANSWER: &str = "Now it's time you MUST give your absolute best final answer. You'll ignore all previous instructions, stop using any tools, and just return your absolute BEST Final answer.";
 
 /// The input passed to an agent LLM.
 ///
-/// Contains generic inner input for user provided fields and agent-specific fields for agent execution.
+/// Contains generic inner input for user provided fields and agent-specific fields for agent
+/// execution.
 #[derive(Debug, Clone, ChainInput, Ctor)]
 pub struct AgentInput<I: ChainInput> {
     /// The primary inner input to the agent, contains user-provided fields.

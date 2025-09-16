@@ -2,15 +2,16 @@
 // To start pgvector docker run ./scripts/run-pgvector
 
 #[cfg(feature = "postgres")]
+use std::io::Write;
+
+#[cfg(feature = "postgres")]
 use langchain_rust::{
     add_documents,
     embedding::openai::openai_embedder::OpenAiEmbedder,
     schemas::Document,
     similarity_search,
-    vectorstore::{pgvector::StoreBuilder, VectorStore},
+    vectorstore::{VectorStore, pgvector::StoreBuilder},
 };
-#[cfg(feature = "postgres")]
-use std::io::Write;
 #[cfg(feature = "postgres")]
 use tokio::io::{self, AsyncBufReadExt, BufReader};
 

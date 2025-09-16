@@ -1,9 +1,11 @@
-use crate::schemas::Document;
-use std::fmt::Debug;
+use std::collections::HashMap;
+use std::fmt::{Debug, Display};
 use std::string::ToString;
-use std::{collections::HashMap, fmt::Display};
+
 use strum_macros::Display;
 use tree_sitter::{Parser, Tree};
+
+use crate::schemas::Document;
 
 #[derive(Display, Debug, Clone)]
 pub enum Language {

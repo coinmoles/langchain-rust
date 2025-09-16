@@ -1,12 +1,9 @@
 use async_trait::async_trait;
 use regex::Regex;
 
-use crate::{
-    chain::{ChainOutput, InputCtor, OutputCtor},
-    output_parser::ParseResultExt,
-};
-
 use super::{OutputParseError, OutputParser};
+use crate::chain::{ChainOutput, InputCtor, OutputCtor};
+use crate::output_parser::ParseResultExt;
 
 pub struct RegexParser<I, O>
 where
@@ -83,9 +80,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::chain::StringCtor;
-
     use super::*;
+    use crate::chain::StringCtor;
 
     #[tokio::test]
     async fn test_markdown_parser_finds_code_block() {

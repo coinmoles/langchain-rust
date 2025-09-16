@@ -1,7 +1,7 @@
 use async_trait::async_trait;
+use fastembed::TextEmbedding;
 
 use crate::embedding::{Embedder, EmbedderError};
-use fastembed::TextEmbedding;
 
 pub struct FastEmbed {
     model: TextEmbedding,

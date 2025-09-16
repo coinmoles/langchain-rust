@@ -1,6 +1,8 @@
-use async_trait::async_trait;
-use sqlx::{postgres::PgPoolOptions, Column, Pool, Postgres, Row, TypeInfo};
 use std::error::Error;
+
+use async_trait::async_trait;
+use sqlx::postgres::PgPoolOptions;
+use sqlx::{Column, Pool, Postgres, Row, TypeInfo};
 
 use crate::tools::{Dialect, Engine};
 

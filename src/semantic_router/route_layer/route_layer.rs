@@ -1,14 +1,13 @@
-use std::{borrow::Cow, collections::HashMap, sync::Arc};
+use std::borrow::Cow;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use serde_json::Value;
 
-use crate::{
-    chain::{Chain, LLMChain},
-    embedding::Embedder,
-    semantic_router::{Index, RouteLayerError, Router},
-};
-
 use super::{RouteLayerInput, RouteLayerInputCtor};
+use crate::chain::{Chain, LLMChain};
+use crate::embedding::Embedder;
+use crate::semantic_router::{Index, RouteLayerError, Router};
 
 pub enum AggregationMethod {
     Mean,
@@ -210,9 +209,9 @@ mod tests {
 
     use indoc::indoc;
 
-    use crate::{embedding::openai::OpenAiEmbedder, semantic_router::RouteLayerBuilder};
-
     use super::*;
+    use crate::embedding::openai::OpenAiEmbedder;
+    use crate::semantic_router::RouteLayerBuilder;
 
     #[tokio::test]
     #[ignore]

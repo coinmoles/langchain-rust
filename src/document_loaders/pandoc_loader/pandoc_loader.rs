@@ -1,18 +1,17 @@
-use std::{fmt, path::Path, pin::Pin, process::Stdio};
+use std::fmt;
+use std::path::Path;
+use std::pin::Pin;
+use std::process::Stdio;
 
 use async_trait::async_trait;
-use futures_util::{stream, Stream};
-use tokio::{
-    fs::File,
-    io::{AsyncRead, AsyncWriteExt, BufReader},
-    process::Command,
-};
+use futures_util::{Stream, stream};
+use tokio::fs::File;
+use tokio::io::{AsyncRead, AsyncWriteExt, BufReader};
+use tokio::process::Command;
 
-use crate::{
-    document_loaders::{process_doc_stream, Loader, LoaderError},
-    schemas::Document,
-    text_splitter::TextSplitter,
-};
+use crate::document_loaders::{Loader, LoaderError, process_doc_stream};
+use crate::schemas::Document;
+use crate::text_splitter::TextSplitter;
 
 #[derive(Debug)]
 pub enum InputFormat {

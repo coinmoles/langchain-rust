@@ -1,13 +1,10 @@
-use crate::{
-    chain::{ChainOutput, InputCtor, LLMChain, OutputCtor},
-    llm::LLM,
-    output_parser::OutputParser,
-    schemas::BuilderError,
-    schemas::MessageType,
-    template::{MessageTemplate, PromptTemplate},
-};
-
-use super::{prompt::DEFAULT_STUFF_QA_TEMPLATE, StuffDocument};
+use super::StuffDocument;
+use super::prompt::DEFAULT_STUFF_QA_TEMPLATE;
+use crate::chain::{ChainOutput, InputCtor, LLMChain, OutputCtor};
+use crate::llm::LLM;
+use crate::output_parser::OutputParser;
+use crate::schemas::{BuilderError, MessageType};
+use crate::template::{MessageTemplate, PromptTemplate};
 
 pub struct StuffDocumentBuilder<'a, I, O>
 where

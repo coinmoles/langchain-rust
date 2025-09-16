@@ -1,16 +1,17 @@
-use crate::document_loaders::{
-    find_files_with_extension, process_doc_stream, DirLoaderOptions, LoaderError,
-};
-use crate::{document_loaders::Loader, schemas::Document, text_splitter::TextSplitter};
-use async_stream::stream;
-use async_trait::async_trait;
-use futures::Stream;
-
 use std::fs::File;
 use std::io::Read;
 use std::pin::Pin;
 
-use super::{get_language_by_filename, LanguageParser, LanguageParserOptions};
+use async_stream::stream;
+use async_trait::async_trait;
+use futures::Stream;
+
+use super::{LanguageParser, LanguageParserOptions, get_language_by_filename};
+use crate::document_loaders::{
+    DirLoaderOptions, Loader, LoaderError, find_files_with_extension, process_doc_stream,
+};
+use crate::schemas::Document;
+use crate::text_splitter::TextSplitter;
 
 #[derive(Debug, Clone)]
 pub struct SourceCodeLoader {
@@ -123,9 +124,8 @@ impl Loader for SourceCodeLoader {
 mod tests {
     use futures_util::StreamExt;
 
-    use crate::document_loaders::{Language, LanguageContentTypes};
-
     use super::*;
+    use crate::document_loaders::{Language, LanguageContentTypes};
 
     #[tokio::test]
     async fn test_sourse_code_loader() {

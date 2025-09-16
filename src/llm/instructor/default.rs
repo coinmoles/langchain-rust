@@ -2,17 +2,14 @@ use regex::Regex;
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::{
-    llm::LLMOutput,
-    output_parser::{
-        extract_from_codeblock, fix_text, flatten_final_answer, is_malformed_event,
-        is_malformed_event_str, parse_partial_json, remove_thought, OutputParseError,
-    },
-    schemas::{FunctionSpec, ToolCall},
-    utils::helper::normalize_tool_name,
-};
-
 use super::Instructor;
+use crate::llm::LLMOutput;
+use crate::output_parser::{
+    OutputParseError, extract_from_codeblock, fix_text, flatten_final_answer, is_malformed_event,
+    is_malformed_event_str, parse_partial_json, remove_thought,
+};
+use crate::schemas::{FunctionSpec, ToolCall};
+use crate::utils::helper::normalize_tool_name;
 
 const DEFAULT_TOOL_PROMPT: &str = r#"
 

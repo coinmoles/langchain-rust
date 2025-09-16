@@ -1,15 +1,12 @@
 use std::string::String;
 
 use async_trait::async_trait;
-use schemars::{schema_for, Schema};
+use schemars::{Schema, schema_for};
 use serde_json::Value;
 
-use crate::{
-    schemas::FunctionSpec,
-    tools::{Function, ToolData, ToolError, ToolOutput},
-};
-
 use super::function_input::DefaultFunctionInput;
+use crate::schemas::FunctionSpec;
+use crate::tools::{Function, ToolData, ToolError, ToolOutput};
 
 pub(crate) mod sealed {
     /// A sealed trait to prevent external implementations of the `ToolInternal` trait.
@@ -19,7 +16,8 @@ pub(crate) mod sealed {
 /// A dyn-compatible, generic-less interface for tools.
 ///
 /// This trait is "sealed", meaning it cannot be implemented outside of this module.
-/// This trait should only be implemented via a blanket impl, which automatically implements this trait for any type that implements `Tool`.
+/// This trait should only be implemented via a blanket impl, which automatically implements this
+/// trait for any type that implements `Tool`.
 #[async_trait]
 pub trait FunctionTool: sealed::Sealed + Send + Sync {
     /// Returns the name of the tool.

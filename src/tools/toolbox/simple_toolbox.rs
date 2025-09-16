@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use crate::{tools::FunctionTool, utils::helper::normalize_tool_name};
-
 use super::Toolbox;
+use crate::tools::FunctionTool;
+use crate::utils::helper::normalize_tool_name;
 
 pub struct SimpleToolbox {
     name: String,

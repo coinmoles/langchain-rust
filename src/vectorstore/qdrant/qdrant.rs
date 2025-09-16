@@ -1,22 +1,19 @@
-use async_trait::async_trait;
-use qdrant_client::client::Payload;
-use qdrant_client::qdrant::{Filter, PointStruct, SearchPointsBuilder, UpsertPointsBuilder};
-use serde_json::{json, Value};
 use std::error::Error;
 use std::sync::Arc;
 
+use async_trait::async_trait;
 pub use qdrant_client::Qdrant;
-
 // Re-export now deprecated client with old name to prevent breakage for users
 #[deprecated(note = "use `Qdrant` instead")]
 pub use qdrant_client::Qdrant as QdrantClient;
-
-use crate::{
-    embedding::embedder_trait::Embedder,
-    schemas::Document,
-    vectorstore::{VecStoreOptions, VectorStore},
-};
+use qdrant_client::client::Payload;
+use qdrant_client::qdrant::{Filter, PointStruct, SearchPointsBuilder, UpsertPointsBuilder};
+use serde_json::{Value, json};
 use uuid::Uuid;
+
+use crate::embedding::embedder_trait::Embedder;
+use crate::schemas::Document;
+use crate::vectorstore::{VecStoreOptions, VectorStore};
 
 pub struct Store {
     pub client: Qdrant,

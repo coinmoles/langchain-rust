@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 
-use crate::tools::{mcp::fetch_tools, FunctionTool, McpError, SimpleToolbox, Toolbox};
+use crate::tools::mcp::fetch_tools;
+use crate::tools::{FunctionTool, McpError, SimpleToolbox, Toolbox};
 
 pub struct McpToolbox(SimpleToolbox);
 
@@ -35,9 +36,8 @@ mod tests {
 
     use serde_json::json;
 
-    use crate::tools::ListTools;
-
     use super::*;
+    use crate::tools::ListTools;
 
     #[tokio::test]
     async fn test_list_tools() {

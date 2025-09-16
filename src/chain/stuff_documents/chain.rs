@@ -4,20 +4,17 @@
 use async_trait::async_trait;
 use indoc::indoc;
 
-use crate::{
-    chain::{
-        Chain, ChainError, ChainOutput, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor,
-        StuffQACtor,
-    },
-    llm::{LLMStream, LLM},
-    schemas::{MessageType, Prompt, WithUsage},
-    template::{MessageTemplate, TemplateError},
-};
-
 use super::{
-    StuffDocumentBuilder, COMBINE_DOCUMENTS_DEFAULT_DOCUMENT_VARIABLE_NAME,
-    COMBINE_DOCUMENTS_DEFAULT_INPUT_KEY, STUFF_DOCUMENTS_DEFAULT_SEPARATOR,
+    COMBINE_DOCUMENTS_DEFAULT_DOCUMENT_VARIABLE_NAME, COMBINE_DOCUMENTS_DEFAULT_INPUT_KEY,
+    STUFF_DOCUMENTS_DEFAULT_SEPARATOR, StuffDocumentBuilder,
 };
+use crate::chain::{
+    Chain, ChainError, ChainOutput, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor,
+    StuffQACtor,
+};
+use crate::llm::{LLM, LLMStream};
+use crate::schemas::{MessageType, Prompt, WithUsage};
+use crate::template::{MessageTemplate, TemplateError};
 
 pub struct StuffDocument<I = StuffQACtor, O = StringCtor>
 where
@@ -57,7 +54,7 @@ impl StuffDocument<StuffQACtor, StringCtor> {
     ///
     /// # Example
     /// ```rust,ignore
-    ///
+    /// 
     /// let llm = OpenAI::default();
     /// let chain = StuffDocument::load_stuff_qa(llm);
     ///
@@ -80,7 +77,6 @@ impl StuffDocument<StuffQACtor, StringCtor> {
     ///
     /// println!("{}", ouput);
     /// ```
-    ///
     pub fn load_stuff_qa<L: Into<Box<dyn LLM>>>(llm: L) -> Self {
         let default_qa_prompt_template = MessageTemplate::from_jinja2(
             MessageType::System,

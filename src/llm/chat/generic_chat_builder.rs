@@ -1,9 +1,10 @@
-use async_openai::{config::Config, Client as OpenAIClient};
+use async_openai::Client as OpenAIClient;
+use async_openai::config::Config;
 use reqwest::Client;
 
-use crate::llm::{options::CallOptions, DefaultInstructor, Instructor};
-
 use super::GenericChat;
+use crate::llm::options::CallOptions;
+use crate::llm::{DefaultInstructor, Instructor};
 
 pub struct GenericChatBuilder<C: Config> {
     pub api_config: C,

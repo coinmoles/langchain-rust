@@ -1,8 +1,11 @@
 use std::sync::Arc;
 
-use crate::embedding::{embedder_trait::Embedder, EmbedderError};
 use async_trait::async_trait;
-use mistralai_client::v1::{client::Client, constants::EmbedModel};
+use mistralai_client::v1::client::Client;
+use mistralai_client::v1::constants::EmbedModel;
+
+use crate::embedding::EmbedderError;
+use crate::embedding::embedder_trait::Embedder;
 
 pub struct MistralAIEmbedder {
     client: Arc<Client>,

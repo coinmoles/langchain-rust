@@ -3,9 +3,8 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use serde_json::Value;
 
-use crate::schemas::Document;
-
 use super::TextSplitterError;
+use crate::schemas::Document;
 
 #[async_trait]
 pub trait TextSplitter: Send + Sync {

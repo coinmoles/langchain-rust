@@ -1,5 +1,6 @@
 use text_splitter::ChunkConfig;
-use tiktoken_rs::{get_bpe_from_model, get_bpe_from_tokenizer, tokenizer::Tokenizer, CoreBPE};
+use tiktoken_rs::tokenizer::Tokenizer;
+use tiktoken_rs::{CoreBPE, get_bpe_from_model, get_bpe_from_tokenizer};
 
 use super::TextSplitterError;
 

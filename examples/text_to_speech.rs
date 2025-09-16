@@ -1,14 +1,14 @@
-use std::{io::Cursor, process::Stdio};
+use std::io::Cursor;
+use std::process::Stdio;
 
 use futures::StreamExt;
-use langchain_rust::{
-    document_loaders::{HtmlLoader, Loader},
-    schemas::Document,
-    text_splitter::{PlainTextSplitter, PlainTextSplitterOptions, TextSplitter},
-    tools::{Text2SpeechOpenAI, FunctionTool},
-};
+use langchain_rust::document_loaders::{HtmlLoader, Loader};
+use langchain_rust::schemas::Document;
+use langchain_rust::text_splitter::{PlainTextSplitter, PlainTextSplitterOptions, TextSplitter};
+use langchain_rust::tools::{FunctionTool, Text2SpeechOpenAI};
 use serde_json::Value;
-use tokio::{io::AsyncReadExt, process::Command};
+use tokio::io::AsyncReadExt;
+use tokio::process::Command;
 use url::Url;
 
 #[tokio::main]

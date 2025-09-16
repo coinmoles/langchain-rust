@@ -1,4 +1,6 @@
-use crate::{llm::LLMOutput, output_parser::OutputParseError, schemas::FunctionSpec};
+use crate::llm::LLMOutput;
+use crate::output_parser::OutputParseError;
+use crate::schemas::FunctionSpec;
 
 pub trait Instructor: Send + Sync {
     fn tool_use_instruction(&self, tools: &[FunctionSpec]) -> String;

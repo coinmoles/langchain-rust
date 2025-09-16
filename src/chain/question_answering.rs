@@ -1,15 +1,15 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::borrow::Cow;
+use std::collections::HashMap;
 
-use crate::{
-    chain::{Chain, ChainInput, Ctor, InputCtor, StringCtor, TextReplacements},
-    llm::{LLMStream, LLM},
-    schemas::{messages::Message, Document, MessageType, WithUsage},
-    template::MessageTemplate,
-};
 use async_trait::async_trait;
 use indoc::indoc;
 
 use super::{ChainError, LLMChain};
+use crate::chain::{Chain, ChainInput, Ctor, InputCtor, StringCtor, TextReplacements};
+use crate::llm::{LLM, LLMStream};
+use crate::schemas::messages::Message;
+use crate::schemas::{Document, MessageType, WithUsage};
+use crate::template::MessageTemplate;
 
 #[derive(Clone, ChainInput, Ctor)]
 pub struct CondenseQuestionPrompt<'a> {
@@ -66,7 +66,7 @@ impl CondenseQuestionGeneratorChain<CondenseQuestionPromptCtor> {
             .prompt(condense_question_prompt_template)
             .build()
             .unwrap(); //Its safe to unwrap here because we are sure that the prompt and the LLM are
-                       //set.
+        //set.
         Self { chain }
     }
 
@@ -138,11 +138,9 @@ impl<'a> Default for StuffQA<'a> {
 mod tests {
     use indoc::indoc;
 
-    use crate::{
-        chain::{Chain, StuffDocument, StuffQA},
-        llm::OpenAIChat,
-        schemas::Document,
-    };
+    use crate::chain::{Chain, StuffDocument, StuffQA};
+    use crate::llm::OpenAIChat;
+    use crate::schemas::Document;
 
     #[tokio::test]
     #[ignore]

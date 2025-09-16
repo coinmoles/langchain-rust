@@ -2,9 +2,8 @@ use std::error::Error;
 
 use async_trait::async_trait;
 
-use crate::schemas::{self, Document};
-
 use super::VecStoreOptions;
+use crate::schemas::{self, Document};
 
 // VectorStore is the trait for saving and querying documents in the
 // form of vector embeddings.

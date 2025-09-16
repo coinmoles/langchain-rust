@@ -1,11 +1,10 @@
 use proc_macro_error2::Diagnostic;
 use quote::{format_ident, quote};
-use syn::{WherePredicate, punctuated::Punctuated};
+use syn::WherePredicate;
+use syn::punctuated::Punctuated;
 
-use crate::{
-    attr::{LangchainStructAttrs, extract_attr, get_chain_struct_attrs},
-    crate_path::default_crate_path,
-};
+use crate::attr::{LangchainStructAttrs, extract_attr, get_chain_struct_attrs};
+use crate::crate_path::default_crate_path;
 
 fn is_chain_input_bound(tb: &syn::TraitBound) -> bool {
     tb.path

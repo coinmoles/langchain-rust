@@ -1,20 +1,16 @@
-use async_openai::{
-    config::{Config, OpenAIConfig},
-    types::CreateChatCompletionStreamResponse,
-    Client as OpenAIClient,
-};
+use async_openai::Client as OpenAIClient;
+use async_openai::config::{Config, OpenAIConfig};
+use async_openai::types::CreateChatCompletionStreamResponse;
 use async_trait::async_trait;
 
-use crate::{
-    llm::{
-        chat::helper::{generate, map_stream},
-        options::CallOptions,
-        LLMError, LLMOutput, LLMStream, LlmCapabilities, OpenAIModel, LLM,
-    },
-    schemas::{messages::Message, IntoWithUsage, MessageType, Prompt, ToolSpec, WithUsage},
-};
-
-use super::{helper::select_choice, request::ChatRequest, OpenAIChatBuilder};
+use super::OpenAIChatBuilder;
+use super::helper::select_choice;
+use super::request::ChatRequest;
+use crate::llm::chat::helper::{generate, map_stream};
+use crate::llm::options::CallOptions;
+use crate::llm::{LLM, LLMError, LLMOutput, LLMStream, LlmCapabilities, OpenAIModel};
+use crate::schemas::messages::Message;
+use crate::schemas::{IntoWithUsage, MessageType, Prompt, ToolSpec, WithUsage};
 
 #[derive(Clone)]
 pub struct OpenAIChat<C: Config> {
@@ -128,15 +124,15 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
 
 #[cfg(test)]
 mod tests {
-    use crate::llm::options::StreamOption;
-    use crate::schemas::{MessageType, Prompt};
-
-    use super::*;
+    use std::sync::Arc;
 
     use base64::prelude::*;
-    use std::sync::Arc;
     use tokio::sync::Mutex;
     use tokio::test;
+
+    use super::*;
+    use crate::llm::options::StreamOption;
+    use crate::schemas::{MessageType, Prompt};
 
     #[test]
     #[ignore]
@@ -168,7 +164,8 @@ mod tests {
     #[test]
     #[ignore]
     async fn test_generate() {
-        // Define the streaming function as an async block without capturing external references directly
+        // Define the streaming function as an async block without capturing external references
+        // directly
         let call_options = CallOptions::new().with_stream(StreamOption::default());
         // Setup the OpenAI client with the necessary options
         let llm: OpenAIChat<OpenAIConfig> = OpenAIChat::builder()

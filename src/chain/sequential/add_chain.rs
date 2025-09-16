@@ -1,8 +1,7 @@
 use serde::Serialize;
 
-use crate::chain::{Chain, InputCtor, OutputCtor};
-
 use super::SequentialChain;
+use crate::chain::{Chain, InputCtor, OutputCtor};
 
 pub trait AddChain<'a, I, M1, M2, O>: 'a
 where

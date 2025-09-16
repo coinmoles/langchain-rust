@@ -1,17 +1,16 @@
-use std::{fmt::Display, sync::Arc};
+use std::fmt::Display;
+use std::sync::Arc;
 
 use tokio::sync::RwLock;
 
-use crate::{
-    chain::{ChainOutput, ConversationalChainInputCtor, InputCtor, LLMChain, OutputCtor},
-    llm::{LLMOutputCtor, LLM},
-    memory::{Memory, SimpleMemory},
-    output_parser::OutputParser,
-    schemas::{BuilderError, MessageType},
-    template::{MessageTemplate, PromptTemplate},
-};
-
-use super::{prompt::DEFAULT_TEMPLATE, ConversationalChain};
+use super::ConversationalChain;
+use super::prompt::DEFAULT_TEMPLATE;
+use crate::chain::{ChainOutput, ConversationalChainInputCtor, InputCtor, LLMChain, OutputCtor};
+use crate::llm::{LLM, LLMOutputCtor};
+use crate::memory::{Memory, SimpleMemory};
+use crate::output_parser::OutputParser;
+use crate::schemas::{BuilderError, MessageType};
+use crate::template::{MessageTemplate, PromptTemplate};
 
 pub struct ConversationalChainBuilder<I: InputCtor, O: OutputCtor>
 where

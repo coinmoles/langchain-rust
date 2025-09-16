@@ -1,10 +1,8 @@
 use async_trait::async_trait;
 use serde::Serialize;
 
-use crate::{
-    chain::{Chain, ChainError, InputCtor, OutputCtor},
-    schemas::{IntoWithUsage, OutputTrace, TokenUsage, WithUsage},
-};
+use crate::chain::{Chain, ChainError, InputCtor, OutputCtor};
+use crate::schemas::{IntoWithUsage, OutputTrace, TokenUsage, WithUsage};
 
 pub struct SequentialChain<'a, I, M1, M2, O>
 where
@@ -75,15 +73,12 @@ mod tests {
 
     use serde::Serialize;
 
-    use crate::{
-        chain::{ChainInput, ChainOutput, Ctor, LLMChain},
-        llm::OpenAIChat,
-        schemas::MessageType,
-        sequential_chain,
-        template::MessageTemplate,
-    };
-
     use super::*;
+    use crate::chain::{ChainInput, ChainOutput, Ctor, LLMChain};
+    use crate::llm::OpenAIChat;
+    use crate::schemas::MessageType;
+    use crate::sequential_chain;
+    use crate::template::MessageTemplate;
 
     #[tokio::test]
     #[ignore]

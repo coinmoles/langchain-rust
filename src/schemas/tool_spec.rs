@@ -1,15 +1,11 @@
-use async_openai::types::{
-    responses::{Function, ToolDefinition},
-    ChatCompletionTool, FunctionObject,
-};
+use async_openai::types::responses::{Function, ToolDefinition};
+use async_openai::types::{ChatCompletionTool, FunctionObject};
 use indoc::formatdoc;
-use schemars::{schema_for, Schema};
+use schemars::{Schema, schema_for};
 use serde_json::json;
 
-use crate::{
-    tools::{describe_parameters, EmptyFunctionInput, FunctionTool, McpTool},
-    utils::helper::normalize_tool_name,
-};
+use crate::tools::{EmptyFunctionInput, FunctionTool, McpTool, describe_parameters};
+use crate::utils::helper::normalize_tool_name;
 
 #[derive(Debug)]
 pub struct ToolSpec {
@@ -38,9 +34,10 @@ impl ToolSpec {
 /// A struct representing the tool definition payload.
 ///
 /// While `async_openai` provides structs for this,
-/// two separate structs exist for the responses api ([`Function`](async_openai::types::responses::Function))
-/// and the chat completions api [`FunctionObject`](async_openai::types::FunctionObject)).
-/// This struct provides a unified api for internal use with easy conversion into the two structs.
+/// two separate structs exist for the responses api
+/// ([`Function`](async_openai::types::responses::Function)) and the chat completions api
+/// [`FunctionObject`](async_openai::types::FunctionObject)). This struct provides a unified api for
+/// internal use with easy conversion into the two structs.
 #[derive(Debug, Clone)]
 pub struct FunctionSpec {
     pub name: String,

@@ -2,15 +2,12 @@ use std::borrow::Borrow;
 
 use async_trait::async_trait;
 
-use crate::{
-    chain::{Chain, ChainError, ChainOutput, GetPrompt, InputCtor, OutputCtor, StringCtor},
-    llm::{LLMError, LLMOutput, LLMStream, LlmCapabilities, LLM},
-    output_parser::OutputParser,
-    schemas::{IntoWithUsage, Prompt, ToolSpec, WithUsage},
-    template::{PromptTemplate, TemplateError},
-};
-
 use super::LLMChainBuilder;
+use crate::chain::{Chain, ChainError, ChainOutput, GetPrompt, InputCtor, OutputCtor, StringCtor};
+use crate::llm::{LLM, LLMError, LLMOutput, LLMStream, LlmCapabilities};
+use crate::output_parser::OutputParser;
+use crate::schemas::{IntoWithUsage, Prompt, ToolSpec, WithUsage};
+use crate::template::{PromptTemplate, TemplateError};
 
 pub struct LLMChain<I: InputCtor, O: OutputCtor = StringCtor>
 where
@@ -111,15 +108,12 @@ where
 mod tests {
     use async_openai::config::OpenAIConfig;
 
-    use crate::{
-        chain::{Chain, ChainInput, Ctor},
-        llm::{GenericChat, OpenAIModel},
-        prompt_template,
-        schemas::MessageType,
-        template::MessageTemplate,
-    };
-
     use super::*;
+    use crate::chain::{Chain, ChainInput, Ctor};
+    use crate::llm::{GenericChat, OpenAIModel};
+    use crate::prompt_template;
+    use crate::schemas::MessageType;
+    use crate::template::MessageTemplate;
 
     #[tokio::test]
     #[ignore]

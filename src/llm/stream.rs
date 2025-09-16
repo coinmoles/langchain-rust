@@ -1,11 +1,11 @@
+use std::io::{self, Write};
+use std::pin::Pin;
+
 use futures::Stream;
 use serde_json::Value;
-use std::{
-    io::{self, Write},
-    pin::Pin,
-};
 
-use crate::{llm::LLMError, schemas::TokenUsage};
+use crate::llm::LLMError;
+use crate::schemas::TokenUsage;
 
 pub type LLMStream = Pin<Box<dyn Stream<Item = Result<LLMStreamChunk, LLMError>> + Send>>;
 

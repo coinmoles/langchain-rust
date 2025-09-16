@@ -1,10 +1,8 @@
 use std::collections::HashSet;
 
-use crate::{
-    chain::TextReplacements,
-    schemas::{Message, MessageType},
-    template::TemplateError,
-};
+use crate::chain::TextReplacements;
+use crate::schemas::{Message, MessageType};
+use crate::template::TemplateError;
 
 #[derive(Debug, Clone)]
 pub enum TemplateFormat {

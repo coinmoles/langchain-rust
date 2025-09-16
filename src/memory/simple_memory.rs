@@ -2,9 +2,8 @@ use std::sync::Arc;
 
 use tokio::sync::RwLock;
 
-use crate::schemas::messages::Message;
-
 use super::Memory;
+use crate::schemas::messages::Message;
 
 pub struct SimpleMemory {
     messages: Vec<Message>,

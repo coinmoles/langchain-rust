@@ -2,16 +2,15 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 
-use crate::{
-    agent::{Agent, AgentInput, AgentOutput, AgentStep},
-    chain::{ChainError, InputCtor, OutputCtor},
-    schemas::{ToolCall, ToolSpec},
-    tools::{FunctionTool, Tool, ToolOutput},
-};
+use crate::agent::{Agent, AgentInput, AgentOutput, AgentStep};
+use crate::chain::{ChainError, InputCtor, OutputCtor};
+use crate::schemas::{ToolCall, ToolSpec};
+use crate::tools::{FunctionTool, Tool, ToolOutput};
 
 /// The tools resolved for the current execution.
 pub struct ResolvedTools {
-    /// The mapping from the tool name to their implementation. Whether it be local function tools or MCP tools that are treated as function tools.
+    /// The mapping from the tool name to their implementation. Whether it be local function tools
+    /// or MCP tools that are treated as function tools.
     pub mcp_functions: Option<HashMap<String, Box<dyn FunctionTool>>>,
     /// The tool specification to be sent to the LLM.
     pub spec: Option<ToolSpec>,
@@ -27,10 +26,10 @@ pub struct ResolvedTools {
 /// 1. [`prepare_input`] — inject / normalize fields on the initial `AgentInput`.
 /// 2. [`process_plan`] — validate or rewrite every model-produced `AgentOutput`.
 /// 3. [`resolve_tool`] — optionally override which tool is called for a given name.
-/// 4. [`build_step`] — turn each `(ToolCall, ToolOutput)` into an [`AgentStep`]
-///    (e.g., reformatting, tagging, indexing).
-/// 5. [`process_final_answer`] — validate/transform the final LLM answer before
-///    converting it to `O::Target`.
+/// 4. [`build_step`] — turn each `(ToolCall, ToolOutput)` into an [`AgentStep`] (e.g.,
+///    reformatting, tagging, indexing).
+/// 5. [`process_final_answer`] — validate/transform the final LLM answer before converting it to
+///    `O::Target`.
 /// 6. [`finalize`] — produce any strategy-specific artifact to return to the caller.
 ///
 /// Additionally, you can implement [`agent_id`] to customize the log output.

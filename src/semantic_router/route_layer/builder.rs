@@ -2,16 +2,14 @@ use std::sync::Arc;
 
 use futures_util::future::try_join_all;
 
-use crate::{
-    chain::LLMChain,
-    embedding::{openai::OpenAiEmbedder, Embedder},
-    llm::{OpenAIChat, LLM},
-    schemas::MessageType,
-    semantic_router::{Index, MemoryIndex, RouteLayerBuilderError, Router},
-    template::MessageTemplate,
-};
-
 use super::{AggregationMethod, RouteLayer, RouteLayerInputCtor};
+use crate::chain::LLMChain;
+use crate::embedding::Embedder;
+use crate::embedding::openai::OpenAiEmbedder;
+use crate::llm::{LLM, OpenAIChat};
+use crate::schemas::MessageType;
+use crate::semantic_router::{Index, MemoryIndex, RouteLayerBuilderError, Router};
+use crate::template::MessageTemplate;
 
 /// A builder for creating a `RouteLayer`.
 ///```rust,ignore

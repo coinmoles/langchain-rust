@@ -1,23 +1,18 @@
-use async_openai::{
-    config::{Config, OpenAIConfig},
-    types::CreateChatCompletionStreamResponse,
-    Client as OpenAIClient,
-};
+use async_openai::Client as OpenAIClient;
+use async_openai::config::{Config, OpenAIConfig};
+use async_openai::types::CreateChatCompletionStreamResponse;
 use async_trait::async_trait;
 
-use crate::{
-    llm::{
-        chat::helper::{generate, map_stream},
-        options::CallOptions,
-        DefaultInstructor, GenericChatBuilder, Instructor, LLMError, LLMOutput, LLMStream,
-        LlmCapabilities, OpenAIModel, LLM,
-    },
-    schemas::{
-        messages::Message, FunctionSpec, IntoWithUsage, MessageType, Prompt, ToolSpec, WithUsage,
-    },
+use super::helper::select_choice;
+use super::request::ChatRequest;
+use crate::llm::chat::helper::{generate, map_stream};
+use crate::llm::options::CallOptions;
+use crate::llm::{
+    DefaultInstructor, GenericChatBuilder, Instructor, LLM, LLMError, LLMOutput, LLMStream,
+    LlmCapabilities, OpenAIModel,
 };
-
-use super::{helper::select_choice, request::ChatRequest};
+use crate::schemas::messages::Message;
+use crate::schemas::{FunctionSpec, IntoWithUsage, MessageType, Prompt, ToolSpec, WithUsage};
 
 pub struct GenericChat<C: Config> {
     client: OpenAIClient<C>,

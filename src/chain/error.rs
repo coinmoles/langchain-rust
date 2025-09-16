@@ -1,12 +1,10 @@
 use thiserror::Error;
 
-use crate::{
-    agent::AgentError,
-    llm::LLMError,
-    output_parser::OutputParseError,
-    template::TemplateError,
-    tools::{McpError, ToolError},
-};
+use crate::agent::AgentError;
+use crate::llm::LLMError;
+use crate::output_parser::OutputParseError;
+use crate::template::TemplateError;
+use crate::tools::{McpError, ToolError};
 
 #[derive(Error, Debug)]
 pub enum ChainError {

@@ -1,8 +1,6 @@
-use crate::{
-    agent::Strategy,
-    chain::OutputCtor,
-    schemas::{TokenUsage, WithUsage},
-};
+use crate::agent::Strategy;
+use crate::chain::OutputCtor;
+use crate::schemas::{TokenUsage, WithUsage};
 
 /// The final output of [`AgentExecutor`](crate::agent::AgentExecutor).
 ///

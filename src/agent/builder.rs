@@ -1,15 +1,14 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
+use std::sync::Arc;
 
-use crate::{
-    agent::Agent,
-    chain::{InputCtor, LLMChain, OutputCtor},
-    llm::LLM,
-    prompt_template,
-    schemas::MessageType,
-    template::{MessageOrTemplate, MessageTemplate},
-    tools::{ListTools, Tool, Toolbox},
-    utils::helper::normalize_tool_name,
-};
+use crate::agent::Agent;
+use crate::chain::{InputCtor, LLMChain, OutputCtor};
+use crate::llm::LLM;
+use crate::prompt_template;
+use crate::schemas::MessageType;
+use crate::template::{MessageOrTemplate, MessageTemplate};
+use crate::tools::{ListTools, Tool, Toolbox};
+use crate::utils::helper::normalize_tool_name;
 
 pub const DEFAULT_SYSTEM_PROMPT: &str = r#"Assistant is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Assistant is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.
 

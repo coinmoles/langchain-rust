@@ -1,5 +1,6 @@
-use serde::{Deserialize, Serialize};
 use std::fmt;
+
+use serde::{Deserialize, Serialize};
 
 /// Enum `MessageType` represents the type of a message.
 /// It can be a `SystemMessage`, `AIMessage`, or `HumanMessage`.

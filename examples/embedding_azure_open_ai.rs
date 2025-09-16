@@ -1,7 +1,5 @@
-use langchain_rust::embedding::{
-    embedder_trait::Embedder,
-    openai::openai_embedder::{AzureConfig, OpenAiEmbedder},
-};
+use langchain_rust::embedding::embedder_trait::Embedder;
+use langchain_rust::embedding::openai::openai_embedder::{AzureConfig, OpenAiEmbedder};
 
 #[tokio::main]
 async fn main() {

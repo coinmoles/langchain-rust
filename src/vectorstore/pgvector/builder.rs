@@ -1,17 +1,20 @@
-use std::{collections::HashMap, env, error::Error, sync::Arc};
+use std::collections::HashMap;
+use std::env;
+use std::error::Error;
+use std::sync::Arc;
 
 use indoc::formatdoc;
-use serde_json::{json, Value};
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row, Transaction};
-
-use crate::{
-    embedding::embedder_trait::Embedder, schemas::BuilderError, vectorstore::VecStoreOptions,
-};
+use serde_json::{Value, json};
+use sqlx::postgres::PgPoolOptions;
+use sqlx::{Pool, Postgres, Row, Transaction};
 
 use super::{
-    HNSWIndex, PgFilter, PgOptions, Store, PG_LOCKID_EXTENSION, PG_LOCK_ID_COLLECTION_TABLE,
-    PG_LOCK_ID_EMBEDDING_TABLE,
+    HNSWIndex, PG_LOCK_ID_COLLECTION_TABLE, PG_LOCK_ID_EMBEDDING_TABLE, PG_LOCKID_EXTENSION,
+    PgFilter, PgOptions, Store,
 };
+use crate::embedding::embedder_trait::Embedder;
+use crate::schemas::BuilderError;
+use crate::vectorstore::VecStoreOptions;
 
 const DEFAULT_COLLECTION_NAME: &str = "langchain";
 const DEFAULT_PRE_DELETE_COLLECTION: bool = false;

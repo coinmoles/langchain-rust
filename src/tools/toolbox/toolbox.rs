@@ -3,10 +3,8 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use serde_json::Value;
 
-use crate::{
-    tools::{FunctionTool, ToolError, ToolOutput},
-    utils::helper::normalize_tool_name,
-};
+use crate::tools::{FunctionTool, ToolError, ToolOutput};
+use crate::utils::helper::normalize_tool_name;
 
 #[async_trait]
 pub trait Toolbox: Send + Sync {

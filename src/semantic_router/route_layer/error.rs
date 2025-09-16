@@ -1,13 +1,16 @@
+use serde_json::Error as SerdeJsonError;
 use thiserror::Error;
 
-use crate::{
-    chain::ChainError, embedding::EmbedderError, llm::LLMError, semantic_router::IndexError,
-};
-use serde_json::Error as SerdeJsonError;
+use crate::chain::ChainError;
+use crate::embedding::EmbedderError;
+use crate::llm::LLMError;
+use crate::semantic_router::IndexError;
 
 #[derive(Error, Debug)]
 pub enum RouterBuilderError {
-    #[error("Invalid Router configuration: at least one of utterances or embedding must be provided, and utterances cannot be an empty vector.")]
+    #[error(
+        "Invalid Router configuration: at least one of utterances or embedding must be provided, and utterances cannot be an empty vector."
+    )]
     InvalidConfiguration,
 }
 

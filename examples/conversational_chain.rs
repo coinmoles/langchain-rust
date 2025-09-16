@@ -1,13 +1,10 @@
-use std::io::{stdout, Write};
+use std::io::{Write, stdout};
 
 use async_openai::config::OpenAIConfig;
 use futures_util::StreamExt;
-use langchain_rust::{
-    chain::{Chain, ConversationalChain},
-    chain::{DefaultChainInput, DefaultChainInputCtor},
-    llm::{OpenAIChat, OpenAIModel},
-    memory::SimpleMemory,
-};
+use langchain_rust::chain::{Chain, ConversationalChain, DefaultChainInput, DefaultChainInputCtor};
+use langchain_rust::llm::{OpenAIChat, OpenAIModel};
+use langchain_rust::memory::SimpleMemory;
 
 #[tokio::main]
 async fn main() {

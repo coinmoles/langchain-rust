@@ -1,16 +1,13 @@
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::{
-    llm::LLMOutput,
-    output_parser::{
-        extract_from_codeblock, extract_from_tag, flatten_final_answer, is_malformed_event,
-        is_malformed_event_str, parse_partial_json, remove_thought, OutputParseError,
-    },
-    schemas::{FunctionSpec, ToolCall},
-};
-
 use super::Instructor;
+use crate::llm::LLMOutput;
+use crate::output_parser::{
+    OutputParseError, extract_from_codeblock, extract_from_tag, flatten_final_answer,
+    is_malformed_event, is_malformed_event_str, parse_partial_json, remove_thought,
+};
+use crate::schemas::{FunctionSpec, ToolCall};
 
 const QWEN3_TOOL_PROMPT: &str = r#"
 

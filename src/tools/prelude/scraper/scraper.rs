@@ -1,9 +1,10 @@
+use std::error::Error;
+
 use async_trait::async_trait;
 use regex::Regex;
 use schemars::JsonSchema;
 use scraper::{ElementRef, Html, Node, Selector};
 use serde::Deserialize;
-use std::error::Error;
 
 use crate::tools::Function;
 
@@ -71,7 +72,7 @@ fn text_not_in_script(element: ElementRef) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
     use tokio;
 
     use super::*;

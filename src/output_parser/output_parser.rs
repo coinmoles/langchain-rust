@@ -1,9 +1,7 @@
 use async_trait::async_trait;
 
-use crate::{
-    chain::{InputCtor, OutputCtor},
-    output_parser::OutputParseError,
-};
+use crate::chain::{InputCtor, OutputCtor};
+use crate::output_parser::OutputParseError;
 
 #[async_trait]
 pub trait OutputParser<I: InputCtor, O: OutputCtor>: Send + Sync {

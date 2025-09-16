@@ -1,11 +1,10 @@
-use std::{error::Error, sync::Arc};
+use std::error::Error;
+use std::sync::Arc;
 
-use async_openai::types::CreateSpeechRequestArgs;
 use async_openai::Client;
-pub use async_openai::{
-    config::{Config, OpenAIConfig},
-    types::{SpeechModel, SpeechResponseFormat, Voice},
-};
+pub use async_openai::config::{Config, OpenAIConfig};
+use async_openai::types::CreateSpeechRequestArgs;
+pub use async_openai::types::{SpeechModel, SpeechResponseFormat, Voice};
 use async_trait::async_trait;
 
 use crate::tools::{DefaultFunctionInput, Function, SpeechStorage};

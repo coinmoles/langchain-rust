@@ -1,11 +1,8 @@
 use async_trait::async_trait;
 
-use crate::{
-    chain::{ChainOutput, InputCtor, OutputCtor},
-    output_parser::OutputParseError,
-};
-
 use super::OutputParser;
+use crate::chain::{ChainOutput, InputCtor, OutputCtor};
+use crate::output_parser::OutputParseError;
 
 pub struct SimpleParser<I, O>
 where

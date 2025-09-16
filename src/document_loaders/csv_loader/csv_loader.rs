@@ -1,16 +1,18 @@
-use crate::document_loaders::{process_doc_stream, LoaderError};
-use crate::{document_loaders::Loader, schemas::Document, text_splitter::TextSplitter};
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::{BufReader, Cursor, Read};
+use std::path::Path;
+use std::pin::Pin;
+
 use async_stream::stream;
 use async_trait::async_trait;
 use csv;
 use futures::Stream;
 use serde_json::Value;
 
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::{BufReader, Cursor, Read};
-use std::path::Path;
-use std::pin::Pin;
+use crate::document_loaders::{Loader, LoaderError, process_doc_stream};
+use crate::schemas::Document;
+use crate::text_splitter::TextSplitter;
 
 #[derive(Debug, Clone)]
 pub struct CsvLoader<R> {

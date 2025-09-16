@@ -5,8 +5,9 @@ use serde_json::Value;
 
 /// The `Document` struct represents a document with content, metadata, and a score.
 /// The `page_content` field is a string that contains the content of the document.
-/// The `metadata` field is a `HashMap` where the keys represent metadata properties and the values represent property values.
-/// The `score` field represents a relevance score for the document and is a floating point number.
+/// The `metadata` field is a `HashMap` where the keys represent metadata properties and the values
+/// represent property values. The `score` field represents a relevance score for the document and
+/// is a floating point number.
 ///
 /// # Usage
 /// ```rust,ignore
@@ -26,7 +27,8 @@ pub struct Document {
 }
 
 impl Document {
-    /// Constructs a new `Document` with provided `page_content`, an empty `metadata` map and a `score` of 0.
+    /// Constructs a new `Document` with provided `page_content`, an empty `metadata` map and a
+    /// `score` of 0.
     pub fn new<S: Into<String>>(page_content: S) -> Self {
         Document {
             page_content: page_content.into(),
@@ -49,7 +51,8 @@ impl Document {
 }
 
 impl Default for Document {
-    /// Provides a default `Document` with an empty `page_content`, an empty `metadata` map and a `score` of 0.
+    /// Provides a default `Document` with an empty `page_content`, an empty `metadata` map and a
+    /// `score` of 0.
     fn default() -> Self {
         Document {
             page_content: "".to_string(),

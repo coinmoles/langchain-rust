@@ -1,14 +1,11 @@
-use std::{
-    fmt::{self, Debug},
-    sync::Arc,
-};
+use std::fmt::{self, Debug};
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde_json::Value;
 
-use crate::tools::Function;
-
 use super::Toolbox;
+use crate::tools::Function;
 
 pub struct ListTools<T>(Arc<T>)
 where

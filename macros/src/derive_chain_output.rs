@@ -1,18 +1,17 @@
 use proc_macro_error2::{Diagnostic, Level};
 use quote::{ToTokens, format_ident, quote};
-use syn::{LitStr, parse_quote_spanned, spanned::Spanned};
+use syn::spanned::Spanned;
+use syn::{LitStr, parse_quote_spanned};
 
-use crate::{
-    attr::{
-        ChainOutputSource, LangchainFieldAttrs, LangchainStructAttrs, SerdeFieldAttrs,
-        SerdeStructAttrs, extract_attr, get_chain_struct_attrs, get_langchain_field_attrs,
-        get_serde_field_attrs, get_serde_struct_attrs,
-    },
-    check_type::{is_cow_str_type, is_string_type},
-    crate_path::{default_crate_path, default_serde_json_path, default_serde_path},
-    helpers::{get_fields, get_renamed_key},
-    rename::RenameAll,
+use crate::attr::{
+    ChainOutputSource, LangchainFieldAttrs, LangchainStructAttrs, SerdeFieldAttrs,
+    SerdeStructAttrs, extract_attr, get_chain_struct_attrs, get_langchain_field_attrs,
+    get_serde_field_attrs, get_serde_struct_attrs,
 };
+use crate::check_type::{is_cow_str_type, is_string_type};
+use crate::crate_path::{default_crate_path, default_serde_json_path, default_serde_path};
+use crate::helpers::{get_fields, get_renamed_key};
+use crate::rename::RenameAll;
 
 fn deser_struct(
     field_specs: &[ChainOutputFieldSpec<'_>],

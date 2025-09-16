@@ -1,13 +1,15 @@
 use std::collections::HashMap;
 use std::pin::Pin;
 
-use crate::document_loaders::{process_doc_stream, LoaderError};
-use crate::{document_loaders::Loader, schemas::Document, text_splitter::TextSplitter};
 use async_trait::async_trait;
 use futures::Stream;
 use gix::ThreadSafeRepository;
 use indoc::formatdoc;
 use serde_json::Value;
+
+use crate::document_loaders::{Loader, LoaderError, process_doc_stream};
+use crate::schemas::Document;
+use crate::text_splitter::TextSplitter;
 
 #[derive(Clone)]
 pub struct GitCommitLoader {

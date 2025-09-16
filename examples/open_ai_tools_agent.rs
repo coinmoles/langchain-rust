@@ -1,14 +1,11 @@
 use std::error::Error;
 
 use async_trait::async_trait;
-use langchain_rust::{
-    agent::Agent,
-    chain::{Chain, DefaultChainInput, DefaultChainInputCtor},
-    llm::OpenAIChat,
-    memory::SimpleMemory,
-    tools::{CommandExecutor, DuckDuckGoSearch, Function, SerpApi},
-};
-
+use langchain_rust::agent::Agent;
+use langchain_rust::chain::{Chain, DefaultChainInput, DefaultChainInputCtor};
+use langchain_rust::llm::OpenAIChat;
+use langchain_rust::memory::SimpleMemory;
+use langchain_rust::tools::{CommandExecutor, DuckDuckGoSearch, Function, SerpApi};
 use serde_json::Value;
 
 #[derive(Default)]

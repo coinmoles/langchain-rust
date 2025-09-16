@@ -1,15 +1,12 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
+use std::sync::Arc;
 
-use rmcp::{
-    model::{Annotated, RawContent, ResourceContents},
-    transport::StreamableHttpClientTransport,
-    ServiceExt,
-};
+use rmcp::ServiceExt;
+use rmcp::model::{Annotated, RawContent, ResourceContents};
+use rmcp::transport::StreamableHttpClientTransport;
 
-use crate::{
-    tools::{FunctionTool, McpError, McpFunctionTool, McpService},
-    utils::helper::normalize_tool_name,
-};
+use crate::tools::{FunctionTool, McpError, McpFunctionTool, McpService};
+use crate::utils::helper::normalize_tool_name;
 
 async fn init_service(uri: &str) -> Result<McpService, McpError> {
     let transport = StreamableHttpClientTransport::from_uri(uri);

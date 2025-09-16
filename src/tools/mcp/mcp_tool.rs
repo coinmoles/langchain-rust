@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use futures::{stream, StreamExt, TryStreamExt};
+use futures::{StreamExt, TryStreamExt, stream};
 use secrecy::{ExposeSecret, SecretString};
 
-use crate::tools::{mcp::fetch_tools, FunctionTool, McpError};
+use crate::tools::mcp::fetch_tools;
+use crate::tools::{FunctionTool, McpError};
 
 #[derive(Debug, Clone)]
 pub struct McpTool {

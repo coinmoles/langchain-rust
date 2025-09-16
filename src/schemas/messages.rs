@@ -1,18 +1,15 @@
 use std::fmt;
 
 use async_openai::error::OpenAIError;
-use async_openai::types::ChatCompletionRequestAssistantMessageArgs;
-use async_openai::types::ChatCompletionRequestMessage;
-use async_openai::types::ChatCompletionRequestMessageContentPartImageArgs;
-use async_openai::types::ChatCompletionRequestSystemMessageArgs;
-use async_openai::types::ChatCompletionRequestToolMessageArgs;
-use async_openai::types::ChatCompletionRequestUserMessageArgs;
-use async_openai::types::ChatCompletionRequestUserMessageContent;
-use serde::Deserialize;
-use serde::Serialize;
+use async_openai::types::{
+    ChatCompletionRequestAssistantMessageArgs, ChatCompletionRequestMessage,
+    ChatCompletionRequestMessageContentPartImageArgs, ChatCompletionRequestSystemMessageArgs,
+    ChatCompletionRequestToolMessageArgs, ChatCompletionRequestUserMessageArgs,
+    ChatCompletionRequestUserMessageContent,
+};
+use serde::{Deserialize, Serialize};
 
-use super::MessageType;
-use super::ToolCall;
+use super::{MessageType, ToolCall};
 
 /// Struct `ImageContent` represents an image provided to an LLM.
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]

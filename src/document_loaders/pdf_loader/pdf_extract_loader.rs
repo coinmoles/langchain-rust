@@ -1,15 +1,15 @@
-use std::{io::Read, path::Path, pin::Pin};
+use std::io::Read;
+use std::path::Path;
+use std::pin::Pin;
 
 use async_stream::stream;
 use async_trait::async_trait;
 use futures::Stream;
-use pdf_extract::{output_doc, PlainTextOutput};
+use pdf_extract::{PlainTextOutput, output_doc};
 
-use crate::{
-    document_loaders::{process_doc_stream, Loader, LoaderError},
-    schemas::Document,
-    text_splitter::TextSplitter,
-};
+use crate::document_loaders::{Loader, LoaderError, process_doc_stream};
+use crate::schemas::Document;
+use crate::text_splitter::TextSplitter;
 
 #[derive(Debug, Clone)]
 pub struct PdfExtractLoader {
@@ -27,7 +27,6 @@ impl PdfExtractLoader {
     /// let data = Cursor::new(vec![...] /* some PDF data */);
     /// let loader = PdfExtractLoader::new(data)?;
     /// ```
-    ///
     pub fn new<R: Read>(reader: R) -> Result<Self, LoaderError> {
         let document = pdf_extract::Document::load_from(reader)?;
         Ok(Self { document })
@@ -40,7 +39,6 @@ impl PdfExtractLoader {
     /// ```rust,ignore
     /// let loader = PdfExtractLoader::from_path("/path/to/my.pdf")?;
     /// ```
-    ///
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, LoaderError> {
         let document = pdf_extract::Document::load(path)?;
         Ok(Self { document })
@@ -82,7 +80,8 @@ impl Loader for PdfExtractLoader {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, io::Cursor};
+    use std::fs::File;
+    use std::io::Cursor;
 
     use futures_util::StreamExt;
 
@@ -102,7 +101,10 @@ mod tests {
             .collect::<Vec<_>>()
             .await;
 
-        assert_eq!(&docs[0].page_content[..100], "\n\nSample PDF Document\n\nRobert Maron\nGrzegorz Grudzi´nski\n\nFebruary 20, 1999\n\n2\n\nContents\n\n1 Templat");
+        assert_eq!(
+            &docs[0].page_content[..100],
+            "\n\nSample PDF Document\n\nRobert Maron\nGrzegorz Grudzi´nski\n\nFebruary 20, 1999\n\n2\n\nContents\n\n1 Templat"
+        );
         assert_eq!(docs.len(), 1);
     }
 
@@ -124,7 +126,10 @@ mod tests {
             .collect::<Vec<_>>()
             .await;
 
-        assert_eq!(&docs[0].page_content[..100], "\n\nSample PDF Document\n\nRobert Maron\nGrzegorz Grudzi´nski\n\nFebruary 20, 1999\n\n2\n\nContents\n\n1 Templat");
+        assert_eq!(
+            &docs[0].page_content[..100],
+            "\n\nSample PDF Document\n\nRobert Maron\nGrzegorz Grudzi´nski\n\nFebruary 20, 1999\n\n2\n\nContents\n\n1 Templat"
+        );
         assert_eq!(docs.len(), 1);
     }
 }

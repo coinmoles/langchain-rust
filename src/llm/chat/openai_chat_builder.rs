@@ -1,9 +1,9 @@
-use async_openai::{config::Config, Client as OpenAIClient};
+use async_openai::Client as OpenAIClient;
+use async_openai::config::Config;
 use reqwest::Client;
 
-use crate::llm::options::CallOptions;
-
 use super::OpenAIChat;
+use crate::llm::options::CallOptions;
 
 pub struct OpenAIChatBuilder<C: Config> {
     pub api_config: C,

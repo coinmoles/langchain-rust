@@ -1,10 +1,11 @@
-use std::{error::Error, sync::Arc};
+use std::error::Error;
+use std::sync::Arc;
 
 use surrealdb::{Connection, Surreal};
 
-use crate::{embedding::embedder_trait::Embedder, schemas::BuilderError};
-
 use super::Store;
+use crate::embedding::embedder_trait::Embedder;
+use crate::schemas::BuilderError;
 
 pub struct StoreBuilder<C: Connection> {
     db: Option<Surreal<C>>,
@@ -58,10 +59,17 @@ impl<C: Connection> StoreBuilder<C> {
     ///         .capabilities(surrealdb::opt::capabilities::Capabilities::all())
     ///         .user(surrealdb::opt::auth::Root {
     ///             username: "username".into(),
-    ///             password: "password".into()
+    ///             password: "password".into(),
     ///         });
-    ///     let db = surrealdb::engine::any::connect(("ws://127.0.0.1:8000", surrealdb_config)).await.unwrap();
-    ///     let store = StoreBuilder::new().db(db).vector_dimensions(1000).build().await.unwrap();
+    ///     let db = surrealdb::engine::any::connect(("ws://127.0.0.1:8000", surrealdb_config))
+    ///         .await
+    ///         .unwrap();
+    ///     let store = StoreBuilder::new()
+    ///         .db(db)
+    ///         .vector_dimensions(1000)
+    ///         .build()
+    ///         .await
+    ///         .unwrap();
     ///     store.initialize().await.unwrap();
     /// }
     /// ```

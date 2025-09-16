@@ -1,22 +1,18 @@
-use std::{
-    collections::HashMap,
-    error::Error,
-    fmt::{Display, Formatter},
-    sync::Arc,
-};
+use std::collections::HashMap;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use indoc::formatdoc;
 use pgvector::Vector;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::{Pool, Postgres, Row};
 use uuid::Uuid;
 
-use crate::{
-    embedding::embedder_trait::Embedder,
-    schemas::Document,
-    vectorstore::{VecStoreOptions, VectorStore},
-};
+use crate::embedding::embedder_trait::Embedder;
+use crate::schemas::Document;
+use crate::vectorstore::{VecStoreOptions, VectorStore};
 
 pub struct Store {
     pub(crate) embedder: Arc<dyn Embedder>,

@@ -1,18 +1,13 @@
-use crate::{
-    chain::{LLMChain, SqlChainLLMChainInputCtor, StringCtor},
-    llm::{CallOptions, LLM},
-    output_parser::OutputParser,
-    prompt_template,
-    schemas::{BuilderError, MessageType},
-    template::{MessageTemplate, PromptTemplate},
-    tools::SQLDatabase,
-};
-
-use super::{
-    chain::SQLDatabaseChain,
-    prompt::{DEFAULT_SQLSUFFIX, DEFAULT_SQLTEMPLATE},
-    STOP_WORD,
-};
+use super::STOP_WORD;
+use super::chain::SQLDatabaseChain;
+use super::prompt::{DEFAULT_SQLSUFFIX, DEFAULT_SQLTEMPLATE};
+use crate::chain::{LLMChain, SqlChainLLMChainInputCtor, StringCtor};
+use crate::llm::{CallOptions, LLM};
+use crate::output_parser::OutputParser;
+use crate::prompt_template;
+use crate::schemas::{BuilderError, MessageType};
+use crate::template::{MessageTemplate, PromptTemplate};
+use crate::tools::SQLDatabase;
 
 pub struct SQLDatabaseChainBuilder<'b> {
     llm: Option<Box<dyn LLM>>,

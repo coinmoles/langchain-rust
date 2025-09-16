@@ -1,14 +1,11 @@
+use std::borrow::Cow;
+use std::io::{self, Write};
+
 use async_openai::config::OpenAIConfig;
-use langchain_rust::{
-    chain::{Chain, ChainInput, Ctor, LLMChain},
-    llm::{OpenAIChat, OpenAIModel},
-    schemas::MessageType,
-    template::MessageTemplate,
-};
-use std::{
-    borrow::Cow,
-    io::{self, Write},
-}; // Include io Library for terminal input
+use langchain_rust::chain::{Chain, ChainInput, Ctor, LLMChain};
+use langchain_rust::llm::{OpenAIChat, OpenAIModel};
+use langchain_rust::schemas::MessageType;
+use langchain_rust::template::MessageTemplate; // Include io Library for terminal input
 
 #[derive(Clone, ChainInput, Ctor)]
 pub struct ProductoInput<'a> {

@@ -1,16 +1,13 @@
 use async_trait::async_trait;
 
-use crate::{
-    chain::{Chain, ChainError, LLMChain, StringCtor},
-    llm::LLMStream,
-    schemas::{IntoWithUsage, TokenUsage, WithUsage},
-    tools::SQLDatabase,
-};
-
 use super::{
-    SQLDatabaseChainBuilder, SqlChainInput, SqlChainInputCtor, SqlChainLLMChainInput,
-    SqlChainLLMChainInputCtor, QUERY_PREFIX_WITH, STOP_WORD,
+    QUERY_PREFIX_WITH, SQLDatabaseChainBuilder, STOP_WORD, SqlChainInput, SqlChainInputCtor,
+    SqlChainLLMChainInput, SqlChainLLMChainInputCtor,
 };
+use crate::chain::{Chain, ChainError, LLMChain, StringCtor};
+use crate::llm::LLMStream;
+use crate::schemas::{IntoWithUsage, TokenUsage, WithUsage};
+use crate::tools::SQLDatabase;
 
 pub struct SQLDatabaseChain {
     pub(crate) llm_chain: LLMChain<SqlChainLLMChainInputCtor>,

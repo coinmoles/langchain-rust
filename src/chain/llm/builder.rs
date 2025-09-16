@@ -1,12 +1,9 @@
-use crate::{
-    chain::{ChainOutput, InputCtor, OutputCtor},
-    llm::LLM,
-    output_parser::{OutputParser, SimpleParser},
-    schemas::BuilderError,
-    template::PromptTemplate,
-};
-
 use super::LLMChain;
+use crate::chain::{ChainOutput, InputCtor, OutputCtor};
+use crate::llm::LLM;
+use crate::output_parser::{OutputParser, SimpleParser};
+use crate::schemas::BuilderError;
+use crate::template::PromptTemplate;
 
 pub struct LLMChainBuilder<I: InputCtor, O: OutputCtor>
 where

@@ -1,26 +1,26 @@
-use std::{collections::HashMap, fmt::Display, sync::Arc};
+use std::collections::HashMap;
+use std::fmt::Display;
+use std::sync::Arc;
 
-use crate::{
-    agent::{
-        AgentBuilder, AgentError, AgentExecutor, AgentInput, AgentInputCtor, AgentOutputCtor,
-        AgentStep,
-    },
-    chain::{
-        ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor,
-    },
-    schemas::{Message, Prompt},
-    template::TemplateError,
-    tools::{Tool, Toolbox},
+use crate::agent::{
+    AgentBuilder, AgentError, AgentExecutor, AgentInput, AgentInputCtor, AgentOutputCtor, AgentStep,
 };
+use crate::chain::{
+    ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor,
+};
+use crate::schemas::{Message, Prompt};
+use crate::template::TemplateError;
+use crate::tools::{Tool, Toolbox};
 
 /// An agent implementation for agents that do **not** support structured tool calling.
 ///
-/// This agent enables tool use by prompting the model to emit tool call as plain text, which are then
-/// manually parsed into tool invocations. You can also provide a custom
-/// [`Instructor`](crate::instructor::Instructor) to customize the tool call format instruction and parsing logic.
+/// This agent enables tool use by prompting the model to emit tool call as plain text, which are
+/// then manually parsed into tool invocations. You can also provide a custom
+/// [`Instructor`](crate::instructor::Instructor) to customize the tool call format instruction and
+/// parsing logic.
 ///
-/// While this works with any language models, it is more error-prone compared to structured tool call.
-/// For OpenAI models that support structured tool calls, consider using
+/// While this works with any language models, it is more error-prone compared to structured tool
+/// call. For OpenAI models that support structured tool calls, consider using
 /// [`OpenAiToolAgent`](crate::agent::OpenAiToolAgent).
 ///
 /// # Type Parameters
@@ -35,7 +35,8 @@ pub struct Agent<'tool, I: InputCtor = DefaultChainInputCtor, O: OutputCtor = St
     /// A map of registered tool names to their implementations.
     pub(super) tools: HashMap<String, Tool<'tool>>,
     /// A list of toolboxes used to dynamically provide tools at runtime.
-    pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
+    pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, /* Has to be Arc because ownership needs to be
+                                                  * shared with ListTools */
     pub(super) _phantom: std::marker::PhantomData<O>,
 }
 
@@ -69,10 +70,12 @@ impl<'tool, I: InputCtor, O: OutputCtor> Agent<'tool, I, O> {
     ///
     /// # Example:
     /// ```
-    /// use langchain_rust::{agent::Agent, llm::{OpenAIChat, OpenAIModel}};
     /// use async_openai::config::OpenAIConfig;
+    /// use langchain_rust::agent::Agent;
+    /// use langchain_rust::llm::{OpenAIChat, OpenAIModel};
     ///
-    /// let llm: OpenAIChat<OpenAIConfig> = OpenAIChat::builder().with_model(OpenAIModel::Gpt4o).build();
+    /// let llm: OpenAIChat<OpenAIConfig> =
+    ///     OpenAIChat::builder().with_model(OpenAIModel::Gpt4o).build();
     ///
     /// let agent: Agent = Agent::builder()
     ///     .system_prompt("You are a helpful assistant.")
@@ -98,15 +101,18 @@ impl<'tool, I: InputCtor, O: OutputCtor> Agent<'tool, I, O> {
 
     /// Converts prior reasoning steps into a sequence of messages used to populate the prompt.
     ///
-    /// Invoked by the [`AgentExecutor`] at each step before `plan` is called, this method takes a sequence of
-    /// [`AgentStep`]s—each representing a completed tool call and its result—and transforms them into a
-    /// sequence of [`Message`]s (typically alternating between assistant and tool messages).
+    /// Invoked by the [`AgentExecutor`] at each step before `plan` is called, this method takes a
+    /// sequence of [`AgentStep`]s—each representing a completed tool call and its result—and
+    /// transforms them into a sequence of [`Message`]s (typically alternating between assistant
+    /// and tool messages).
     ///
     /// # Arguments
-    /// - `steps`: A list of previously completed reasoning steps, each containing a tool call and its result.
+    /// - `steps`: A list of previously completed reasoning steps, each containing a tool call and
+    ///   its result.
     ///
     /// # Returns
-    /// A vector of [`Message`]s suitable for inclusion in the LLM prompt, or an [`AgentError`] if rendering fails.
+    /// A vector of [`Message`]s suitable for inclusion in the LLM prompt, or an [`AgentError`] if
+    /// rendering fails.
     pub fn construct_scratchpad(&self, steps: &[AgentStep]) -> Vec<Message> {
         steps
             .iter()

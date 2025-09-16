@@ -1,11 +1,9 @@
 use base64::prelude::*;
-use langchain_rust::{
-    chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain},
-    llm::OpenAIChat,
-    prompt_template,
-    schemas::{Message, MessageType},
-    template::MessageTemplate,
-};
+use langchain_rust::chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain};
+use langchain_rust::llm::OpenAIChat;
+use langchain_rust::prompt_template;
+use langchain_rust::schemas::{Message, MessageType};
+use langchain_rust::template::MessageTemplate;
 
 #[tokio::main]
 async fn main() {

@@ -1,22 +1,21 @@
 use proc_macro_error2::{Diagnostic, abort};
 use quote::{ToTokens, quote};
-use syn::{Field, LitStr, spanned::Spanned};
+use syn::spanned::Spanned;
+use syn::{Field, LitStr};
 
-use crate::{
-    attr::{
-        ChainInputKind, LangchainFieldAttrs, LangchainStructAttrs, SerdeFieldAttrs,
-        SerdeStructAttrs, extract_attr, get_chain_struct_attrs, get_langchain_field_attrs,
-        get_serde_field_attrs, get_serde_struct_attrs,
-    },
-    check_type::{
-        extract_array_slice_inner_type, extract_cow_array_inner_type, extract_option_inner_type,
-        extract_vec_inner_type, is_cow_str_type, is_message_slice_type, is_str_type,
-        is_string_type, is_vec_message_type,
-    },
-    crate_path::default_crate_path,
-    helpers::{BoolExt, get_fields, get_renamed_key},
-    rename::RenameAll,
+use crate::attr::{
+    ChainInputKind, LangchainFieldAttrs, LangchainStructAttrs, SerdeFieldAttrs, SerdeStructAttrs,
+    extract_attr, get_chain_struct_attrs, get_langchain_field_attrs, get_serde_field_attrs,
+    get_serde_struct_attrs,
 };
+use crate::check_type::{
+    extract_array_slice_inner_type, extract_cow_array_inner_type, extract_option_inner_type,
+    extract_vec_inner_type, is_cow_str_type, is_message_slice_type, is_str_type, is_string_type,
+    is_vec_message_type,
+};
+use crate::crate_path::default_crate_path;
+use crate::helpers::{BoolExt, get_fields, get_renamed_key};
+use crate::rename::RenameAll;
 
 fn map_to_str(ty: &syn::Type) -> proc_macro2::TokenStream {
     if is_str_type(ty) {

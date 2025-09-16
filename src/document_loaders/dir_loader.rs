@@ -1,6 +1,9 @@
-use async_recursion::async_recursion;
+use std::fmt;
+use std::path::Path;
+use std::pin::Pin;
 use std::sync::Arc;
-use std::{fmt, path::Path, pin::Pin};
+
+use async_recursion::async_recursion;
 use tokio::fs;
 
 use super::LoaderError;
@@ -122,8 +125,9 @@ pub async fn find_files_with_extension(folder_path: &str, opts: &DirLoaderOption
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::env;
+
+    use super::*;
 
     #[tokio::test]
     async fn test_find_files_with_extension() {

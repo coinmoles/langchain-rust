@@ -1,9 +1,7 @@
 use async_trait::async_trait;
 
-use crate::{
-    chain::{Chain, ChainError},
-    schemas::{IntoWithUsage, WithUsage},
-};
+use crate::chain::{Chain, ChainError};
+use crate::schemas::{IntoWithUsage, WithUsage};
 
 pub struct EmptyChain;
 

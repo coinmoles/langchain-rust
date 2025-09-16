@@ -1,4 +1,5 @@
-use std::{collections::HashMap, error::Error};
+use std::collections::HashMap;
+use std::error::Error;
 
 use async_trait::async_trait;
 use reqwest::Client;
@@ -125,9 +126,10 @@ impl Default for DuckDuckGoSearch {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+
     use super::DuckDuckGoSearch;
     use crate::tools::FunctionTool;
-    use serde_json::json;
 
     #[tokio::test]
     #[ignore]

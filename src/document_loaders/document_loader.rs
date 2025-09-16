@@ -3,11 +3,11 @@ use std::pin::Pin;
 use async_stream::stream;
 use async_trait::async_trait;
 use futures::Stream;
-use futures_util::{pin_mut, StreamExt};
-
-use crate::{schemas::Document, text_splitter::TextSplitter};
+use futures_util::{StreamExt, pin_mut};
 
 use super::LoaderError;
+use crate::schemas::Document;
+use crate::text_splitter::TextSplitter;
 
 #[async_trait]
 pub trait Loader: Send + Sync {

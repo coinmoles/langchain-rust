@@ -1,12 +1,13 @@
-use std::{error::Error, str::FromStr, sync::Arc};
+use std::error::Error;
+use std::str::FromStr;
+use std::sync::Arc;
 
-use sqlx::{
-    sqlite::{SqliteConnectOptions, SqlitePoolOptions},
-    Pool, Sqlite,
-};
+use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+use sqlx::{Pool, Sqlite};
 
 use super::Store;
-use crate::{embedding::embedder_trait::Embedder, schemas::BuilderError};
+use crate::embedding::embedder_trait::Embedder;
+use crate::schemas::BuilderError;
 
 pub struct StoreBuilder {
     pool: Option<Pool<Sqlite>>,

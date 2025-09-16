@@ -1,22 +1,21 @@
-use std::{fmt::Display, sync::Arc};
+use std::fmt::Display;
+use std::sync::Arc;
 
 use async_stream::stream;
 use async_trait::async_trait;
-use futures_util::{pin_mut, StreamExt};
+use futures_util::{StreamExt, pin_mut};
 use tokio::sync::{Mutex, RwLock};
 
-use crate::{
-    chain::{
-        Chain, ChainError, ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain,
-        OutputCtor, StringCtor,
-    },
-    llm::{LLMOutput, LLMOutputCtor, LLMStream},
-    memory::Memory,
-    schemas::{messages::Message, IntoWithUsage, Prompt, WithUsage},
-    template::TemplateError,
-};
-
 use super::{ConversationalChainBuilder, ConversationalChainInput, ConversationalChainInputCtor};
+use crate::chain::{
+    Chain, ChainError, ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain,
+    OutputCtor, StringCtor,
+};
+use crate::llm::{LLMOutput, LLMOutputCtor, LLMStream};
+use crate::memory::Memory;
+use crate::schemas::messages::Message;
+use crate::schemas::{IntoWithUsage, Prompt, WithUsage};
+use crate::template::TemplateError;
 
 pub struct ConversationalChain<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor>
 where
@@ -130,12 +129,9 @@ where
 mod tests {
     use async_openai::config::OpenAIConfig;
 
-    use crate::{
-        chain::DefaultChainInput,
-        llm::{GenericChat, OpenAIModel},
-    };
-
     use super::*;
+    use crate::chain::DefaultChainInput;
+    use crate::llm::{GenericChat, OpenAIModel};
 
     #[tokio::test]
     #[ignore]

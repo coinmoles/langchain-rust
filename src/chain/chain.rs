@@ -1,12 +1,9 @@
 use async_trait::async_trait;
 
-use crate::{
-    chain::{InputCtor, OutputCtor},
-    llm::LLMStream,
-    schemas::{OutputTrace, WithUsage},
-};
-
 use super::ChainError;
+use crate::chain::{InputCtor, OutputCtor};
+use crate::llm::LLMStream;
+use crate::schemas::{OutputTrace, WithUsage};
 
 #[async_trait]
 pub trait Chain<I: InputCtor, O: OutputCtor>: Sync + Send {
@@ -35,14 +32,14 @@ pub trait Chain<I: InputCtor, O: OutputCtor>: Sync + Send {
     /// # async {
     /// let open_ai = OpenAI::default();
     ///
-    ///let prompt = message_formatter![
-    ///fmt_message!(Message::new_system_message(
-    ///"You are world class technical documentation writer."
-    ///)),
-    ///fmt_template!(HumanMessagePromptTemplate::new(template_fstring!(
+    /// let prompt = message_formatter![
+    /// fmt_message!(Message::new_system_message(
+    /// "You are world class technical documentation writer."
+    /// )),
+    /// fmt_template!(HumanMessagePromptTemplate::new(template_fstring!(
     ///      "{input}", "input"
-    ///)))
-    ///];
+    /// )))
+    /// ];
     ///
     /// let chain = LLMChainBuilder::new()
     ///     .prompt(prompt)
@@ -65,7 +62,6 @@ pub trait Chain<I: InputCtor, O: OutputCtor>: Sync + Send {
     /// };
     /// # };
     /// ```
-    ///
     async fn stream(&self, _input: I::Target<'_>) -> Result<LLMStream, ChainError> {
         unimplemented!("Streaming is not implemented for this chain")
     }

@@ -1,7 +1,5 @@
-use crate::{
-    agent::AgentStep,
-    schemas::{Message, ToolCall},
-};
+use crate::agent::AgentStep;
+use crate::schemas::{Message, ToolCall};
 
 pub trait Memory: Send + Sync {
     fn messages(&self) -> Vec<Message>;

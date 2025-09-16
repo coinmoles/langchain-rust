@@ -1,9 +1,7 @@
 use indoc::indoc;
-use langchain_rust::{
-    chain::{Chain, StuffDocument, StuffQA, StuffQACtor},
-    llm::OpenAIChat,
-    schemas::Document,
-};
+use langchain_rust::chain::{Chain, StuffDocument, StuffQA, StuffQACtor};
+use langchain_rust::llm::OpenAIChat;
+use langchain_rust::schemas::Document;
 
 #[tokio::main]
 async fn main() {

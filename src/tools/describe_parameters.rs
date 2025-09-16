@@ -218,11 +218,10 @@ fn resolve_reference(
 #[allow(dead_code)]
 mod tests {
     use indoc::indoc;
-    use schemars::{schema_for, JsonSchema};
-
-    use crate::tools::DefaultFunctionInput;
+    use schemars::{JsonSchema, schema_for};
 
     use super::*;
+    use crate::tools::DefaultFunctionInput;
 
     #[test]
     fn test_describe_parameters() {

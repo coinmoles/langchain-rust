@@ -1,13 +1,11 @@
 use std::pin::Pin;
 
 use async_trait::async_trait;
-use futures::{stream, Stream};
+use futures::{Stream, stream};
 
-use crate::{
-    document_loaders::{process_doc_stream, Loader, LoaderError},
-    schemas::Document,
-    text_splitter::TextSplitter,
-};
+use crate::document_loaders::{Loader, LoaderError, process_doc_stream};
+use crate::schemas::Document;
+use crate::text_splitter::TextSplitter;
 
 #[derive(Debug, Clone)]
 pub struct TextLoader {
@@ -52,9 +50,8 @@ impl Loader for TextLoader {
 mod tests {
     use futures_util::StreamExt;
 
-    use crate::text_splitter::TokenSplitter;
-
     use super::*;
+    use crate::text_splitter::TokenSplitter;
 
     #[tokio::test]
     async fn test_reading_mocked_file_content() {

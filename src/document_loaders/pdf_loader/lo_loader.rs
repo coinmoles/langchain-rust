@@ -1,15 +1,16 @@
-use std::{collections::HashMap, io::Read, path::Path, pin::Pin};
+use std::collections::HashMap;
+use std::io::Read;
+use std::path::Path;
+use std::pin::Pin;
 
 use async_stream::stream;
 use async_trait::async_trait;
 use futures::Stream;
 use serde_json::Value;
 
-use crate::{
-    document_loaders::{process_doc_stream, Loader, LoaderError},
-    schemas::Document,
-    text_splitter::TextSplitter,
-};
+use crate::document_loaders::{Loader, LoaderError, process_doc_stream};
+use crate::schemas::Document;
+use crate::text_splitter::TextSplitter;
 
 #[derive(Debug, Clone)]
 pub struct LoPdfLoader {
@@ -27,7 +28,6 @@ impl LoPdfLoader {
     /// let data = Cursor::new(vec![...] /* some PDF data */);
     /// let loader = LoPdfLoader::new(data)?;
     /// ```
-    ///
     pub fn new<R: Read>(reader: R) -> Result<Self, LoaderError> {
         let document = lopdf::Document::load_from(reader)?;
         Ok(Self { document })
@@ -40,7 +40,6 @@ impl LoPdfLoader {
     /// ```rust,ignore
     /// let loader = LoPdfLoader::from_path("/path/to/my.pdf")?;
     /// ```
-    ///
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, LoaderError> {
         let document = lopdf::Document::load(path)?;
         Ok(Self { document })
@@ -86,7 +85,8 @@ impl Loader for LoPdfLoader {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, io::Cursor};
+    use std::fs::File;
+    use std::io::Cursor;
 
     use futures_util::StreamExt;
 

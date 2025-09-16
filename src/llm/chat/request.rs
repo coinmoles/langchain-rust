@@ -4,10 +4,9 @@ use async_openai::types::{
 };
 use serde::Serialize;
 
-use crate::{
-    llm::{options::CallOptions, LLMError},
-    schemas::{FunctionSpec, Message},
-};
+use crate::llm::LLMError;
+use crate::llm::options::CallOptions;
+use crate::schemas::{FunctionSpec, Message};
 
 /// Request payload sent to an OpenAPI-compatible API.
 #[derive(Serialize, Debug)]

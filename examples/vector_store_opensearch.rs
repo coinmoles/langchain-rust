@@ -1,6 +1,13 @@
 // To run this example execute: cargo run --example vector_store_opensearch --features opensearch
 
 #[cfg(feature = "opensearch")]
+use std::collections::HashMap;
+#[cfg(feature = "opensearch")]
+use std::error::Error;
+#[cfg(feature = "opensearch")]
+use std::io::Write;
+
+#[cfg(feature = "opensearch")]
 use aws_config::SdkConfig;
 #[cfg(feature = "opensearch")]
 use langchain_rust::vectorstore::{VecStoreOptions, VectorStore};
@@ -11,12 +18,6 @@ use langchain_rust::{
 };
 #[cfg(feature = "opensearch")]
 use serde_json::json;
-#[cfg(feature = "opensearch")]
-use std::collections::HashMap;
-#[cfg(feature = "opensearch")]
-use std::error::Error;
-#[cfg(feature = "opensearch")]
-use std::io::Write;
 #[cfg(feature = "opensearch")]
 use url::Url;
 
@@ -106,11 +107,11 @@ async fn add_documents_to_index(store: &Store) -> Result<Vec<String>, Box<dyn Er
     .with_metadata(HashMap::from([("source".to_string(), json!("cli"))]));
 
     let doc2 = Document::new(
-        "langchaingo is a port of the langchain python library to go language and was written in 2023."
+        "langchaingo is a port of the langchain python library to go language and was written in 2023.",
     );
 
     let doc3 = Document::new(
-        "Capital of United States of America (USA) is Washington D.C. and the capital of France is Paris."
+        "Capital of United States of America (USA) is Washington D.C. and the capital of France is Paris.",
     );
 
     let doc4 = Document::new("Capital of France is Paris.");

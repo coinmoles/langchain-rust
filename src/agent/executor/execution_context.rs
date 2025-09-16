@@ -1,18 +1,17 @@
-use std::{collections::HashMap, fmt::Display};
+use std::collections::HashMap;
+use std::fmt::Display;
 
 use itertools::{Either, Itertools};
-use tracing::{info_span, Instrument};
+use tracing::{Instrument, info_span};
 
-use crate::{
-    agent::{
-        AgentError, AgentExecutor, AgentInput, AgentOutput, AgentStep, DefaultStrategy,
-        ExecutionOutput, Strategy,
-    },
-    chain::{ChainError, ChainOutput, InputCtor, OutputCtor},
-    schemas::{IntoWithUsage, TokenUsage, ToolCall, ToolSpec, WithUsage},
-    tools::{FunctionTool, McpTool, Tool},
-    utils::helper::normalize_tool_name,
+use crate::agent::{
+    AgentError, AgentExecutor, AgentInput, AgentOutput, AgentStep, DefaultStrategy,
+    ExecutionOutput, Strategy,
 };
+use crate::chain::{ChainError, ChainOutput, InputCtor, OutputCtor};
+use crate::schemas::{IntoWithUsage, TokenUsage, ToolCall, ToolSpec, WithUsage};
+use crate::tools::{FunctionTool, McpTool, Tool};
+use crate::utils::helper::normalize_tool_name;
 
 macro_rules! failure {
     ($ctx:expr, $($arg:tt)*) => {{
@@ -233,7 +232,8 @@ where
         log::debug!("\nAgent finished with result:\n{final_answer}");
 
         let human_message = self.input.inner.to_string();
-        // `self.input.inner` is moved here, this cannot be done in a separate method which receives `&self`.
+        // `self.input.inner` is moved here, this cannot be done in a separate method which receives
+        // `&self`.
         let answer = match O::Target::from_text_and_input(self.input.inner, final_answer.clone()) {
             Ok(answer) => answer,
             Err((returned_input, e)) => {

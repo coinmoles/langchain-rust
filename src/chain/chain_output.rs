@@ -1,6 +1,7 @@
 pub use macros::ChainOutput;
 
-use crate::{output_parser::OutputParseError, schemas::ToolCall};
+use crate::output_parser::OutputParseError;
+use crate::schemas::ToolCall;
 
 pub trait ChainOutput<I>: Sized + Send + Sync {
     fn from_text(_text: impl Into<String>) -> Result<Self, OutputParseError> {

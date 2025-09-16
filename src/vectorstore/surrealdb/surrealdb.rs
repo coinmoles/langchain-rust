@@ -1,4 +1,6 @@
-use std::{collections::HashMap, error::Error, sync::Arc};
+use std::collections::HashMap;
+use std::error::Error;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use indoc::formatdoc;
@@ -6,11 +8,9 @@ use serde::Deserialize;
 use serde_json::Value;
 use surrealdb::{Connection, Surreal};
 
-use crate::{
-    embedding::embedder_trait::Embedder,
-    schemas::Document,
-    vectorstore::{VecStoreOptions, VectorStore},
-};
+use crate::embedding::embedder_trait::Embedder;
+use crate::schemas::Document;
+use crate::vectorstore::{VecStoreOptions, VectorStore};
 
 // INSERT INTO documents {
 //  text: 'some text,

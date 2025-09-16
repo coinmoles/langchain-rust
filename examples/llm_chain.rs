@@ -1,25 +1,27 @@
-use langchain_rust::{
-    chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain},
-    llm::{OpenAIChat, LLM},
-    prompt_template,
-    schemas::{messages::Message, MessageType},
-    template::MessageTemplate,
-};
+use langchain_rust::chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain};
+use langchain_rust::llm::{LLM, OpenAIChat};
+use langchain_rust::prompt_template;
+use langchain_rust::schemas::MessageType;
+use langchain_rust::schemas::messages::Message;
+use langchain_rust::template::MessageTemplate;
 
 #[tokio::main]
 async fn main() {
     //We can then initialize the model:
-    // If you'd prefer not to set an environment variable you can pass the key in directly via the `openai_api_key` named parameter when initiating the OpenAI LLM class:
-    // let open_ai = OpenAI::builder()
-    //     .with_api_config(OpenAIConfig::default().with_api_key("..."))
+    // If you'd prefer not to set an environment variable you can pass the key in directly via the
+    // `openai_api_key` named parameter when initiating the OpenAI LLM class: let open_ai =
+    // OpenAI::builder()     .with_api_config(OpenAIConfig::default().with_api_key("..."))
     //     .build();
     let open_ai = OpenAIChat::default();
 
-    //Once you've installed and initialized the LLM of your choice, we can try using it! Let's ask it what LangSmith is - this is something that wasn't present in the training data so it shouldn't have a very good response.
+    //Once you've installed and initialized the LLM of your choice, we can try using it! Let's ask
+    // it what LangSmith is - this is something that wasn't present in the training data so it
+    // shouldn't have a very good response.
     let resp = open_ai.invoke("What is rust").await.unwrap();
     println!("{resp}");
 
-    // We can also guide it's response with a prompt template. Prompt templates are used to convert raw user input to a better input to the LLM.
+    // We can also guide it's response with a prompt template. Prompt templates are used to convert
+    // raw user input to a better input to the LLM.
     let prompt = prompt_template![
         Message::new_system_message("You are world class technical documentation writer."),
         MessageTemplate::from_fstring(MessageType::Human, "{input}",)
@@ -33,7 +35,8 @@ async fn main() {
         .build()
         .unwrap();
 
-    //We can now invoke it and ask the same question. It still won't know the answer, but it should respond in a more proper tone for a technical writer!
+    //We can now invoke it and ask the same question. It still won't know the answer, but it should
+    // respond in a more proper tone for a technical writer!
 
     match chain
         .call(DefaultChainInput::new(
@@ -63,8 +66,8 @@ async fn main() {
     // match chain
     //     .invoke(&mut InputVariables::new(
     //         text_replacements! {
-    //             "input" => "Who is the writer of 20,000 Leagues Under the Sea, and what is my name?",
-    //         },
+    //             "input" => "Who is the writer of 20,000 Leagues Under the Sea, and what is my
+    // name?",         },
     //         placeholder_replacements! {
     //             "history" => vec![
     //                 Message::new_human_message("My name is: luis"),

@@ -1,23 +1,21 @@
-use async_trait::async_trait;
-use opensearch::http::request::JsonBody;
-use opensearch::http::response::Response;
-use opensearch::indices::{IndicesCreateParts, IndicesDeleteParts};
-use opensearch::{BulkParts, SearchParts};
-use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
 
+use async_trait::async_trait;
+pub use opensearch::OpenSearch;
 pub use opensearch::auth::Credentials;
 pub use opensearch::cert::CertificateValidation;
+use opensearch::http::request::JsonBody;
+use opensearch::http::response::Response;
 pub use opensearch::http::transport::{SingleNodeConnectionPool, TransportBuilder};
-pub use opensearch::OpenSearch;
+use opensearch::indices::{IndicesCreateParts, IndicesDeleteParts};
+use opensearch::{BulkParts, SearchParts};
+use serde_json::{Value, json};
 
-use crate::{
-    embedding::embedder_trait::Embedder,
-    schemas::Document,
-    vectorstore::{VecStoreOptions, VectorStore},
-};
+use crate::embedding::embedder_trait::Embedder;
+use crate::schemas::Document;
+use crate::vectorstore::{VecStoreOptions, VectorStore};
 
 pub struct Store {
     pub client: OpenSearch,

@@ -4,21 +4,19 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tokio::sync::RwLock;
 
-use crate::{
-    agent::{Agent, AgentInput, DefaultStrategy, ExecutionContext, Strategy},
-    chain::{Chain, ChainError, ChainOutput, GetPrompt, InputCtor, OutputCtor},
-    memory::Memory,
-    schemas::{Prompt, WithUsage},
-    template::TemplateError,
-};
-
 use super::ExecutorOptions;
+use crate::agent::{Agent, AgentInput, DefaultStrategy, ExecutionContext, Strategy};
+use crate::chain::{Chain, ChainError, ChainOutput, GetPrompt, InputCtor, OutputCtor};
+use crate::memory::Memory;
+use crate::schemas::{Prompt, WithUsage};
+use crate::template::TemplateError;
 
 /// A runtime executor for driving multi-step agent execution with memory, planning, and tool use.
 ///
-/// This struct coordinates the full reasoning loop of an [`Agent`](crate::agent::Agent), handling prompt generation,
-/// scratchpad construction, tool resolution, and optional memory integration. It provides a high-level interface
-/// for running agents in a predictable, type-safe, and optionally stateful manner.
+/// This struct coordinates the full reasoning loop of an [`Agent`](crate::agent::Agent), handling
+/// prompt generation, scratchpad construction, tool resolution, and optional memory integration. It
+/// provides a high-level interface for running agents in a predictable, type-safe, and optionally
+/// stateful manner.
 ///
 /// # Type Parameters
 /// - `I`: A [constructor](crate::chain::Ctor) for the agent’s input type.

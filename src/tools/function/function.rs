@@ -1,7 +1,7 @@
 use std::string::String;
 
 use async_trait::async_trait;
-use schemars::{schema_for, JsonSchema, Schema};
+use schemars::{JsonSchema, Schema, schema_for};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
@@ -31,7 +31,8 @@ pub trait Function: Send + Sync {
     ///
     /// Used for OpenAI function call.
     ///
-    /// You don't need to implement this method as it is automatically generated based on the `Input` type.
+    /// You don't need to implement this method as it is automatically generated based on the
+    /// `Input` type.
     fn parameters(&self) -> Schema {
         schema_for!(Self::Input)
     }
@@ -53,7 +54,7 @@ pub trait Function: Send + Sync {
     /// // type Output = String;
     /// async fn run(
     ///     &self,
-    ///     input: (usize, usize)
+    ///     input: (usize, usize),
     /// ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     ///     let result = self.0 + self.1;
     ///     Ok(result.to_string())
@@ -64,7 +65,8 @@ pub trait Function: Send + Sync {
         input: Self::Input,
     ) -> Result<Self::Output, Box<dyn std::error::Error + Send + Sync>>;
 
-    /// Parses the input string, which could be a JSON value or a raw string, depending on the LLM model.
+    /// Parses the input string, which could be a JSON value or a raw string, depending on the LLM
+    /// model.
     ///
     /// If not implemented, it will default to parsing the input as a JSON value.
     async fn parse_input(&self, input: Value) -> Result<Self::Input, serde_json::Error> {

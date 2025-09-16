@@ -1,10 +1,12 @@
+use std::error::Error;
+use std::sync::Arc;
+
+use qdrant_client::Qdrant;
+use qdrant_client::qdrant::{CreateCollectionBuilder, Distance, Filter, VectorParamsBuilder};
+
 use crate::embedding::Embedder;
 use crate::schemas::BuilderError;
 use crate::vectorstore::qdrant::Store;
-use qdrant_client::qdrant::{CreateCollectionBuilder, Distance, Filter, VectorParamsBuilder};
-use qdrant_client::Qdrant;
-use std::error::Error;
-use std::sync::Arc;
 
 pub struct StoreBuilder {
     client: Option<Qdrant>,
@@ -59,15 +61,15 @@ impl StoreBuilder {
         self
     }
 
-    /// Name of the field in the Qdrant point's payload that will store the metadata of the documents.
-    /// Default: "metadata"
+    /// Name of the field in the Qdrant point's payload that will store the metadata of the
+    /// documents. Default: "metadata"
     pub fn metadata_field(mut self, metadata_field: &str) -> Self {
         self.metadata_field = metadata_field.to_string();
         self
     }
 
-    /// Name of the field in the Qdrant point's payload that will store the content of the documents.
-    /// Default: "page_content"
+    /// Name of the field in the Qdrant point's payload that will store the content of the
+    /// documents. Default: "page_content"
     pub fn content_field(mut self, content_field: &str) -> Self {
         self.content_field = content_field.to_string();
         self

@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 
-use crate::semantic_router::{utils::cosine_similarity, IndexError, Router};
-
 use super::Index;
+use crate::semantic_router::utils::cosine_similarity;
+use crate::semantic_router::{IndexError, Router};
 
 pub struct MemoryIndex {
     routers: HashMap<String, Router>,
