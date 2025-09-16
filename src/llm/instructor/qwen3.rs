@@ -35,13 +35,8 @@ const ALTERNATIVE_ARGUMENTS_KEY: &str = "action_input";
 const VALID_KEYS: &[&[&str]] = &[&[NAME_KEY, ARGUMENTS_KEY]];
 const ALTERNATIVE_KEYS: &[&[&str]] = &[&[ALTERNATIVE_NAME_KEY, ALTERNATIVE_ARGUMENTS_KEY]];
 
+#[derive(Default)]
 pub struct Qwen3Instructor;
-
-impl Default for Qwen3Instructor {
-    fn default() -> Self {
-        Self
-    }
-}
 
 impl Qwen3Instructor {
     fn deserialize_tool_call(&self, value: Value) -> Result<LLMOutput, serde_json::Error> {
