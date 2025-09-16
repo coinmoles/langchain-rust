@@ -23,6 +23,15 @@ impl McpTool {
         }
     }
 
+    pub async fn into_function_tool(self) -> Result<Box<dyn FunctionTool>, McpError> {
+        let tool = McpTool::into_function_tools(vec![self])
+            .await?
+            .into_values()
+            .next()
+            .expect("One tool should be present");
+        Ok(tool)
+    }
+
     pub async fn into_function_tools(
         predicates: Vec<Self>,
     ) -> Result<HashMap<String, Box<dyn FunctionTool>>, McpError> {
