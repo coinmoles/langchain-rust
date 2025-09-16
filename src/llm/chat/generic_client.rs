@@ -45,8 +45,6 @@ impl<C: Config> GenericChat<C> {
     }
 
     fn process_prompt(&self, prompt: Prompt, tools: Option<&[FunctionSpec]>) -> Vec<Message> {
-        let mut first_system = true;
-
         prompt
             .to_messages()
             .into_iter()
@@ -80,36 +78,6 @@ impl<C: Config> GenericChat<C> {
                     message.message_type = MessageType::Human;
                 }
                 Some(message)
-            })
-            .map(|mut message| {
-                if self.call_options.system_is_assistant
-                    && message.message_type == MessageType::System
-                {
-                    message.message_type = MessageType::Ai;
-                }
-                if first_system && message.message_type == MessageType::System {
-                    if let Some(tools) = tools {
-                        let instruction = self.instructor.tool_use_instruction(tools);
-                        message.content.push_str(&instruction);
-                    }
-                    first_system = false;
-                }
-
-                // Convert tool call + tool result messages to ai / human messages
-                if message.message_type == MessageType::Ai {
-                    if let Some(tool_calls) = message.tool_calls {
-                        message.content = tool_calls
-                            .iter()
-                            .map(|tc| tc.to_string())
-                            .collect::<Vec<_>>()
-                            .join("\n");
-                        message.tool_calls = None;
-                    }
-                }
-                if message.message_type == MessageType::Tool {
-                    message.message_type = MessageType::Human;
-                }
-                message
             })
             .collect::<Vec<_>>()
     }
@@ -162,6 +130,9 @@ impl<C: Config + Send + Sync + 'static> LLM for GenericChat<C> {
         let tools = tools.map(|t| t.functions.as_slice());
 
         let messages = self.process_prompt(prompt, tools);
+        for message in &messages {
+            println!("{}: {}", message.message_type, message.content);
+        }
         let options = self.call_options.clone();
         let stream = self.call_options.stream.unwrap_or(false);
         let request = ChatRequest::new(&self.model, messages, None)?.with_options(options);
