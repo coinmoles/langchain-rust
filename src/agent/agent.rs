@@ -28,18 +28,18 @@ use crate::{
 ///   [`DefaultChainInputCtor`], which constructs [`ChainInput`](crate::chain::DefaultChainInput)).
 /// - `O`: A [constructor](crate::chain::Ctor) for the agent’s output type (defaults to
 ///   [`StringCtor`], which constructs [`String`]).
-pub struct Agent<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor> {
+pub struct Agent<'tool, I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor> {
     pub(super) id: String,
     /// The inner [`LLMChain`] used for prompt construction and LLM invocation.
     pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
     /// A map of registered tool names to their implementations.
-    pub(super) tools: HashMap<String, Tool>,
+    pub(super) tools: HashMap<String, Tool<'tool>>,
     // /// A list of toolboxes used to dynamically provide tools at runtime.
     // pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
     pub(super) _phantom: std::marker::PhantomData<O>,
 }
 
-impl<I: InputCtor, O: OutputCtor> Agent<I, O> {
+impl<'tool, I: InputCtor, O: OutputCtor> Agent<'tool, I, O> {
     /// Creates a new `AgentStruct` with the given LLM chain and tools.
     ///
     /// # Arguments
@@ -51,7 +51,7 @@ impl<I: InputCtor, O: OutputCtor> Agent<I, O> {
     pub fn new(
         id: String,
         llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
-        tools: HashMap<String, Tool>,
+        tools: HashMap<String, Tool<'tool>>,
     ) -> Self {
         Self {
             id,
@@ -78,11 +78,11 @@ impl<I: InputCtor, O: OutputCtor> Agent<I, O> {
     ///     // .tools(vec![my_tool]) // You can add tools here
     ///     .build(llm);
     /// ```
-    pub fn builder<'a, 'b>() -> AgentBuilder<'a, 'b, I, O> {
+    pub fn builder<'a, 'b>() -> AgentBuilder<'a, 'b, 'tool, I, O> {
         AgentBuilder::new()
     }
 
-    pub fn executor(self) -> AgentExecutor<I, O>
+    pub fn executor(self) -> AgentExecutor<'tool, I, O>
     where
         for<'any> I::Target<'any>: Display,
         for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,

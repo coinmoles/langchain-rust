@@ -27,7 +27,7 @@ enum FinalizeFailure<Ctx> {
 }
 
 /// Runtime context that owns all mutable state during an [`AgentExecutor`] run.
-pub struct ExecutionContext<'exec, 'input, I, O, S = DefaultStrategy>
+pub struct ExecutionContext<'exec, 'tool, 'input, I, O, S = DefaultStrategy>
 where
     I: InputCtor,
     O: OutputCtor,
@@ -35,7 +35,7 @@ where
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     /// Reference to the [`AgentExecutor`] driving this execution.
-    executor: &'exec AgentExecutor<I, O>,
+    executor: &'exec AgentExecutor<'tool, I, O>,
     /// The execution strategy for the execution.
     strategy: S,
     /// The input provided to this execution.
@@ -55,7 +55,7 @@ where
     _phantom: std::marker::PhantomData<O>,
 }
 
-impl<'exec, 'input, I, O, S> ExecutionContext<'exec, 'input, I, O, S>
+impl<'exec, 'tool, 'input, I, O, S> ExecutionContext<'exec, 'tool, 'input, I, O, S>
 where
     I: InputCtor,
     O: OutputCtor,
@@ -66,7 +66,7 @@ where
     /// Constructs a new [`ExecutionContext`].
     #[must_use]
     pub fn new(
-        executor: &'exec AgentExecutor<I, O>,
+        executor: &'exec AgentExecutor<'tool, I, O>,
         input: I::Target<'input>,
         strategy: S,
     ) -> Self {

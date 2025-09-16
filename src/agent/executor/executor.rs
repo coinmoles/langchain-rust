@@ -23,24 +23,24 @@ use super::ExecutorOptions;
 /// # Type Parameters
 /// - `I`: A [constructor](crate::chain::Ctor) for the agent’s input type.
 /// - `O`: A [constructor](crate::chain::Ctor) for the agent’s output type.
-pub struct AgentExecutor<I: InputCtor, O: OutputCtor>
+pub struct AgentExecutor<'tool, I: InputCtor, O: OutputCtor>
 where
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
-    pub(super) agent: Agent<I, O>,
+    pub(super) agent: Agent<'tool, I, O>,
     // pub(super) tools: Vec<Box<dyn FunctionTool>>,
     pub(super) memory: Option<Arc<RwLock<dyn Memory>>>,
     pub(super) options: ExecutorOptions,
 }
 
-impl<I: InputCtor, O: OutputCtor> AgentExecutor<I, O>
+impl<'tool, I: InputCtor, O: OutputCtor> AgentExecutor<'tool, I, O>
 where
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     /// Constructs a new [`AgentExecutor`] from a struct that implements the trait [`Agent`].
-    pub fn from_agent(agent: Agent<I, O>) -> Self {
+    pub fn from_agent(agent: Agent<'tool, I, O>) -> Self {
         Self {
             agent,
             memory: None,
@@ -82,13 +82,13 @@ where
         &'exec self,
         input: I::Target<'input>,
         strategy: S,
-    ) -> ExecutionContext<'exec, 'input, I, O, S> {
+    ) -> ExecutionContext<'exec, 'tool, 'input, I, O, S> {
         ExecutionContext::new(self, input, strategy)
     }
 }
 
 #[async_trait]
-impl<I: InputCtor, O: OutputCtor> Chain<I, O> for AgentExecutor<I, O>
+impl<I: InputCtor, O: OutputCtor> Chain<I, O> for AgentExecutor<'_, I, O>
 where
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
@@ -99,7 +99,7 @@ where
     }
 }
 
-impl<I: InputCtor, O: OutputCtor> GetPrompt<AgentInput<I::Target<'_>>> for AgentExecutor<I, O>
+impl<I: InputCtor, O: OutputCtor> GetPrompt<AgentInput<I::Target<'_>>> for AgentExecutor<'_, I, O>
 where
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,

@@ -1,13 +1,13 @@
 use crate::tools::{FunctionTool, McpTool};
 
-pub enum Tool {
-    Function(Box<dyn FunctionTool>),
+pub enum Tool<'a> {
+    Function(Box<dyn FunctionTool + 'a>),
     Mcp(McpTool),
 }
 
 // Executor will turn this into function tool or mcp tool spec, respectively
 
-impl Tool {
+impl Tool<'_> {
     pub fn name(&self) -> String {
         match self {
             Tool::Function(tool) => tool.name(),
@@ -16,13 +16,13 @@ impl Tool {
     }
 }
 
-impl<F: FunctionTool + 'static> From<F> for Tool {
+impl<'a, F: FunctionTool + 'a> From<F> for Tool<'a> {
     fn from(tool: F) -> Self {
         Tool::Function(Box::new(tool))
     }
 }
 
-impl From<McpTool> for Tool {
+impl From<McpTool> for Tool<'_> {
     fn from(tool: McpTool) -> Self {
         Tool::Mcp(tool)
     }

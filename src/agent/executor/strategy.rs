@@ -65,7 +65,7 @@ pub trait Strategy: Default + Send + Sync {
         Ok(input)
     }
 
-    fn additional_tools(&self) -> HashMap<&str, &Tool> {
+    fn additional_tools(&self) -> HashMap<&str, &Tool<'_>> {
         HashMap::new()
     }
 

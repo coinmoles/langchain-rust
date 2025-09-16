@@ -24,19 +24,19 @@ pub const DEFAULT_INITIAL_PROMPT: &str = r#"{{input}}"#;
 /// # Type Parameters
 /// - `I`: A [constructor](crate::chain::Ctor) for the agent’s input type.
 /// - `O`: A [constructor](crate::chain::Ctor) for the agent’s output type.
-pub struct AgentBuilder<'a, 'b, I: InputCtor, O: OutputCtor> {
-    /// The tools to be used by the agent.
-    tools: Option<Vec<Tool>>,
+pub struct AgentBuilder<'a, 'b, 'c, I: InputCtor, O: OutputCtor> {
     // /// The toolboxes containing additional tools for the agent.
     // toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     /// The system prompt to be used by the agent.
     system_prompt: Option<&'a str>,
     /// The initial user prompt to be used by the agent.
     initial_prompt: Option<&'b str>,
+    /// The tools to be used by the agent.
+    tools: Option<Vec<Tool<'c>>>,
     _phantom: std::marker::PhantomData<(I, O)>,
 }
 
-impl<'a, 'b, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, I, O> {
+impl<'a, 'b, 'tool, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, 'tool, I, O> {
     /// Constructs a new [`AgentBuilder`].
     ///
     /// This is the same as calling [`OpenAiToolAgent::builder()`].
@@ -50,18 +50,6 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, I, O> {
         }
     }
 
-    /// Adds tools.
-    pub fn tools(mut self, tools: impl IntoIterator<Item = Tool>) -> Self {
-        self.tools = Some(tools.into_iter().collect());
-        self
-    }
-
-    // /// Adds toolboxes.
-    // pub fn toolboxes(mut self, toolboxes: Vec<Box<dyn Toolbox>>) -> Self {
-    //     self.toolboxes = Some(toolboxes);
-    //     self
-    // }
-
     /// Sets the system prompt.
     pub fn system_prompt(mut self, system_prompt: &'a str) -> Self {
         self.system_prompt = Some(system_prompt);
@@ -74,8 +62,20 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, I, O> {
         self
     }
 
+    /// Adds tools.
+    pub fn tools(mut self, tools: impl IntoIterator<Item = Tool<'tool>>) -> Self {
+        self.tools = Some(tools.into_iter().collect());
+        self
+    }
+
+    // /// Adds toolboxes.
+    // pub fn toolboxes(mut self, toolboxes: Vec<Box<dyn Toolbox>>) -> Self {
+    //     self.toolboxes = Some(toolboxes);
+    //     self
+    // }
+
     /// Returns a [`OpenAiToolAgent`] that uses this [`AgentBuilder`] configuration.
-    pub fn build<L: LLM + 'static>(self, llm: L) -> Agent<I, O> {
+    pub fn build<L: LLM + 'static>(self, llm: L) -> Agent<'tool, I, O> {
         let system_prompt = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
 
@@ -109,7 +109,7 @@ impl<'a, 'b, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, I, O> {
     }
 }
 
-impl<'a, 'b, I: InputCtor, O: OutputCtor> Default for AgentBuilder<'a, 'b, I, O> {
+impl<'a, 'b, 'c, I: InputCtor, O: OutputCtor> Default for AgentBuilder<'a, 'b, 'c, I, O> {
     fn default() -> Self {
         Self::new()
     }
