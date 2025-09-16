@@ -25,14 +25,16 @@ pub const DEFAULT_INITIAL_PROMPT: &str = r#"{{input}}"#;
 /// - `I`: A [constructor](crate::chain::Ctor) for the agent’s input type.
 /// - `O`: A [constructor](crate::chain::Ctor) for the agent’s output type.
 pub struct AgentBuilder<'a, 'b, 'c, I: InputCtor, O: OutputCtor> {
-    // /// The toolboxes containing additional tools for the agent.
-    // toolboxes: Option<Vec<Box<dyn Toolbox>>>,
+    /// The id of the agent
+    id: Option<String>,
     /// The system prompt to be used by the agent.
     system_prompt: Option<&'a str>,
     /// The initial user prompt to be used by the agent.
     initial_prompt: Option<&'b str>,
     /// The tools to be used by the agent.
     tools: Option<Vec<Tool<'c>>>,
+    // /// The toolboxes containing additional tools for the agent.
+    // toolboxes: Option<Vec<Box<dyn Toolbox>>>,
     _phantom: std::marker::PhantomData<(I, O)>,
 }
 
@@ -43,11 +45,18 @@ impl<'a, 'b, 'tool, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, 'tool, I, 
     #[must_use]
     pub fn new() -> Self {
         Self {
+            id: None,
             tools: None,
             system_prompt: None,
             initial_prompt: None,
             _phantom: std::marker::PhantomData,
         }
+    }
+
+    /// Sets the id.
+    pub fn id(mut self, id: impl Into<String>) -> Self {
+        self.id = Some(id.into());
+        self
     }
 
     /// Sets the system prompt.
@@ -75,7 +84,8 @@ impl<'a, 'b, 'tool, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, 'tool, I, 
     // }
 
     /// Returns a [`OpenAiToolAgent`] that uses this [`AgentBuilder`] configuration.
-    pub fn build<L: LLM + 'static>(self, llm: L) -> Agent<'tool, I, O> {
+    pub fn build(self, llm: impl Into<Box<dyn LLM>>) -> Agent<'tool, I, O> {
+        let id = self.id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         let system_prompt = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
 
@@ -101,7 +111,7 @@ impl<'a, 'b, 'tool, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, 'tool, I, 
             .unwrap_or_else(|_| unreachable!("All necessary fields are provided"));
 
         Agent {
-            id: uuid::Uuid::new_v4().to_string(),
+            id,
             llm_chain,
             tools,
             _phantom: std::marker::PhantomData,
