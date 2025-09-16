@@ -130,9 +130,6 @@ impl<C: Config + Send + Sync + 'static> LLM for GenericChat<C> {
         let tools = tools.map(|t| t.functions.as_slice());
 
         let messages = self.process_prompt(prompt, tools);
-        for message in &messages {
-            println!("{}: {}", message.message_type, message.content);
-        }
         let options = self.call_options.clone();
         let stream = self.call_options.stream.unwrap_or(false);
         let request = ChatRequest::new(&self.model, messages, None)?.with_options(options);
