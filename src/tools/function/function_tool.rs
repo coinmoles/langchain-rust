@@ -7,6 +7,7 @@ use serde_json::Value;
 use super::function_input::DefaultFunctionInput;
 use crate::schemas::FunctionSpec;
 use crate::tools::{Function, ToolData, ToolError, ToolOutput};
+use crate::utils::helper::normalize_tool_name;
 
 pub(crate) mod sealed {
     /// A sealed trait to prevent external implementations of the `ToolInternal` trait.
@@ -60,7 +61,7 @@ pub trait FunctionTool: sealed::Sealed + Send + Sync {
 
     fn get_spec(&self) -> FunctionSpec {
         FunctionSpec::new(
-            self.name(),
+            normalize_tool_name(&self.name()),
             Some(self.description()),
             self.parameters(),
             self.strict(),
