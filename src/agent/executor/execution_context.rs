@@ -174,7 +174,7 @@ where
             .executor
             .agent
             .llm_chain
-            .call_llm(&self.input, None)
+            .call_llm(&self.input, self.tool_spec.as_ref())
             .await
             .inspect_err(|e| failure!(self, "Failed to plan next step: {e}"))?;
 
