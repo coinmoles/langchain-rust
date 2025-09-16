@@ -88,6 +88,12 @@ pub trait Strategy: Default + Send + Sync {
             Some(func.as_ref())
         } else if let Some(Tool::Function(func)) = agent.tools.get(tool_name) {
             Some(func.as_ref())
+        } else if let Some(func) = agent
+            .toolboxes
+            .iter()
+            .find_map(|toolbox| toolbox.get_tool(tool_name))
+        {
+            Some(func)
         } else {
             None
         }

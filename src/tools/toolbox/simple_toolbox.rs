@@ -10,10 +10,7 @@ pub struct SimpleToolbox {
 }
 
 impl SimpleToolbox {
-    pub fn new<S>(name: S, tools: HashMap<String, Box<dyn FunctionTool>>) -> Self
-    where
-        S: Into<String>,
-    {
+    pub fn new(name: impl Into<String>, tools: HashMap<String, Box<dyn FunctionTool>>) -> Self {
         Self {
             name: name.into(),
             tools,

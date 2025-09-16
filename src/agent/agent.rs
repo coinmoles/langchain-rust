@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, sync::Arc};
 
 use crate::{
     agent::{
@@ -10,7 +10,7 @@ use crate::{
     },
     schemas::{Message, Prompt},
     template::TemplateError,
-    tools::Tool,
+    tools::{Tool, Toolbox},
 };
 
 /// An agent implementation for agents that do **not** support structured tool calling.
@@ -34,8 +34,8 @@ pub struct Agent<'tool, I: InputCtor = DefaultChainInputCtor, O: OutputCtor = St
     pub(super) llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
     /// A map of registered tool names to their implementations.
     pub(super) tools: HashMap<String, Tool<'tool>>,
-    // /// A list of toolboxes used to dynamically provide tools at runtime.
-    // pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
+    /// A list of toolboxes used to dynamically provide tools at runtime.
+    pub(super) toolboxes: Vec<Arc<dyn Toolbox>>, // Has to be Arc because ownership needs to be shared with ListTools
     pub(super) _phantom: std::marker::PhantomData<O>,
 }
 
@@ -52,11 +52,13 @@ impl<'tool, I: InputCtor, O: OutputCtor> Agent<'tool, I, O> {
         id: String,
         llm_chain: LLMChain<AgentInputCtor<I>, AgentOutputCtor>,
         tools: HashMap<String, Tool<'tool>>,
+        toolboxes: Vec<Arc<dyn Toolbox>>,
     ) -> Self {
         Self {
             id,
             llm_chain,
             tools,
+            toolboxes,
             _phantom: std::marker::PhantomData,
         }
     }

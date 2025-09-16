@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     agent::Agent,
@@ -7,7 +7,7 @@ use crate::{
     prompt_template,
     schemas::MessageType,
     template::{MessageOrTemplate, MessageTemplate},
-    tools::Tool,
+    tools::{ListTools, Tool, Toolbox},
     utils::helper::normalize_tool_name,
 };
 
@@ -33,8 +33,8 @@ pub struct AgentBuilder<'a, 'b, 'c, I: InputCtor, O: OutputCtor> {
     initial_prompt: Option<&'b str>,
     /// The tools to be used by the agent.
     tools: Option<Vec<Tool<'c>>>,
-    // /// The toolboxes containing additional tools for the agent.
-    // toolboxes: Option<Vec<Box<dyn Toolbox>>>,
+    /// The toolboxes containing additional tools for the agent.
+    toolboxes: Option<Vec<Arc<dyn Toolbox>>>,
     _phantom: std::marker::PhantomData<(I, O)>,
 }
 
@@ -47,6 +47,7 @@ impl<'a, 'b, 'tool, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, 'tool, I, 
         Self {
             id: None,
             tools: None,
+            toolboxes: None,
             system_prompt: None,
             initial_prompt: None,
             _phantom: std::marker::PhantomData,
@@ -78,22 +79,24 @@ impl<'a, 'b, 'tool, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, 'tool, I, 
     }
 
     // /// Adds toolboxes.
-    // pub fn toolboxes(mut self, toolboxes: Vec<Box<dyn Toolbox>>) -> Self {
-    //     self.toolboxes = Some(toolboxes);
-    //     self
-    // }
+    pub fn toolboxes(mut self, toolboxes: Vec<Arc<dyn Toolbox>>) -> Self {
+        self.toolboxes = Some(toolboxes);
+        self
+    }
 
     /// Returns a [`OpenAiToolAgent`] that uses this [`AgentBuilder`] configuration.
     pub fn build(self, llm: impl Into<Box<dyn LLM>>) -> Agent<'tool, I, O> {
         let id = self.id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         let system_prompt = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
+        let toolboxes = self.toolboxes.unwrap_or_default();
 
         // let toolboxes = self.toolboxes.unwrap_or_default();
         let tools = self
             .tools
             .unwrap_or_default()
             .into_iter()
+            .chain(toolboxes.iter().map(|tb| ListTools::new(tb).into()))
             .map(|tool| (normalize_tool_name(&tool.name()), tool))
             .collect::<HashMap<_, _>>();
 
@@ -114,6 +117,7 @@ impl<'a, 'b, 'tool, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, 'tool, I, 
             id,
             llm_chain,
             tools,
+            toolboxes,
             _phantom: std::marker::PhantomData,
         }
     }

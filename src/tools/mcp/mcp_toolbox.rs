@@ -1,53 +1,31 @@
-use std::{borrow::Cow, collections::HashMap, error::Error, sync::Arc};
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 
-use crate::tools::{FunctionTool, Toolbox};
+use crate::tools::{mcp::fetch_tools, FunctionTool, McpError, SimpleToolbox, Toolbox};
 
-use super::{McpFunctionTool, McpService, McpServiceExt};
-
-pub struct McpToolbox {
-    pub client: Arc<McpService>,
-    pub name: Cow<'static, str>,
-    pub tools: HashMap<String, McpFunctionTool>,
-}
+pub struct McpToolbox(SimpleToolbox);
 
 impl McpToolbox {
-    pub fn new(
-        client: impl Into<Arc<McpService>>,
-        name: impl Into<Cow<'static, str>>,
-        tools: HashMap<String, McpFunctionTool>,
-    ) -> Self {
-        Self {
-            client: client.into(),
-            name: name.into(),
-            tools,
-        }
-    }
-
     pub async fn fetch(
-        client: impl Into<Arc<McpService>>,
-        name: impl Into<Cow<'static, str>>,
-        using: Option<Vec<Cow<'static, str>>>,
-    ) -> Result<Self, Box<dyn Error + Send + Sync>> {
-        let client = client.into();
-        let tools = client.fetch_tools(using.clone()).await?;
-
-        Ok(Self::new(client, name, tools))
+        name: impl Into<String>,
+        url: impl Into<String>,
+        using: Option<Vec<String>>,
+    ) -> Result<Self, McpError> {
+        let tools = fetch_tools(url.into(), using).await?;
+        let toolbox = SimpleToolbox::new(name, tools);
+        Ok(Self(toolbox))
     }
 }
 
 #[async_trait]
 impl Toolbox for McpToolbox {
     fn name(&self) -> String {
-        self.name.to_string()
+        self.0.name()
     }
 
     fn get_tools(&self) -> HashMap<&str, &dyn FunctionTool> {
-        self.tools
-            .iter()
-            .map(|(k, v)| (k.as_str(), v as &dyn FunctionTool))
-            .collect()
+        self.0.get_tools()
     }
 }
 
@@ -57,15 +35,14 @@ mod tests {
 
     use serde_json::json;
 
-    use crate::tools::{ListTools, McpServiceFromUrl};
+    use crate::tools::ListTools;
 
     use super::*;
 
     #[tokio::test]
     async fn test_list_tools() {
         let url = "http://localhost:8000/sse";
-        let client = McpService::from_url(url).await.unwrap();
-        let toolbox = McpToolbox::fetch(client, "Test", None).await.unwrap();
+        let toolbox = McpToolbox::fetch("Test", url, None).await.unwrap();
 
         let list_tools_tool = ListTools::new(&Arc::new(toolbox));
         println!("{:#?}", list_tools_tool.get_spec());
@@ -75,8 +52,7 @@ mod tests {
     #[tokio::test]
     async fn test_mcp_toolbox() {
         let url = "http://localhost:8000/sse";
-        let client = McpService::from_url(url).await.unwrap();
-        let toolbox = McpToolbox::fetch(client, "Test", None).await.unwrap();
+        let toolbox = McpToolbox::fetch("Test", url, None).await.unwrap();
 
         let tools = toolbox.get_tools();
         let tools = tools.values().collect::<Vec<_>>();
@@ -89,11 +65,8 @@ mod tests {
     #[tokio::test]
     async fn test_mcp_toolbox_using() {
         let url = "http://localhost:8000/sse";
-        let client = McpService::from_url(url).await.unwrap();
         let tools = vec!["say_hello".into(), "sum".into()];
-        let toolbox = McpToolbox::fetch(client, "Test", Some(tools))
-            .await
-            .unwrap();
+        let toolbox = McpToolbox::fetch("Test", url, Some(tools)).await.unwrap();
 
         let tools = toolbox.get_tools();
         let tools = tools.values().collect::<Vec<_>>();

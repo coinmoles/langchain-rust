@@ -67,7 +67,7 @@ where
         let tools = self.0.get_tools();
         let tool_descriptions: Vec<String> = tools
             .values()
-            .map(|tool| tool.to_plain_description())
+            .map(|tool| tool.get_spec().describe())
             .collect();
         Ok(tool_descriptions.join("\n---\n"))
     }

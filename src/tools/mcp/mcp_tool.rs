@@ -1,13 +1,9 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use futures::{stream, StreamExt, TryStreamExt};
-use rmcp::{transport::StreamableHttpClientTransport, ServiceExt};
 use secrecy::{ExposeSecret, SecretString};
 
-use crate::{
-    tools::{FunctionTool, McpError, McpFunctionTool, McpService},
-    utils::helper::normalize_tool_name,
-};
+use crate::tools::{mcp::fetch_tools, FunctionTool, McpError};
 
 #[derive(Clone)]
 pub struct McpTool {
@@ -38,7 +34,7 @@ impl McpTool {
         // Group tools by URI to minimize the number of connections
         let grouped = group_tools_by_uri(predicates);
         let merged = stream::iter(grouped.into_iter())
-            .map(|(uri, preds)| fetch_tools(uri, preds))
+            .map(|(uri, names)| fetch_tools(uri, Some(names)))
             .buffer_unordered(8)
             .try_concat()
             .await?;
@@ -55,38 +51,4 @@ fn group_tools_by_uri(predicates: Vec<McpTool>) -> HashMap<String, Vec<String>> 
         m.entry(uri).or_default().push(p.name);
     }
     m
-}
-
-async fn init_service(uri: &str) -> Result<McpService, McpError> {
-    let transport = StreamableHttpClientTransport::from_uri(uri);
-    let client_info = rmcp::model::ClientInfo::default();
-    let service = client_info
-        .serve(transport)
-        .await
-        .inspect_err(|e| tracing::error!("client error: {e:?}"))?;
-
-    Ok(service)
-}
-
-async fn fetch_tools(
-    uri: String,
-    names: Vec<String>,
-) -> Result<HashMap<String, Box<dyn FunctionTool>>, McpError> {
-    let service = Arc::new(init_service(&uri).await?);
-    let mut map = HashMap::new();
-    for tool in service.list_all_tools().await? {
-        let tool = McpFunctionTool::from_rmcp_tool(&service, tool)?;
-        map.insert(tool.name(), tool);
-    }
-
-    let mut out: HashMap<String, Box<dyn FunctionTool>> = HashMap::new();
-    for name in names {
-        let name = normalize_tool_name(&name);
-        let Some(tool) = map.remove(&name) else {
-            return Err(McpError::ToolNotFound(name));
-        };
-        out.insert(name, Box::new(tool));
-    }
-
-    Ok(out)
 }
