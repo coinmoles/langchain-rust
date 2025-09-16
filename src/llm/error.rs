@@ -4,6 +4,8 @@ use serde_json::Error as SerdeJsonError;
 use thiserror::Error;
 use tokio::time::error::Elapsed;
 
+use crate::output_parser::OutputParseError;
+
 #[derive(Error, Debug)]
 pub enum LLMError {
     #[error("OpenAI error: {0}")]
@@ -11,6 +13,9 @@ pub enum LLMError {
 
     #[error("Network request failed: {0:?}")]
     RequestError(#[from] ReqwestError),
+
+    #[error("Output parse error: {0}")]
+    OutputParseError(#[from] OutputParseError),
 
     #[error("JSON serialization/deserialization error: {0}")]
     SerdeError(#[from] SerdeJsonError),

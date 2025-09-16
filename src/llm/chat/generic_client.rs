@@ -141,7 +141,9 @@ impl<C: Config + Send + Sync + 'static> LLM for GenericChat<C> {
         let choice: async_openai::types::ChatChoice = select_choice(response.choices)
             .ok_or(LLMError::ContentNotFound("No choices".into()))?;
 
-        let result: LLMOutput = choice.message.try_into()?;
+        let result = self
+            .instructor
+            .parse_tool_use(choice.message.content.unwrap_or_default())?;
         let usage = response.usage.map(Into::into);
 
         Ok(result.with_usage(usage))
