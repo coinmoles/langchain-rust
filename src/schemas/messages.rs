@@ -161,53 +161,72 @@ impl TryFrom<Message> for ChatCompletionRequestMessage {
     type Error = OpenAIError;
 
     fn try_from(value: Message) -> Result<Self, Self::Error> {
-        match value.message_type {
-            MessageType::Ai => Ok(match value.tool_calls {
-                Some(tool_calls) => ChatCompletionRequestAssistantMessageArgs::default()
-                    .tool_calls(
-                        tool_calls
-                            .into_iter()
-                            .map(TryInto::try_into)
-                            .collect::<Result<Vec<_>, _>>()
-                            .map_err(OpenAIError::JSONDeserialize)?,
-                    )
-                    .content(value.content)
-                    .build()?
-                    .into(),
-                None => ChatCompletionRequestAssistantMessageArgs::default()
-                    .content(value.content)
-                    .build()?
-                    .into(),
-            }),
-            MessageType::Human => {
-                let content: ChatCompletionRequestUserMessageContent = match value.images {
-                    Some(images) => images
-                        .into_iter()
-                        .map(|image| {
-                            ChatCompletionRequestMessageContentPartImageArgs::default()
-                                .image_url(image.image_url)
-                                .build()
-                                .map(Into::into)
-                        })
-                        .collect::<Result<Vec<_>, _>>()?
-                        .into(),
-                    None => value.content.into(),
-                };
-
-                Ok(ChatCompletionRequestUserMessageArgs::default()
-                    .content(content)
-                    .build()?
-                    .into())
+        fn assistant(
+            content: String,
+            tool_calls: Option<Vec<ToolCall>>,
+        ) -> Result<ChatCompletionRequestMessage, OpenAIError> {
+            let mut b = ChatCompletionRequestAssistantMessageArgs::default();
+            b.content(content);
+            if let Some(calls) = tool_calls {
+                let calls = calls
+                    .into_iter()
+                    .map(TryInto::try_into)
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(OpenAIError::JSONDeserialize)?;
+                b.tool_calls(calls);
             }
-            MessageType::System => Ok(ChatCompletionRequestSystemMessageArgs::default()
-                .content(value.content)
+            Ok(b.build()?.into())
+        }
+
+        fn user(
+            text: String,
+            images: Option<Vec<ImageContent>>,
+        ) -> Result<ChatCompletionRequestMessage, OpenAIError> {
+            let content: ChatCompletionRequestUserMessageContent = match images {
+                Some(images) => images
+                    .into_iter()
+                    .map(|image| {
+                        ChatCompletionRequestMessageContentPartImageArgs::default()
+                            .image_url(image.image_url)
+                            .build()
+                            .map(Into::into)
+                    })
+                    .collect::<Result<Vec<_>, _>>()?
+                    .into(),
+                None => text.into(),
+            };
+            let msg = ChatCompletionRequestUserMessageArgs::default()
+                .content(content)
                 .build()?
-                .into()),
-            MessageType::Tool => Ok(ChatCompletionRequestToolMessageArgs::default()
-                .content(value.content)
-                .tool_call_id(value.id.unwrap_or_default())
+                .into();
+            Ok(msg)
+        }
+
+        fn system(content: String) -> Result<ChatCompletionRequestMessage, OpenAIError> {
+            let msg = ChatCompletionRequestSystemMessageArgs::default()
+                .content(content)
                 .build()?
-                .into()),
+                .into();
+            Ok(msg)
+        }
+
+        fn tool(
+            tool_call_id: String,
+            content: String,
+        ) -> Result<ChatCompletionRequestMessage, OpenAIError> {
+            let msg = ChatCompletionRequestToolMessageArgs::default()
+                .content(content)
+                .tool_call_id(tool_call_id)
+                .build()?
+                .into();
+            Ok(msg)
+        }
+
+        match value.message_type {
+            MessageType::Ai => assistant(value.content, value.tool_calls),
+            MessageType::Human => user(value.content, value.images),
+            MessageType::System => system(value.content),
+            MessageType::Tool => tool(value.id.unwrap_or_default(), value.content),
         }
     }
 }
