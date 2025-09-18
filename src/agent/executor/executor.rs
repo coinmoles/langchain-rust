@@ -58,9 +58,11 @@ where
         self
     }
 
-    /// Constructs a new [`ExecutionContext`] with the provided input and strategy.
+    /// Constructs a new [`ExecutionContext`] with the provided input.
     ///
-    /// The [`ExecutionContext::start`] method can be called to actually begin the execution.
+    /// The default strategy is used for the execution.
+    ///
+    /// The [`ExecutionContext::start`] method can then be called to begin the execution.
     ///
     /// ```ignore
     /// use langchain_rust::{agent::{ConversationalAgent, AgentExecutor, DefaultStrategy}, llm::{OpenAI, OpenAIModel}};
@@ -74,9 +76,19 @@ where
     ///     .build(llm);
     ///
     /// let executor = AgentExecutor::from_agent(agent);
-    /// executor.execution("Input".into(), DefaultStrategy).start();
+    /// executor.execution("Input".into()).start();
     /// ```
-    pub fn execution<'exec, 'input, S: Strategy>(
+    pub fn execution<'exec, 'input>(
+        &'exec self,
+        input: I::Target<'input>,
+    ) -> ExecutionContext<'exec, 'tool, 'input, I, O, DefaultStrategy> {
+        ExecutionContext::new(self, input, DefaultStrategy)
+    }
+
+    /// Constructs a new [`ExecutionContext`] with the provided input and custom strategy.
+    ///
+    /// The [`ExecutionContext::start`] method can then be called to begin the execution.
+    pub fn execution_with_strategy<'exec, 'input, S: Strategy>(
         &'exec self,
         input: I::Target<'input>,
         strategy: S,
@@ -92,7 +104,7 @@ where
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
-        let output = self.execution(input, DefaultStrategy).start().await?;
+        let output = self.execution(input).start().await?;
         Ok(output.without_extra())
     }
 }

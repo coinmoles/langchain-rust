@@ -18,7 +18,7 @@ Overall, Assistant is a powerful system that can help with a wide range of tasks
 
 pub const DEFAULT_INITIAL_PROMPT: &str = r#"{{input}}"#;
 
-/// A builder for constructing an [`OpenAiToolAgent`].
+/// A builder for constructing an [`Agent`].
 ///
 /// # Type Parameters
 /// - `I`: A [constructor](crate::chain::Ctor) for the agent’s input type.
@@ -40,7 +40,7 @@ pub struct AgentBuilder<'a, 'b, 'c, I: InputCtor, O: OutputCtor> {
 impl<'a, 'b, 'tool, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, 'tool, I, O> {
     /// Constructs a new [`AgentBuilder`].
     ///
-    /// This is the same as calling [`OpenAiToolAgent::builder()`].
+    /// This is the same as calling [`Agent::builder()`].
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -77,20 +77,19 @@ impl<'a, 'b, 'tool, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, 'tool, I, 
         self
     }
 
-    // /// Adds toolboxes.
+    /// Adds toolboxes.
     pub fn toolboxes(mut self, toolboxes: Vec<Arc<dyn Toolbox>>) -> Self {
         self.toolboxes = Some(toolboxes);
         self
     }
 
-    /// Returns a [`OpenAiToolAgent`] that uses this [`AgentBuilder`] configuration.
+    /// Returns a [`Agent`] that uses this [`AgentBuilder`] configuration.
     pub fn build(self, llm: impl Into<Box<dyn LLM>>) -> Agent<'tool, I, O> {
         let id = self.id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         let system_prompt = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
         let toolboxes = self.toolboxes.unwrap_or_default();
 
-        // let toolboxes = self.toolboxes.unwrap_or_default();
         let tools = self
             .tools
             .unwrap_or_default()

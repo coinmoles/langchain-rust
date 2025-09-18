@@ -1,3 +1,5 @@
+//! The `agent` module includes components for building and executing AI agents.
+
 #[allow(clippy::module_inception)]
 mod agent;
 pub use agent::*;
@@ -13,15 +15,6 @@ pub use agent_step::*;
 
 mod agent_input;
 pub use agent_input::*;
-
-mod agent_output;
-pub use agent_output::*;
-
-// mod chat;
-// pub use chat::*;
-
-// mod open_ai_tools;
-// pub use open_ai_tools::*;
 
 mod error;
 pub use error::*;

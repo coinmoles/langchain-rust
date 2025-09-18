@@ -5,11 +5,11 @@ use itertools::{Either, Itertools};
 use tracing::{Instrument, info_span};
 
 use crate::agent::{
-    AgentError, AgentExecutor, AgentInput, AgentOutput, AgentStep, DefaultStrategy,
-    ExecutionOutput, Strategy,
+    AgentError, AgentExecutor, AgentInput, AgentStep, DefaultStrategy, ExecutionOutput, Strategy,
 };
 use crate::chain::{ChainError, ChainOutput, InputCtor, OutputCtor};
-use crate::schemas::{IntoWithUsage, TokenUsage, ToolCall, ToolSpec, WithUsage};
+use crate::llm::LLMOutput;
+use crate::schemas::{IntoWithUsage, Message, TokenUsage, ToolCall, ToolSpec, WithUsage};
 use crate::tools::{FunctionTool, McpTool, Tool};
 use crate::utils::helper::normalize_tool_name;
 
@@ -84,7 +84,7 @@ where
     }
 
     /// Entry point – iteratively plan / execute tool actions until the agent
-    /// produces a valid final answer that can be transformed into `O`.
+    /// produces a valid final answer.
     pub async fn start(mut self) -> Result<ExecutionOutput<'input, O, S>, ChainError> {
         let span = info_span!("agent", id = self.executor.agent.id());
 
@@ -100,8 +100,8 @@ where
                 };
 
                 match plan {
-                    AgentOutput::Action(tool_calls) => self.handle_tool_calls(tool_calls).await,
-                    AgentOutput::Finish(final_answer) => match self.finalize(final_answer).await {
+                    LLMOutput::ToolCall(tool_calls) => self.handle_tool_calls(tool_calls).await,
+                    LLMOutput::Text(final_answer) => match self.finalize(final_answer).await {
                         Ok(ok) => return Ok(ok),
                         Err(FinalizeFailure::Abort(e)) => return Err(e),
                         Err(FinalizeFailure::Retry(new_context)) => self = new_context,
@@ -165,8 +165,17 @@ where
         Ok(())
     }
 
-    async fn plan_step(&mut self) -> Result<AgentOutput, ChainError> {
-        let scratchpad = self.executor.agent.construct_scratchpad(&self.steps);
+    async fn plan_step(&mut self) -> Result<LLMOutput, ChainError> {
+        let scratchpad = self
+            .steps
+            .iter()
+            .flat_map(|step| {
+                [
+                    Message::new_tool_call_message([step.tool_call.clone()]),
+                    Message::new_tool_message(Some(&step.tool_call.id), &step.result),
+                ]
+            })
+            .collect::<Vec<_>>();
         self.input.set_agent_scratchpad(scratchpad);
 
         let plan = self

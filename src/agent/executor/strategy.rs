@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 
-use crate::agent::{Agent, AgentInput, AgentOutput, AgentStep};
+use crate::agent::{Agent, AgentInput, AgentStep};
 use crate::chain::{ChainError, InputCtor, OutputCtor};
+use crate::llm::LLMOutput;
 use crate::schemas::{ToolCall, ToolSpec};
 use crate::tools::{FunctionTool, Tool, ToolOutput};
 
@@ -16,37 +17,34 @@ pub struct ResolvedTools {
     pub spec: Option<ToolSpec>,
 }
 
-#[async_trait]
 /// A pluggable policy that customizes **how an agent run is executed**.
 ///
 /// `Strategy` lets you intercept and (optionally) mutate every major phase of an
-/// [`AgentExecutor`] run without changing the core loop:
+/// [`AgentExecutor`](crate::agent::AgentExecutor) run without changing the core loop:
 ///
 /// **Lifecycle (in order)**
-/// 1. [`prepare_input`] — inject / normalize fields on the initial `AgentInput`.
-/// 2. [`process_plan`] — validate or rewrite every model-produced `AgentOutput`.
-/// 3. [`resolve_tool`] — optionally override which tool is called for a given name.
+/// 1. [`additional_tools`] — inject extra tools to be used during this execution.
+/// 2. [`prepare_input`] — inject / normalize fields on the initial `AgentInput`.
+/// 3. [`process_plan`] — validate or rewrite every model-produced `AgentOutput`.
 /// 4. [`build_step`] — turn each `(ToolCall, ToolOutput)` into an [`AgentStep`] (e.g.,
 ///    reformatting, tagging, indexing).
 /// 5. [`process_final_answer`] — validate/transform the final LLM answer before converting it to
 ///    `O::Target`.
 /// 6. [`finalize`] — produce any strategy-specific artifact to return to the caller.
 ///
-/// Additionally, you can implement [`agent_id`] to customize the log output.
-///
 /// All hooks have **no-op pass-through defaults** so you only override what you need.
-///
-/// ### Thread-safety
-/// The trait is `Send + Sync` so a strategy can be shared across async tasks, but
-/// each `ExecutionContext` holds a **distinct `Strategy` instance** (created with
-/// `Default`) to keep per-run state without interior mutability.
-///
-/// ### Errors
-/// All hooks return `ChainError`, allowing you to abort the run at any phase.
+#[async_trait]
 pub trait Strategy: Default + Send + Sync {
     /// Type produced by [`finalize`]. Often used to return strategy-specific
     /// side artifacts (e.g., tag indices, telemetry, transcripts).
     type Output;
+
+    /// Additional tools to be used during this execution.
+    ///
+    /// The tools returned here will override the tools defined in the agent.
+    fn additional_tools(&self) -> HashMap<&str, &Tool<'_>> {
+        HashMap::new()
+    }
 
     /// Prepare (augment / normalize) the initial `AgentInput` **before the first plan**.
     ///
@@ -64,17 +62,14 @@ pub trait Strategy: Default + Send + Sync {
         Ok(input)
     }
 
-    fn additional_tools(&self) -> HashMap<&str, &Tool<'_>> {
-        HashMap::new()
-    }
-
     /// Resolve the concrete tool implementation to call for `tool_name`.
     ///
-    /// Override this if you want to:
-    /// - Substitute or shadow tools (e.g., for testing or routing).
-    /// - Add indirections (aliases, fallbacks, version pinning, canary tools, ...).
+    /// It is recommended to leave the default implementation as-is, which checks (in order):
+    /// 1. If the tool is defined in [`additional_tools`].
+    /// 2. If the tool is defined in the agent’s static `tools`.
+    /// 3. If the tool is defined in any of the agent’s `toolboxes`.
     ///
-    /// Default: delegates to `agent.get_tool(tool_name)`.
+    /// Instead, override [`additional_tools`] to inject custom tools.
     fn resolve_tool<'tool, I: InputCtor, O: OutputCtor>(
         &'tool mut self,
         agent: &'tool Agent<I, O>,
@@ -98,16 +93,15 @@ pub trait Strategy: Default + Send + Sync {
         }
     }
 
-    /// Inspect, validate, or rewrite the model-produced `AgentOutput` **each loop**.
+    /// Inspect, validate, or rewrite the model-produced [`LLMOutput`] **each loop**.
     ///
     /// Typical uses:
-    /// - Enforce JSON schema / tool-call structure.
     /// - Reject unsafe plans.
     /// - Add bookkeeping data to `usage`.
     ///
     /// Return the (possibly) modified plan. Returning `Err` makes the executor
     /// retry (until the fail limit) with the same context.
-    async fn process_plan(&mut self, plan: AgentOutput) -> Result<AgentOutput, ChainError> {
+    async fn process_plan(&mut self, plan: LLMOutput) -> Result<LLMOutput, ChainError> {
         Ok(plan)
     }
 
