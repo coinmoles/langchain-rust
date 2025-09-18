@@ -7,7 +7,7 @@ use serde_json::json;
 use crate::tools::{EmptyFunctionInput, FunctionTool, McpTool, describe_parameters};
 use crate::utils::helper::normalize_tool_name;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ToolSpec {
     pub functions: Vec<FunctionSpec>,
     pub mcps: Vec<McpTool>,
@@ -28,6 +28,17 @@ impl ToolSpec {
 
     pub fn is_empty(&self) -> bool {
         self.functions.is_empty() && self.mcps.is_empty()
+    }
+
+    pub fn into_tool_definitions(self) -> Vec<ToolDefinition> {
+        let mut definitions: Vec<ToolDefinition> =
+            self.functions.into_iter().map(Into::into).collect();
+        definitions.extend(
+            McpTool::into_definitions(self.mcps)
+                .into_iter()
+                .map(ToolDefinition::Mcp),
+        );
+        definitions
     }
 }
 

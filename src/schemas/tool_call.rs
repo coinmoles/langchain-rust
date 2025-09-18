@@ -1,5 +1,6 @@
 use std::fmt::{self, Display};
 
+use async_openai::types::responses::FunctionCall as ResponsesFunctionCall;
 use async_openai::types::{ChatCompletionMessageToolCall, ChatCompletionToolType, FunctionCall};
 use indoc::indoc;
 use serde_json::Value;
@@ -70,6 +71,18 @@ impl TryFrom<ToolCall> for FunctionCall {
         Ok(Self {
             name: value.name,
             arguments: serde_json::to_string(&value.arguments)?,
+        })
+    }
+}
+
+impl TryFrom<ResponsesFunctionCall> for ToolCall {
+    type Error = serde_json::Error;
+
+    fn try_from(value: ResponsesFunctionCall) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: value.id,
+            name: value.name,
+            arguments: serde_json::from_str(&value.arguments)?,
         })
     }
 }

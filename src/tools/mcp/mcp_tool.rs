@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use async_openai::types::responses::{AllowedTools, Mcp, McpArgs};
 use futures::{StreamExt, TryStreamExt, stream};
 use secrecy::{ExposeSecret, SecretString};
 
@@ -41,6 +42,22 @@ impl McpTool {
             .await?;
 
         Ok(merged)
+    }
+
+    pub fn into_definitions(predicates: Vec<Self>) -> Vec<Mcp> {
+        let grouped = group_tools_by_uri(predicates);
+        grouped
+            .into_iter()
+            .map(|(uri, names)| {
+                // TODO: support server label and headers.
+                McpArgs::default()
+                    .server_label(String::new())
+                    .server_url(uri)
+                    .allowed_tools(AllowedTools::List(names))
+                    .build()
+                    .expect("All required args are set")
+            })
+            .collect::<Vec<_>>()
     }
 }
 

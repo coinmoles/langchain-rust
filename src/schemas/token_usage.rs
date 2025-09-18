@@ -1,6 +1,7 @@
 use std::fmt::{self, Display};
 
 use async_openai::types::CompletionUsage;
+use async_openai::types::responses::Usage;
 use indoc::writedoc;
 use serde::{Deserialize, Serialize};
 
@@ -64,6 +65,16 @@ impl From<TokenUsage> for CompletionUsage {
             total_tokens: usage.total_tokens,
             prompt_tokens_details: None,
             completion_tokens_details: None,
+        }
+    }
+}
+
+impl From<Usage> for TokenUsage {
+    fn from(usage: Usage) -> Self {
+        TokenUsage {
+            prompt_tokens: usage.input_tokens,
+            completion_tokens: usage.output_tokens,
+            total_tokens: usage.total_tokens,
         }
     }
 }

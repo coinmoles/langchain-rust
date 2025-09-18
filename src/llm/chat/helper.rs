@@ -1,16 +1,16 @@
 use std::collections::HashMap;
 use std::ops::Add;
-use std::pin::Pin;
 
 use async_openai::Client as OpenAiClient;
 use async_openai::config::Config;
 use async_openai::error::OpenAIError;
 use async_openai::types::{
     ChatChoice, ChatChoiceStream, ChatCompletionMessageToolCall, ChatCompletionResponseMessage,
-    ChatCompletionToolType, CompletionTokensDetails, CompletionUsage, CreateChatCompletionResponse,
-    CreateChatCompletionStreamResponse, FinishReason, FunctionCall, PromptTokensDetails, Role,
+    ChatCompletionResponseStream, ChatCompletionToolType, CompletionTokensDetails, CompletionUsage,
+    CreateChatCompletionResponse, CreateChatCompletionStreamResponse, FinishReason, FunctionCall,
+    PromptTokensDetails, Role,
 };
-use futures::{Stream, StreamExt};
+use futures::StreamExt;
 
 use crate::llm::{ChatRequest, LLMError, LLMStream, LLMStreamChunk};
 use crate::schemas::TokenUsage;
@@ -165,10 +165,7 @@ fn aggregate_choice(choice: &mut ChatChoice, choice_stream: ChatChoiceStream) {
 }
 
 pub async fn construct_chat_completion_response(
-    mut stream: impl Stream<
-        Item = Result<CreateChatCompletionStreamResponse, async_openai::error::OpenAIError>,
-    > + Send
-    + Unpin,
+    mut stream: ChatCompletionResponseStream,
 ) -> Result<CreateChatCompletionResponse, OpenAIError> {
     let mut choices_map: HashMap<u32, ChatChoice> = HashMap::new();
     let mut usage: Option<CompletionUsage> = None;
@@ -274,11 +271,7 @@ pub async fn generate<C: Config>(
     Ok(response)
 }
 
-pub fn map_stream(
-    original: Pin<
-        Box<dyn Stream<Item = Result<CreateChatCompletionStreamResponse, OpenAIError>> + Send>,
-    >,
-) -> LLMStream {
+pub fn map_stream(original: ChatCompletionResponseStream) -> LLMStream {
     let new = original.map(|result| match result {
         Ok(completion) => {
             let value_completion = serde_json::to_value(completion).map_err(LLMError::from)?;

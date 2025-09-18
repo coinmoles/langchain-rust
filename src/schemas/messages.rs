@@ -1,6 +1,9 @@
 use std::fmt;
 
 use async_openai::error::OpenAIError;
+use async_openai::types::responses::{
+    ContentType, InputContent, InputImageArgs, InputItem, InputMessageArgs, InputMessageType, Role,
+};
 use async_openai::types::{
     ChatCompletionRequestAssistantMessageArgs, ChatCompletionRequestMessage,
     ChatCompletionRequestMessageContentPartImageArgs, ChatCompletionRequestSystemMessageArgs,
@@ -8,6 +11,7 @@ use async_openai::types::{
     ChatCompletionRequestUserMessageContent,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 use super::{MessageType, ToolCall};
 
@@ -161,21 +165,27 @@ impl TryFrom<Message> for ChatCompletionRequestMessage {
     type Error = OpenAIError;
 
     fn try_from(value: Message) -> Result<Self, Self::Error> {
-        fn assistant(
-            content: String,
-            tool_calls: Option<Vec<ToolCall>>,
+        fn tool_calls(
+            tool_calls: Vec<ToolCall>,
         ) -> Result<ChatCompletionRequestMessage, OpenAIError> {
-            let mut b = ChatCompletionRequestAssistantMessageArgs::default();
-            b.content(content);
-            if let Some(calls) = tool_calls {
-                let calls = calls
-                    .into_iter()
-                    .map(TryInto::try_into)
-                    .collect::<Result<Vec<_>, _>>()
-                    .map_err(OpenAIError::JSONDeserialize)?;
-                b.tool_calls(calls);
-            }
-            Ok(b.build()?.into())
+            let calls = tool_calls
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(OpenAIError::JSONDeserialize)?;
+            let msg = ChatCompletionRequestAssistantMessageArgs::default()
+                .tool_calls(calls)
+                .build()?
+                .into();
+            Ok(msg)
+        }
+
+        fn assistant(content: String) -> Result<ChatCompletionRequestMessage, OpenAIError> {
+            let msg = ChatCompletionRequestAssistantMessageArgs::default()
+                .content(content)
+                .build()?
+                .into();
+            Ok(msg)
         }
 
         fn user(
@@ -223,10 +233,100 @@ impl TryFrom<Message> for ChatCompletionRequestMessage {
         }
 
         match value.message_type {
-            MessageType::Ai => assistant(value.content, value.tool_calls),
+            MessageType::Ai => match value.tool_calls {
+                Some(calls) => tool_calls(calls),
+                None => assistant(value.content),
+            },
             MessageType::Human => user(value.content, value.images),
             MessageType::System => system(value.content),
             MessageType::Tool => tool(value.id.unwrap_or_default(), value.content),
         }
+    }
+}
+
+impl TryFrom<Message> for Vec<InputItem> {
+    type Error = OpenAIError;
+
+    fn try_from(value: Message) -> Result<Self, Self::Error> {
+        fn tool_calls(tool_calls: Vec<ToolCall>) -> Result<Vec<InputItem>, OpenAIError> {
+            // The "function_call" / "function_call_output" is not yet supported in
+            // async-openai. So we manually construct the message here.
+            let calls = tool_calls
+                .into_iter()
+                .map(|call| {
+                    InputItem::Custom(json!({
+                        "type": "function_call",
+                        "name": call.name,
+                        "arguments": call.arguments,
+                    }))
+                })
+                .collect::<Vec<_>>();
+            Ok(calls)
+        }
+
+        fn assistant(content: String) -> Result<InputItem, OpenAIError> {
+            let msg = InputMessageArgs::default()
+                .kind(InputMessageType::Message)
+                .role(Role::Assistant)
+                .content(content)
+                .build()?;
+            Ok(InputItem::Message(msg))
+        }
+
+        fn user(text: String, images: Option<Vec<ImageContent>>) -> Result<InputItem, OpenAIError> {
+            let content = match images {
+                Some(images) => {
+                    let images = images
+                        .into_iter()
+                        .map(|image| {
+                            // TODO: reimplement detail
+                            InputImageArgs::default()
+                                .image_url(image.image_url)
+                                .build()
+                                .map(ContentType::InputImage)
+                        })
+                        .collect::<Result<Vec<_>, _>>()?;
+                    InputContent::InputItemContentList(images)
+                }
+                None => InputContent::TextInput(text),
+            };
+            let msg = InputMessageArgs::default()
+                .kind(InputMessageType::Message)
+                .role(Role::User)
+                .content(content)
+                .build()?;
+            Ok(InputItem::Message(msg))
+        }
+
+        fn system(content: String) -> Result<InputItem, OpenAIError> {
+            let msg = InputMessageArgs::default()
+                .kind(InputMessageType::Message)
+                .role(Role::System)
+                .content(content)
+                .build()?;
+            Ok(InputItem::Message(msg))
+        }
+
+        fn tool(tool_call_id: String, content: String) -> Result<InputItem, OpenAIError> {
+            // The "function_call" / "function_call_output" is not yet supported in
+            // async-openai. So we manually construct the message here.
+            let json = json!({
+                "type": "function_call_output",
+                "call_id": tool_call_id,
+                "output": content
+            });
+            Ok(InputItem::Custom(json))
+        }
+
+        let msgs = match value.message_type {
+            MessageType::Ai => match value.tool_calls {
+                Some(calls) => tool_calls(calls)?,
+                None => vec![assistant(value.content)?],
+            },
+            MessageType::Human => vec![user(value.content, value.images)?],
+            MessageType::System => vec![system(value.content)?],
+            MessageType::Tool => vec![tool(value.id.unwrap_or_default(), value.content)?],
+        };
+        Ok(msgs)
     }
 }

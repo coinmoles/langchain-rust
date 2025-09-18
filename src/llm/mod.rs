@@ -5,6 +5,9 @@ pub use llm::*;
 mod chat;
 pub use chat::*;
 
+mod responses;
+pub use responses::*;
+
 mod instructor;
 pub use instructor::*;
 

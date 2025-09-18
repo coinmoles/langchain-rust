@@ -68,13 +68,13 @@ impl Store {
     fn get_filters(&self, opt: &SqliteOptions) -> Result<HashMap<String, Value>, Box<dyn Error>> {
         match &opt.filters {
             Some(Value::Object(map)) => {
-                // Convert serde_json Map to HashMap<String, Value>
                 let filters = map.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
                 Ok(filters)
             }
-            None => Ok(HashMap::new()), // No filters provided
-            _ => Err("Invalid filters format".into()), /* Filters provided but not in the
-                                                        * expected format */
+            // No filters provided.
+            None => Ok(HashMap::new()),
+            // Filters provided but not in the expected format.
+            _ => Err("Invalid filters format".into()),
         }
     }
 }
