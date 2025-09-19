@@ -27,10 +27,12 @@ The following is the description of the tools available to you:
 - IF YOU DON'T HAVE TOOLS, PASS THIS OPTION
 
 <TOOL_USAGE_OUTPUT_FORMAT>
+```json
 {
-    "action": (string), The action to take; MUST BE one of [{{?tool_names}}]
+    "action": (string), The action to take; MUST BE one of [{{?tool_names}}],
     "action_input": (object), The input to the action, JSON object. The structure object depends on the action you are taking, and is specified in the tool description below.
 }
+```
 </TOOL_USAGE_OUTPUT_FORMAT>
 
 
@@ -39,9 +41,11 @@ Option 2 : Give your best final answer
 - **NEVER RETURN TOOL USE PLAN AS A FINAL ANSWER**
 
 <FINAL_ANSWER_OUTPUT_FORMAT>
+```json
 {
     "final_answer": Your final answer as requested by the user. The final answer should follow the format specified in the user request
 }
+```
 </FINAL_ANSWER_OUTPUT_FORMAT>
 
 </INSTRUCTIONS>"#;
