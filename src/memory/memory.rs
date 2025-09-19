@@ -6,12 +6,23 @@ pub trait Memory: Send + Sync {
 
     fn add_message(&mut self, message: Message);
 
+    fn add_messages(&mut self, messages: Vec<Message>) {
+        for message in messages {
+            self.add_message(message);
+        }
+    }
+
     fn clear(&mut self);
 
     fn to_string(&self) -> String;
 
-    fn update(&mut self, human_message: String, steps: Vec<AgentStep>, final_answer: String) {
-        self.add_human_message(human_message);
+    fn update(
+        &mut self,
+        initial_messages: Vec<Message>,
+        steps: Vec<AgentStep>,
+        final_answer: String,
+    ) {
+        self.add_messages(initial_messages);
         for step in steps {
             let tool_call_id = step.tool_call.id.clone();
             self.add_tool_call_message(vec![step.tool_call]);

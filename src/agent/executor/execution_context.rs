@@ -9,7 +9,7 @@ use crate::agent::{
 };
 use crate::chain::{ChainError, ChainOutput, InputCtor, OutputCtor};
 use crate::llm::LLMOutput;
-use crate::schemas::{IntoWithUsage, Message, TokenUsage, ToolCall, ToolSpec, WithUsage};
+use crate::schemas::{IntoWithUsage, Message, Role, TokenUsage, ToolCall, ToolSpec, WithUsage};
 use crate::tools::{FunctionTool, McpTool, Tool};
 use crate::utils::helper::normalize_tool_name;
 
@@ -51,6 +51,8 @@ where
     pub mcp_functions: Option<HashMap<String, Box<dyn FunctionTool>>>,
     /// Tool spec for the run
     pub tool_spec: Option<ToolSpec>,
+    /// Initial messages from the prompt
+    initial_messages: Vec<Message>,
     _phantom: std::marker::PhantomData<O>,
 }
 
@@ -75,6 +77,7 @@ where
             input: AgentInput::new(input),
             steps: Vec::new(),
             use_counts: HashMap::new(),
+            initial_messages: Vec::new(),
             consecutive_fails: 0,
             total_usage: None,
             mcp_functions: None,
@@ -83,15 +86,15 @@ where
         }
     }
 
-    /// Entry point – iteratively plan / execute tool actions until the agent
-    /// produces a valid final answer.
+    /// Begin the execution.
     pub async fn start(mut self) -> Result<ExecutionOutput<'input, O, S>, ChainError> {
         let span = info_span!("agent", id = self.executor.agent.id());
 
         async move {
-            self.load_memory().await?;
             self.input = self.strategy.prepare_input::<I>(self.input).await?;
-            self.log_initial_prompt()?;
+            self.save_initial_messages()?;
+            self.log_initial_messages()?;
+            self.load_memory().await?;
             self.prepare_tools().await?;
 
             while !self.fail_limit_reached() {
@@ -114,17 +117,18 @@ where
         .await
     }
 
-    fn log_initial_prompt(&self) -> Result<(), ChainError> {
+    fn save_initial_messages(&mut self) -> Result<(), ChainError> {
+        self.initial_messages = self.executor.agent.get_prompt(&self.input)?.to_messages();
+        Ok(())
+    }
+
+    fn log_initial_messages(&self) -> Result<(), ChainError> {
         if !log::log_enabled!(log::Level::Debug) {
             return Ok(());
         }
 
-        for message in self.executor.agent.get_prompt(&self.input)?.to_messages() {
-            log::debug!(
-                "{}:\n{}",
-                message.role.to_string().to_uppercase(),
-                message.content
-            );
+        for message in &self.initial_messages {
+            log::debug!("{message}");
         }
         Ok(())
     }
@@ -166,6 +170,7 @@ where
     }
 
     async fn plan_step(&mut self) -> Result<LLMOutput, ChainError> {
+        // TODO: do not construct scratchpad every step.
         let scratchpad = self
             .steps
             .iter()
@@ -240,9 +245,6 @@ where
 
         log::debug!("\nAgent finished with result:\n{final_answer}");
 
-        let human_message = self.input.inner.to_string();
-        // `self.input.inner` is moved here, this cannot be done in a separate method which receives
-        // `&self`.
         let answer = match O::Target::from_text_and_input(self.input.inner, final_answer.clone()) {
             Ok(answer) => answer,
             Err((returned_input, e)) => {
@@ -254,10 +256,14 @@ where
         };
 
         if let Some(memory) = &self.executor.memory {
-            memory
-                .write()
-                .await
-                .update(human_message, self.steps, final_answer);
+            let messages = self
+                .initial_messages
+                .into_iter()
+                .chain(self.input.agent_scratchpad.unwrap_or_default())
+                .chain([Message::new_ai_message(final_answer)])
+                .filter(|m| m.role != Role::System)
+                .collect();
+            memory.write().await.add_messages(messages);
         }
 
         let WithUsage { content, usage } = answer.with_usage(self.total_usage);

@@ -44,12 +44,16 @@ impl Memory for SimpleMemory {
         self.messages.push(message);
     }
 
+    fn add_messages(&mut self, messages: Vec<Message>) {
+        self.messages.extend(messages);
+    }
+
     fn clear(&mut self) {
         self.messages.clear();
     }
 
     fn to_string(&self) -> String {
-        self.messages()
+        self.messages
             .iter()
             .map(|msg| msg.to_string())
             .collect::<Vec<String>>()
