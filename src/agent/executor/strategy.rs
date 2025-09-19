@@ -157,6 +157,70 @@ impl Strategy for DefaultStrategy {
 }
 
 #[async_trait]
+impl<S> Strategy for Option<S>
+where
+    S: Strategy,
+{
+    type Output = Option<S::Output>;
+
+    fn additional_tools(&self) -> HashMap<&str, &Tool<'_>> {
+        if let Some(strategy) = self {
+            strategy.additional_tools()
+        } else {
+            HashMap::new()
+        }
+    }
+
+    async fn prepare_input<'input, I: InputCtor>(
+        &mut self,
+        input: AgentInput<I::Target<'input>>,
+    ) -> Result<AgentInput<I::Target<'input>>, ChainError> {
+        if let Some(strategy) = self {
+            strategy.prepare_input::<'_, '_, '_, I>(input).await
+        } else {
+            Ok(input)
+        }
+    }
+
+    async fn process_plan(&mut self, plan: LLMOutput) -> Result<LLMOutput, ChainError> {
+        if let Some(strategy) = self {
+            strategy.process_plan(plan).await
+        } else {
+            Ok(plan)
+        }
+    }
+
+    async fn process_step(
+        &mut self,
+        call: ToolCall,
+        output: ToolOutput,
+    ) -> Result<(ToolCall, ToolOutput), ChainError> {
+        if let Some(strategy) = self {
+            strategy.process_step(call, output).await
+        } else {
+            Ok((call, output))
+        }
+    }
+
+    async fn process_final_answer(&mut self, final_answer: String) -> Result<String, ChainError> {
+        if let Some(strategy) = self {
+            strategy.process_final_answer(final_answer).await
+        } else {
+            Ok(final_answer)
+        }
+    }
+
+    async fn finalize(self) -> Result<Self::Output, ChainError> {
+        if let Some(strategy) = self {
+            let output = strategy.finalize().await?;
+            Ok(Some(output))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+#[async_trait]
 impl<S1, S2> Strategy for (S1, S2)
 where
     S1: Strategy,
