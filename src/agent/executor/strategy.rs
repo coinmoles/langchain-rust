@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use crate::agent::{Agent, AgentInput};
 use crate::chain::{ChainError, InputCtor, OutputCtor};
 use crate::llm::LLMOutput;
-use crate::schemas::{ToolCall, ToolSpec};
+use crate::schemas::{Message, ToolCall, ToolSpec};
 use crate::tools::{FunctionTool, Tool, ToolOutput};
 
 /// The tools resolved for the current execution.
@@ -60,6 +60,17 @@ pub trait Strategy: Send + Sync {
         input: AgentInput<I::Target<'input>>,
     ) -> Result<AgentInput<I::Target<'input>>, ChainError> {
         Ok(input)
+    }
+
+    /// Scan the initial messages from memory before starting the execution.
+    ///
+    /// Typical uses:
+    /// - Analyze the initial messages to set up context or state.
+    ///
+    /// Return `Ok(())` if successful. Returning `Err` makes the executor
+    /// retry (until the fail limit) with the same context.
+    async fn scan_initial_messages(&mut self, _messages: &[Message]) -> Result<(), ChainError> {
+        Ok(())
     }
 
     /// Resolve the concrete tool implementation to call for `tool_name`.

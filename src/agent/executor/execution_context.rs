@@ -94,6 +94,9 @@ where
             self.input = self.strategy.prepare_input::<I>(self.input).await?;
             self.save_initial_messages()?;
             self.log_initial_messages()?;
+            self.strategy
+                .scan_initial_messages(&self.initial_messages)
+                .await?;
             self.load_memory().await?;
             self.prepare_tools().await?;
 
