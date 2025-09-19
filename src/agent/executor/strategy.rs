@@ -34,7 +34,7 @@ pub struct ResolvedTools {
 ///
 /// All hooks have **no-op pass-through defaults** so you only override what you need.
 #[async_trait]
-pub trait Strategy: Default + Send + Sync {
+pub trait Strategy: Send + Sync {
     /// Type produced by [`finalize`]. Often used to return strategy-specific
     /// side artifacts (e.g., tag indices, telemetry, transcripts).
     type Output: Send + Sync;
