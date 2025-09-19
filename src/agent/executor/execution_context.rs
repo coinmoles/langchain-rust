@@ -220,14 +220,15 @@ where
 
             log::trace!("\nTool {} raw result:\n{}", &call.name, result.data);
 
-            let Ok(step) = self
+            let Ok((call, result)) = self
                 .strategy
-                .build_step(call, result)
+                .process_step(call, result)
                 .await
-                .inspect_err(|e| failure!(self, "Failed to construct tool step: {e}"))
+                .inspect_err(|e| failure!(self, "Failed to process tool step: {e}"))
             else {
                 return;
             };
+            let step = AgentStep::new(call, result.data.to_string(), result.summary);
             log::debug!("\nTool {} result:\n{}", &step.tool_call.name, step.result);
             self.steps.push(step);
             self.consecutive_fails = 0;

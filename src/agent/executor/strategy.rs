@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 
-use crate::agent::{Agent, AgentInput, AgentStep};
+use crate::agent::{Agent, AgentInput};
 use crate::chain::{ChainError, InputCtor, OutputCtor};
 use crate::llm::LLMOutput;
 use crate::schemas::{ToolCall, ToolSpec};
@@ -37,7 +37,7 @@ pub struct ResolvedTools {
 pub trait Strategy: Default + Send + Sync {
     /// Type produced by [`finalize`]. Often used to return strategy-specific
     /// side artifacts (e.g., tag indices, telemetry, transcripts).
-    type Output;
+    type Output: Send + Sync;
 
     /// Additional tools to be used during this execution.
     ///
@@ -114,13 +114,12 @@ pub trait Strategy: Default + Send + Sync {
     ///
     /// Return an `AgentStep` to append to the transcript. Returning `Err` makes the executor
     /// retry (until the fail limit) with the same context.
-    async fn build_step(
+    async fn process_step(
         &mut self,
         call: ToolCall,
         output: ToolOutput,
-    ) -> Result<AgentStep, ChainError> {
-        let step = AgentStep::new(call, output.data.to_string(), output.summary);
-        Ok(step)
+    ) -> Result<(ToolCall, ToolOutput), ChainError> {
+        Ok((call, output))
     }
 
     /// Validate / transform the final model answer **before** it is converted into `O::Target`.
@@ -154,5 +153,111 @@ impl Strategy for DefaultStrategy {
 
     async fn finalize(self) -> Result<Self::Output, ChainError> {
         Ok(())
+    }
+}
+
+#[async_trait]
+impl<S1, S2> Strategy for (S1, S2)
+where
+    S1: Strategy,
+    S2: Strategy,
+{
+    type Output = (S1::Output, S2::Output);
+
+    fn additional_tools(&self) -> HashMap<&str, &Tool<'_>> {
+        self.0
+            .additional_tools()
+            .into_iter()
+            .chain(self.1.additional_tools())
+            .collect()
+    }
+    async fn prepare_input<'input, I: InputCtor>(
+        &mut self,
+        input: AgentInput<I::Target<'input>>,
+    ) -> Result<AgentInput<I::Target<'input>>, ChainError> {
+        let input = self.0.prepare_input::<'_, '_, '_, I>(input).await?;
+        self.1.prepare_input::<'_, '_, '_, I>(input).await
+    }
+
+    async fn process_plan(&mut self, plan: LLMOutput) -> Result<LLMOutput, ChainError> {
+        let plan = self.0.process_plan(plan).await?;
+        self.1.process_plan(plan).await
+    }
+
+    async fn process_step(
+        &mut self,
+        call: ToolCall,
+        output: ToolOutput,
+    ) -> Result<(ToolCall, ToolOutput), ChainError> {
+        let (call, output) = self.0.process_step(call, output).await?;
+        self.1.process_step(call, output).await
+    }
+
+    async fn process_final_answer(&mut self, final_answer: String) -> Result<String, ChainError> {
+        let answer = self.0.process_final_answer(final_answer).await?;
+        self.1.process_final_answer(answer).await
+    }
+
+    async fn finalize(self) -> Result<Self::Output, ChainError> {
+        let output = self.0.finalize().await?;
+        let output2 = self.1.finalize().await?;
+        Ok((output, output2))
+    }
+}
+
+#[async_trait]
+impl<S1, S2, S3> Strategy for (S1, S2, S3)
+where
+    S1: Strategy,
+    S2: Strategy,
+    S3: Strategy,
+{
+    type Output = (S1::Output, S2::Output, S3::Output);
+
+    fn additional_tools(&self) -> HashMap<&str, &Tool<'_>> {
+        self.0
+            .additional_tools()
+            .into_iter()
+            .chain(self.1.additional_tools())
+            .chain(self.2.additional_tools())
+            .collect()
+    }
+
+    async fn prepare_input<'input, I: InputCtor>(
+        &mut self,
+        input: AgentInput<I::Target<'input>>,
+    ) -> Result<AgentInput<I::Target<'input>>, ChainError> {
+        let input = self.0.prepare_input::<'_, '_, '_, I>(input).await?;
+        let input = self.1.prepare_input::<'_, '_, '_, I>(input).await?;
+        self.2.prepare_input::<'_, '_, '_, I>(input).await
+    }
+
+    async fn process_plan(&mut self, plan: LLMOutput) -> Result<LLMOutput, ChainError> {
+        let plan = self.0.process_plan(plan).await?;
+        let plan = self.1.process_plan(plan).await?;
+        self.2.process_plan(plan).await
+    }
+
+    async fn process_step(
+        &mut self,
+        call: ToolCall,
+        output: ToolOutput,
+    ) -> Result<(ToolCall, ToolOutput), ChainError> {
+        let (call, output) = self.0.process_step(call, output).await?;
+        let (call, output) = self.1.process_step(call, output).await?;
+        self.2.process_step(call, output).await
+    }
+
+    async fn process_final_answer(&mut self, final_answer: String) -> Result<String, ChainError> {
+        let answer = self.0.process_final_answer(final_answer).await?;
+        let answer = self.1.process_final_answer(answer).await?;
+        self.2.process_final_answer(answer).await
+    }
+
+    async fn finalize(self) -> Result<Self::Output, ChainError> {
+        let output = self.0.finalize().await?;
+        let output2 = self.1.finalize().await?;
+        let output3 = self.2.finalize().await?;
+        Ok((output, output2, output3))
     }
 }
