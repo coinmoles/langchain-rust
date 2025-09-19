@@ -46,6 +46,10 @@ where
         }
     }
 
+    pub fn get_memory(&self) -> Option<Arc<RwLock<dyn Memory>>> {
+        self.memory.clone()
+    }
+
     /// Sets the memory for the executor.
     pub fn with_memory(mut self, memory: Arc<RwLock<dyn Memory>>) -> Self {
         self.memory = Some(memory);
