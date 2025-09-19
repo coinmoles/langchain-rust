@@ -66,6 +66,7 @@ pub(super) fn remove_trailing_commas(s: &str) -> String {
                         continue;
                     }
                 }
+                cleaned.push(c);
             }
             _ => {
                 escaped = false;
