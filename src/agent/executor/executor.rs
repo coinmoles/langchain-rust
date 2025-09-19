@@ -46,6 +46,10 @@ where
         }
     }
 
+    pub fn agent_id(&self) -> &str {
+        &self.agent.id
+    }
+
     pub fn get_memory(&self) -> Option<Arc<RwLock<dyn Memory>>> {
         self.memory.clone()
     }
