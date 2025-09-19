@@ -1,10 +1,11 @@
 use std::fmt;
 
-use super::messages::Message;
+use super::message::Message;
 
-/// Represents an LLM prompt consisting of a series of messages.
+/// An LLM prompt consisting of a series of messages.
 #[derive(Debug, Clone)]
 pub struct Prompt {
+    /// The messages in this prompt.
     messages: Vec<Message>,
 }
 

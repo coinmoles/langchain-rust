@@ -8,8 +8,7 @@ use crate::llm::responses::helper::{construct_output, generate, map_stream};
 use crate::llm::{
     LLM, LLMError, LLMOutput, LLMStream, LlmCapabilities, OpenAIModel, ResponsesRequest,
 };
-use crate::schemas::messages::Message;
-use crate::schemas::{IntoWithUsage, MessageType, Prompt, ToolSpec, WithUsage};
+use crate::schemas::{IntoWithUsage, Message, Prompt, Role, ToolSpec, WithUsage};
 
 #[derive(Clone)]
 pub struct OpenAIResponses<C: Config> {
@@ -33,9 +32,8 @@ impl<C: Config> OpenAIResponses<C> {
     fn process_prompt(&self, prompt: Prompt) -> Vec<Message> {
         let mut messages = prompt.to_messages();
         for message in messages.iter_mut() {
-            if self.call_options.system_is_assistant && message.message_type == MessageType::System
-            {
-                message.message_type = MessageType::Ai;
+            if self.call_options.system_is_assistant && message.role == Role::System {
+                message.role = Role::Ai;
             }
         }
         messages

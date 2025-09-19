@@ -7,8 +7,7 @@ use indoc::indoc;
 use super::{ChainError, LLMChain};
 use crate::chain::{Chain, ChainInput, Ctor, InputCtor, StringCtor, TextReplacements};
 use crate::llm::{LLM, LLMStream};
-use crate::schemas::messages::Message;
-use crate::schemas::{Document, MessageType, WithUsage};
+use crate::schemas::{Document, Message, Role, WithUsage};
 use crate::template::MessageTemplate;
 
 #[derive(Clone, ChainInput, Ctor)]
@@ -33,7 +32,12 @@ impl<'a> CondenseQuestionPrompt<'a> {
     }
 
     pub fn chat_history(mut self, chat_history: &[Message]) -> Self {
-        self.chat_history = Message::messages_to_string(chat_history).into();
+        self.chat_history = chat_history
+            .iter()
+            .map(|m| m.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+            .into();
         self
     }
 }
@@ -51,7 +55,7 @@ pub struct CondenseQuestionGeneratorChain<I: InputCtor = CondenseQuestionPromptC
 impl CondenseQuestionGeneratorChain<CondenseQuestionPromptCtor> {
     pub fn new<L: Into<Box<dyn LLM>>>(llm: L) -> Self {
         let condense_question_prompt_template = MessageTemplate::from_jinja2(
-            MessageType::System,
+            Role::System,
             indoc! {"
             Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.
 
@@ -119,7 +123,7 @@ impl ChainInput for StuffQA<'_> {
                 "context",
                 self.input_documents
                     .iter()
-                    .map(|doc| doc.page_content.as_str())
+                    .map(|doc| doc.content.as_str())
                     .collect::<Vec<_>>()
                     .join("\n")
                     .into(),

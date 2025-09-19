@@ -67,7 +67,7 @@ async fn main() {
         })
         .unwrap();
 
-    data.iter().for_each(|d| println!("{:?}", d.page_content));
+    data.iter().for_each(|d| println!("{:?}", d.content));
 }
 
 #[cfg(not(feature = "postgres"))]

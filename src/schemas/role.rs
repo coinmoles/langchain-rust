@@ -2,8 +2,9 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-/// Enum `MessageType` represents the type of a message.
-/// It can be a `SystemMessage`, `AIMessage`, or `HumanMessage`.
+/// The type of a message.
+///
+/// Corresponds to [`Role`](async_openai::types::responses::Role) for the responses api.
 ///
 /// # Usage
 /// ```rust,ignore
@@ -12,7 +13,7 @@ use serde::{Deserialize, Serialize};
 /// let human_message_type = MessageType::HumanMessage;
 /// ```
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
-pub enum MessageType {
+pub enum Role {
     #[serde(rename = "system")]
     System,
     #[serde(rename = "ai")]
@@ -23,19 +24,13 @@ pub enum MessageType {
     Tool,
 }
 
-impl Default for MessageType {
-    fn default() -> Self {
-        Self::System
-    }
-}
-
-impl fmt::Display for MessageType {
+impl fmt::Display for Role {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MessageType::System => write!(f, "system"),
-            MessageType::Ai => write!(f, "ai"),
-            MessageType::Human => write!(f, "human"),
-            MessageType::Tool => write!(f, "tool"),
+            Role::System => write!(f, "system"),
+            Role::Ai => write!(f, "ai"),
+            Role::Human => write!(f, "human"),
+            Role::Tool => write!(f, "tool"),
         }
     }
 }

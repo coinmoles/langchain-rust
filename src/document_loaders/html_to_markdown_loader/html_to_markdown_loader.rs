@@ -139,7 +139,7 @@ mod tests {
             documents[0].metadata.get("source").unwrap(),
             &Value::from("https://example.com/")
         );
-        assert_eq!(documents[0].page_content, expected);
+        assert_eq!(documents[0].content, expected);
     }
 
     #[tokio::test]
@@ -167,7 +167,7 @@ mod tests {
             documents[0].metadata.get("source").unwrap(),
             &Value::from("https://example.com/")
         );
-        assert_eq!(documents[0].page_content, expected);
+        assert_eq!(documents[0].content, expected);
     }
 
     #[tokio::test]
@@ -195,6 +195,6 @@ mod tests {
             documents[0].metadata.get("source").unwrap(),
             &Value::from("https://example.com/")
         );
-        assert_eq!(documents[0].page_content, expected);
+        assert_eq!(documents[0].content, expected);
     }
 }

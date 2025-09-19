@@ -122,7 +122,7 @@ where
         for message in self.executor.agent.get_prompt(&self.input)?.to_messages() {
             log::debug!(
                 "{}:\n{}",
-                message.message_type.to_string().to_uppercase(),
+                message.role.to_string().to_uppercase(),
                 message.content
             );
         }
@@ -172,7 +172,7 @@ where
             .flat_map(|step| {
                 [
                     Message::new_tool_call_message([step.tool_call.clone()]),
-                    Message::new_tool_message(Some(&step.tool_call.id), &step.result),
+                    Message::new_tool_message(Some(step.tool_call.id.clone()), &step.result),
                 ]
             })
             .collect::<Vec<_>>();

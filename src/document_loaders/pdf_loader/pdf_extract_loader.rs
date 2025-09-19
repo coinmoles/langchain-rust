@@ -102,7 +102,7 @@ mod tests {
             .await;
 
         assert_eq!(
-            &docs[0].page_content[..100],
+            &docs[0].content[..100],
             "\n\nSample PDF Document\n\nRobert Maron\nGrzegorz Grudzi´nski\n\nFebruary 20, 1999\n\n2\n\nContents\n\n1 Templat"
         );
         assert_eq!(docs.len(), 1);
@@ -127,7 +127,7 @@ mod tests {
             .await;
 
         assert_eq!(
-            &docs[0].page_content[..100],
+            &docs[0].content[..100],
             "\n\nSample PDF Document\n\nRobert Maron\nGrzegorz Grudzi´nski\n\nFebruary 20, 1999\n\n2\n\nContents\n\n1 Templat"
         );
         assert_eq!(docs.len(), 1);

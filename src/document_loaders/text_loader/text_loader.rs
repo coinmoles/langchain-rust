@@ -71,7 +71,7 @@ The west of Texas divides the border between Mexico and New Mexico. It is very b
         // Use the loader to load the content, which should be wrapped in a Document
         let mut documents = loader.load().await.unwrap();
         while let Some(doc) = documents.next().await {
-            assert_eq!(doc.unwrap().page_content, mocked_file_content); // Ensure the Document contains the mocked content
+            assert_eq!(doc.unwrap().content, mocked_file_content); // Ensure the Document contains the mocked content
         }
 
         let loader = TextLoader::new(mocked_file_content.to_string());

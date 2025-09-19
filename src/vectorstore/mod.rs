@@ -1,7 +1,15 @@
 #![allow(dead_code)]
 // I have no idea how to remove dead codes here.
 
+#[allow(clippy::module_inception)]
+mod vectorstore;
+pub use vectorstore::*;
+
 mod options;
+pub use options::*;
+
+mod retriever;
+pub use retriever::*;
 
 #[cfg(feature = "postgres")]
 pub mod pgvector;
@@ -20,9 +28,3 @@ pub mod opensearch;
 
 #[cfg(feature = "qdrant")]
 pub mod qdrant;
-
-#[allow(clippy::module_inception)]
-mod vectorstore;
-
-pub use options::*;
-pub use vectorstore::*;

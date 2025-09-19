@@ -67,7 +67,7 @@ async fn main() {
         return;
     } else {
         results.iter().for_each(|r| {
-            println!("Document: {}", r.page_content);
+            println!("Document: {}", r.content);
         });
     }
 }

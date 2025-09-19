@@ -4,14 +4,14 @@ use std::process::{Command, Stdio};
 use indoc::indoc;
 use langchain_rust::chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain};
 use langchain_rust::llm::OpenAIChat;
-use langchain_rust::schemas::MessageType;
+use langchain_rust::schemas::Role;
 use langchain_rust::template::MessageTemplate;
 
 //to try this in action , add something to this file stage it an run it
 #[tokio::main]
 async fn main() -> io::Result<()> {
     let prompt = MessageTemplate::from_jinja2(
-        MessageType::Human,
+        Role::Human,
         indoc! {"
             Create a conventional commit message for the following changes.
 

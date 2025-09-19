@@ -38,13 +38,13 @@ impl VectorStore for Store {
         opt: &QdrantOptions,
     ) -> Result<Vec<String>, Box<dyn Error>> {
         let embedder = opt.embedder.as_ref().unwrap_or(&self.embedder);
-        let texts: Vec<String> = docs.iter().map(|d| d.page_content.clone()).collect();
+        let texts: Vec<String> = docs.iter().map(|d| d.content.clone()).collect();
 
         let ids = docs.iter().map(|_| Uuid::new_v4().to_string());
         let vectors = embedder.embed_documents(&texts).await?.into_iter();
         let payloads = docs.iter().map(|d| {
             json!({
-                &self.content_field: d.page_content,
+                &self.content_field: d.content,
                 &self.metadata_field: d.metadata,
             })
         });
@@ -109,13 +109,13 @@ impl VectorStore for Store {
             .map(|scored_point| {
                 let payload = scored_point.payload;
 
-                let page_content = payload[&self.content_field].to_string();
+                let content = payload[&self.content_field].to_string();
                 let metadata =
                     serde_json::from_value(payload[&self.metadata_field].clone().into_json())
                         .unwrap();
                 let score = scored_point.score as f64;
                 Document {
-                    page_content,
+                    content,
                     metadata,
                     score,
                 }

@@ -58,10 +58,7 @@ impl ChatRequest {
         messages: Vec<Message>,
         tools: Option<Vec<FunctionSpec>>,
     ) -> Result<ChatRequest, LLMError> {
-        let messages = messages
-            .into_iter()
-            .map(TryInto::try_into)
-            .collect::<Result<Vec<_>, _>>()?;
+        let messages = messages.into_iter().map(Into::into).collect::<Vec<_>>();
         let tools = tools.map(|t| t.into_iter().map(Into::into).collect());
 
         Ok(ChatRequest {

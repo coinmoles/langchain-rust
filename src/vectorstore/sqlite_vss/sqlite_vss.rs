@@ -75,7 +75,7 @@ impl VectorStore for Store {
         docs: &[Document],
         opt: &Self::Options,
     ) -> Result<Vec<String>, Box<dyn Error>> {
-        let texts: Vec<String> = docs.iter().map(|d| d.page_content.clone()).collect();
+        let texts: Vec<String> = docs.iter().map(|d| d.content.clone()).collect();
 
         let embedder = opt.embedder.as_ref().unwrap_or(&self.embedder);
 
@@ -99,7 +99,7 @@ impl VectorStore for Store {
                 VALUES
                     (?,?,?)"
             })
-            .bind(&doc.page_content)
+            .bind(&doc.content)
             .bind(json!(&doc.metadata))
             .bind(text_embedding.to_string())
             .execute(&mut *tx)
@@ -145,7 +145,7 @@ impl VectorStore for Store {
         let docs = rows
             .into_iter()
             .map(|row| {
-                let page_content: String = row.try_get("text")?;
+                let content: String = row.try_get("text")?;
                 let metadata_json: Value = row.try_get("metadata")?;
                 let score: f64 = row.try_get("distance")?;
 
@@ -156,7 +156,7 @@ impl VectorStore for Store {
                 };
 
                 Ok(Document {
-                    page_content,
+                    content,
                     metadata,
                     score,
                 })

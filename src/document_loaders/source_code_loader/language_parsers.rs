@@ -230,7 +230,7 @@ mod tests {
         let documents = parser.parse_code(code);
         assert_eq!(documents.len(), 3);
         assert_eq!(
-            documents[0].page_content,
+            documents[0].content,
             "fn main() {\n            println!(\"Hello, world!\");\n        }"
         );
         assert_eq!(

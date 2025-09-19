@@ -13,7 +13,7 @@ use super::{
     PgFilter, PgOptions, Store,
 };
 use crate::embedding::embedder_trait::Embedder;
-use crate::schemas::BuilderError;
+use crate::utils::BuilderError;
 use crate::vectorstore::VecStoreOptions;
 
 const DEFAULT_COLLECTION_NAME: &str = "langchain";

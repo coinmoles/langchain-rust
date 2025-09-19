@@ -97,12 +97,7 @@ impl TryFrom<LLMOutput> for ChatCompletionResponseMessage {
                 refusal: None,
                 role: Role::Assistant,
                 audio: None,
-                tool_calls: Some(
-                    tool_calls
-                        .into_iter()
-                        .map(ToolCall::try_into)
-                        .collect::<Result<Vec<_>, _>>()?,
-                ),
+                tool_calls: Some(tool_calls.into_iter().map(Into::into).collect::<Vec<_>>()),
                 function_call: None,
             }),
         }

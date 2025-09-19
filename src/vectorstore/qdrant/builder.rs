@@ -5,7 +5,7 @@ use qdrant_client::Qdrant;
 use qdrant_client::qdrant::{CreateCollectionBuilder, Distance, Filter, VectorParamsBuilder};
 
 use crate::embedding::Embedder;
-use crate::schemas::BuilderError;
+use crate::utils::BuilderError;
 use crate::vectorstore::qdrant::Store;
 
 pub struct StoreBuilder {

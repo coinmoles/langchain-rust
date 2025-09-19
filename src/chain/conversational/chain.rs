@@ -13,8 +13,7 @@ use crate::chain::{
 };
 use crate::llm::{LLMOutput, LLMOutputCtor, LLMStream};
 use crate::memory::Memory;
-use crate::schemas::messages::Message;
-use crate::schemas::{IntoWithUsage, Prompt, WithUsage};
+use crate::schemas::{IntoWithUsage, Message, Prompt, WithUsage};
 use crate::template::TemplateError;
 
 pub struct ConversationalChain<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor>

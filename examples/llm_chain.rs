@@ -1,8 +1,7 @@
 use langchain_rust::chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain};
 use langchain_rust::llm::{LLM, OpenAIChat};
 use langchain_rust::prompt_template;
-use langchain_rust::schemas::MessageType;
-use langchain_rust::schemas::messages::Message;
+use langchain_rust::schemas::{Message, Role};
 use langchain_rust::template::MessageTemplate;
 
 #[tokio::main]
@@ -24,7 +23,7 @@ async fn main() {
     // raw user input to a better input to the LLM.
     let prompt = prompt_template![
         Message::new_system_message("You are world class technical documentation writer."),
-        MessageTemplate::from_fstring(MessageType::Human, "{input}",)
+        MessageTemplate::from_fstring(Role::Human, "{input}",)
     ];
 
     //We can now combine these into a simple LLM chain:

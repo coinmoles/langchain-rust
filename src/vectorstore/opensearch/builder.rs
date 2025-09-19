@@ -3,7 +3,7 @@ use std::sync::Arc;
 use opensearch::OpenSearch;
 
 use crate::embedding::Embedder;
-use crate::schemas::BuilderError;
+use crate::utils::BuilderError;
 use crate::vectorstore::opensearch::Store;
 
 pub struct StoreBuilder {

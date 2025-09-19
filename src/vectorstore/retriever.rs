@@ -2,7 +2,7 @@ use std::error::Error;
 
 use async_trait::async_trait;
 
-use super::Document;
+use crate::schemas::Document;
 
 #[async_trait]
 pub trait Retriever: Sync + Send {

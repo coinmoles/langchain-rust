@@ -131,9 +131,8 @@ impl ResponsesRequest {
     ) -> Result<ResponsesRequest, LLMError> {
         let msgs = messages
             .into_iter()
-            .map(Vec::<InputItem>::try_from)
-            .collect::<Result<Vec<_>, _>>()?
-            .concat();
+            .flat_map(Vec::<InputItem>::from)
+            .collect();
         let input = Input::Items(msgs);
         let tools = tools.map(ToolSpec::into_tool_definitions);
 

@@ -17,7 +17,7 @@ pub trait TextSplitter: Send + Sync {
         let mut texts: Vec<String> = Vec::new();
         let mut metadatas: Vec<HashMap<String, Value>> = Vec::new();
         documents.iter().for_each(|d| {
-            texts.push(d.page_content.clone());
+            texts.push(d.content.clone());
             metadatas.push(d.metadata.clone());
         });
 

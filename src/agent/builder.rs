@@ -5,7 +5,7 @@ use crate::agent::Agent;
 use crate::chain::{InputCtor, LLMChain, OutputCtor};
 use crate::llm::LLM;
 use crate::prompt_template;
-use crate::schemas::MessageType;
+use crate::schemas::Role;
 use crate::template::{MessageOrTemplate, MessageTemplate};
 use crate::tools::{ListTools, Tool, Toolbox};
 use crate::utils::helper::normalize_tool_name;
@@ -99,9 +99,9 @@ impl<'a, 'b, 'tool, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, 'tool, I, 
             .collect::<HashMap<_, _>>();
 
         let prompt = prompt_template![
-            MessageTemplate::from_jinja2(MessageType::System, system_prompt),
+            MessageTemplate::from_jinja2(Role::System, system_prompt),
             MessageOrTemplate::Placeholder("chat_history".into()),
-            MessageTemplate::from_jinja2(MessageType::Human, initial_prompt),
+            MessageTemplate::from_jinja2(Role::Human, initial_prompt),
             MessageOrTemplate::Placeholder("agent_scratchpad".into()),
             MessageOrTemplate::Placeholder("ultimatum".into())
         ];

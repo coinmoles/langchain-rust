@@ -76,7 +76,7 @@ mod tests {
     use super::*;
     use crate::chain::{ChainInput, ChainOutput, Ctor, LLMChain};
     use crate::llm::OpenAIChat;
-    use crate::schemas::MessageType;
+    use crate::schemas::Role;
     use crate::sequential_chain;
     use crate::template::MessageTemplate;
 
@@ -101,7 +101,7 @@ mod tests {
         let llm = OpenAIChat::default();
         let chain1: LLMChain<Chain1InputCtor, Chain2InputCtor> = LLMChain::builder()
             .prompt(MessageTemplate::from_fstring(
-                MessageType::Human,
+                Role::Human,
                 "dame un nombre para una tienda de {input}",
             ))
             .llm(llm.clone())
@@ -110,7 +110,7 @@ mod tests {
 
         let chain2: LLMChain<Chain2InputCtor> = LLMChain::builder()
             .prompt(MessageTemplate::from_fstring(
-                MessageType::Human,
+                Role::Human,
                 "dame un slogan para una tienda llamada {nombre}, tiene que incluir la palabra {palabra}",
             ))
             .llm(llm.clone())

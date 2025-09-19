@@ -97,7 +97,7 @@ impl<C: Connection> VectorStore for Store<C> {
         docs: &[Document],
         opt: &Self::Options,
     ) -> Result<Vec<String>, Box<dyn Error>> {
-        let texts: Vec<String> = docs.iter().map(|d| d.page_content.clone()).collect();
+        let texts: Vec<String> = docs.iter().map(|d| d.content.clone()).collect();
 
         let embedder = opt.embedder.as_ref().unwrap_or(&self.embedder);
 
@@ -128,7 +128,7 @@ impl<C: Connection> VectorStore for Store<C> {
                             }}
                             RETURN record::id(id) as id"
                         })
-                        .bind(("text", doc.page_content.to_owned()))
+                        .bind(("text", doc.content.to_owned()))
                         .bind(("embedding", vector.to_owned()))
                         .bind(("metadata", metadata.to_owned()))
                         .await?
@@ -149,7 +149,7 @@ impl<C: Connection> VectorStore for Store<C> {
                             }}
                             RETURN record::id(id) as id"
                         })
-                        .bind(("text", doc.page_content.to_owned()))
+                        .bind(("text", doc.content.to_owned()))
                         .bind(("embedding", vector.to_owned()))
                         .bind(("metadata", doc.metadata.to_owned()))
                         .await?
@@ -205,7 +205,7 @@ impl<C: Connection> VectorStore for Store<C> {
         let documents = query_result
             .into_iter()
             .map(|row| Document {
-                page_content: row.text,
+                content: row.text,
                 metadata: row.metadata,
                 score: row.similarity,
             })

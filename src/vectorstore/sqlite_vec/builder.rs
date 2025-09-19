@@ -7,7 +7,7 @@ use sqlx::{Pool, Sqlite};
 
 use super::Store;
 use crate::embedding::embedder_trait::Embedder;
-use crate::schemas::BuilderError;
+use crate::utils::BuilderError;
 
 pub struct StoreBuilder {
     pool: Option<Pool<Sqlite>>,

@@ -112,7 +112,7 @@ mod tests {
     use crate::chain::{Chain, ChainInput, Ctor};
     use crate::llm::{GenericChat, OpenAIModel};
     use crate::prompt_template;
-    use crate::schemas::MessageType;
+    use crate::schemas::Role;
     use crate::template::MessageTemplate;
 
     #[tokio::test]
@@ -129,7 +129,7 @@ mod tests {
 
         // Create an AI message prompt template
         let human_message_prompt =
-            MessageTemplate::from_fstring(MessageType::Human, "Mi nombre es: {nombre} ");
+            MessageTemplate::from_fstring(Role::Human, "Mi nombre es: {nombre} ");
 
         // Use the `message_formatter` macro to construct the formatter
         let prompt = prompt_template!(human_message_prompt);

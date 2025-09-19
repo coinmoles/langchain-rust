@@ -11,8 +11,7 @@ use crate::llm::{
     DefaultInstructor, GenericChatBuilder, Instructor, LLM, LLMError, LLMOutput, LLMStream,
     LlmCapabilities, OpenAIModel,
 };
-use crate::schemas::messages::Message;
-use crate::schemas::{FunctionSpec, IntoWithUsage, MessageType, Prompt, ToolSpec, WithUsage};
+use crate::schemas::{FunctionSpec, IntoWithUsage, Message, Prompt, Role, ToolSpec, WithUsage};
 
 pub struct GenericChat<C: Config> {
     client: OpenAIClient<C>,
@@ -45,7 +44,7 @@ impl<C: Config> GenericChat<C> {
             .into_iter()
             .scan(true, |first_system, mut message| {
                 // Inject tool instruction into the first system message.
-                if *first_system && message.message_type == MessageType::System {
+                if *first_system && message.role == Role::System {
                     if let Some(tools) = tools {
                         let instruction = self.instructor.tool_use_instruction(tools);
                         message.content.push_str(&instruction);
@@ -54,10 +53,8 @@ impl<C: Config> GenericChat<C> {
                 }
 
                 // Change system message to ai message if configured.
-                if self.call_options.system_is_assistant
-                    && message.message_type == MessageType::System
-                {
-                    message.message_type = MessageType::Ai;
+                if self.call_options.system_is_assistant && message.role == Role::System {
+                    message.role = Role::Ai;
                 }
 
                 // Convert tool call/result messages to normal ai/human messages
@@ -69,8 +66,8 @@ impl<C: Config> GenericChat<C> {
                         .join("\n");
                     message.tool_calls = None;
                 }
-                if message.message_type == MessageType::Tool {
-                    message.message_type = MessageType::Human;
+                if message.role == Role::Tool {
+                    message.role = Role::Human;
                 }
                 Some(message)
             })

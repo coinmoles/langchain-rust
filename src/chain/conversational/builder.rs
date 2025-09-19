@@ -9,8 +9,9 @@ use crate::chain::{ChainOutput, ConversationalChainInputCtor, InputCtor, LLMChai
 use crate::llm::{LLM, LLMOutputCtor};
 use crate::memory::{Memory, SimpleMemory};
 use crate::output_parser::OutputParser;
-use crate::schemas::{BuilderError, MessageType};
+use crate::schemas::Role;
 use crate::template::{MessageTemplate, PromptTemplate};
+use crate::utils::BuilderError;
 
 pub struct ConversationalChainBuilder<I: InputCtor, O: OutputCtor>
 where
@@ -67,7 +68,7 @@ where
         let llm = self.llm.ok_or(BuilderError::MissingField("llm"))?;
         let prompt = match self.prompt {
             Some(prompt) => prompt,
-            None => MessageTemplate::from_fstring(MessageType::Human, DEFAULT_TEMPLATE).into(),
+            None => MessageTemplate::from_fstring(Role::Human, DEFAULT_TEMPLATE).into(),
         };
         let llm_chain = {
             let mut builder = LLMChain::builder().prompt(prompt).llm(llm);

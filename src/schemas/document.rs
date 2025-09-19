@@ -3,61 +3,56 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-/// The `Document` struct represents a document with content, metadata, and a score.
-/// The `page_content` field is a string that contains the content of the document.
-/// The `metadata` field is a `HashMap` where the keys represent metadata properties and the values
-/// represent property values. The `score` field represents a relevance score for the document and
-/// is a floating point number.
+/// A document with content, metadata, and a score.
+///
+/// # Fields
+/// - `content`: The main content of the document.
+/// - `metadata`: A map of metadata properties associated with the document.
+/// - `score`: A relevance score for the document.
 ///
 /// # Usage
-/// ```rust,ignore
+/// ```
+/// use std::collections::HashMap;
+///
+/// use langchain_rust::schemas::Document;
+/// use serde_json::json;
+///
 /// let my_doc = Document::new("This is the document content.".to_string())
-///    .with_metadata({
-///       let mut metadata = HashMap::new();
-///       metadata.insert("author".to_string(), json!("John Doe"));
-///       metadata
-///   })
-///    .with_score(0.75);
+///     .with_metadata(HashMap::from_iter([(
+///         "author".to_string(),
+///         json!("John Doe"),
+///     )]))
+///     .with_score(0.75);
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Document {
-    pub page_content: String,
+    /// The main content of the document.
+    pub content: String,
+    /// A map of metadata properties associated with the document.
     pub metadata: HashMap<String, Value>,
+    /// A relevance score for the document.
     pub score: f64,
 }
 
 impl Document {
-    /// Constructs a new `Document` with provided `page_content`, an empty `metadata` map and a
-    /// `score` of 0.
-    pub fn new<S: Into<String>>(page_content: S) -> Self {
+    /// Constructs a new `Document` with the given content.
+    pub fn new(page_content: impl Into<String>) -> Self {
         Document {
-            page_content: page_content.into(),
+            content: page_content.into(),
             metadata: HashMap::new(),
             score: 0.0,
         }
     }
 
-    /// Sets the `metadata` Map of the `Document` to the provided HashMap.
+    /// Sets the `metadata` of the document.
     pub fn with_metadata(mut self, metadata: HashMap<String, Value>) -> Self {
         self.metadata = metadata;
         self
     }
 
-    /// Sets the `score` of the `Document` to the provided float.
+    /// Sets the `score` of the document.
     pub fn with_score(mut self, score: f64) -> Self {
         self.score = score;
         self
-    }
-}
-
-impl Default for Document {
-    /// Provides a default `Document` with an empty `page_content`, an empty `metadata` map and a
-    /// `score` of 0.
-    fn default() -> Self {
-        Document {
-            page_content: "".to_string(),
-            metadata: HashMap::new(),
-            score: 0.0,
-        }
     }
 }

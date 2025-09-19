@@ -2,8 +2,8 @@ use super::LLMChain;
 use crate::chain::{ChainOutput, InputCtor, OutputCtor};
 use crate::llm::LLM;
 use crate::output_parser::{OutputParser, SimpleParser};
-use crate::schemas::BuilderError;
 use crate::template::PromptTemplate;
+use crate::utils::BuilderError;
 
 pub struct LLMChainBuilder<I: InputCtor, O: OutputCtor>
 where

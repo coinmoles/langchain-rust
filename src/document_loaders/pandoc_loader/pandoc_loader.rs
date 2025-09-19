@@ -178,7 +178,7 @@ mod tests {
             .await;
 
         // only pick the first 27 characters for now
-        assert_eq!(&docs[0].page_content[..27], "Lorem ipsum dolor sit amet,");
+        assert_eq!(&docs[0].content[..27], "Lorem ipsum dolor sit amet,");
         assert_eq!(docs.len(), 1);
     }
 }

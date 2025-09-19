@@ -7,7 +7,7 @@ use crate::chain::LLMChain;
 use crate::embedding::Embedder;
 use crate::embedding::openai::OpenAiEmbedder;
 use crate::llm::{LLM, OpenAIChat};
-use crate::schemas::MessageType;
+use crate::schemas::Role;
 use crate::semantic_router::{Index, MemoryIndex, RouteLayerBuilderError, Router};
 use crate::template::MessageTemplate;
 
@@ -82,7 +82,7 @@ impl RouteLayerBuilder {
 
     pub fn llm<L: LLM + 'static>(mut self, llm: L) -> Self {
         let prompt = MessageTemplate::from_jinja2(
-            MessageType::Human,
+            Role::Human,
             r#"
             You should Generate the input for the following tool.
             Tool description:{{description}}.

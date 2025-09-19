@@ -13,7 +13,7 @@ use crate::chain::{
     StuffQACtor,
 };
 use crate::llm::{LLM, LLMStream};
-use crate::schemas::{MessageType, Prompt, WithUsage};
+use crate::schemas::{Role, Prompt, WithUsage};
 use crate::template::{MessageTemplate, TemplateError};
 
 pub struct StuffDocument<I = StuffQACtor, O = StringCtor>
@@ -79,7 +79,7 @@ impl StuffDocument<StuffQACtor, StringCtor> {
     /// ```
     pub fn load_stuff_qa<L: Into<Box<dyn LLM>>>(llm: L) -> Self {
         let default_qa_prompt_template = MessageTemplate::from_jinja2(
-            MessageType::System,
+            Role::System,
             indoc! {"
             Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
             

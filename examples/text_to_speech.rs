@@ -55,13 +55,13 @@ async fn main() {
             "Processing chunk {} of {} with chunk size {}: \n{}\n",
             i,
             text_chunks.len(),
-            chunk.page_content.len(),
-            &chunk.page_content
+            chunk.content.len(),
+            &chunk.content
         );
 
         let openai = Text2SpeechOpenAI::default().with_path(format!("chunk_{i}.mp3"));
         let path = openai
-            .call(Value::String(chunk.page_content.to_string()))
+            .call(Value::String(chunk.content.to_string()))
             .await
             .unwrap()
             .data

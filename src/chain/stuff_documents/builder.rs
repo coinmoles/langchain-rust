@@ -3,8 +3,9 @@ use super::prompt::DEFAULT_STUFF_QA_TEMPLATE;
 use crate::chain::{ChainOutput, InputCtor, LLMChain, OutputCtor};
 use crate::llm::LLM;
 use crate::output_parser::OutputParser;
-use crate::schemas::{BuilderError, MessageType};
+use crate::schemas::Role;
 use crate::template::{MessageTemplate, PromptTemplate};
+use crate::utils::BuilderError;
 
 pub struct StuffDocumentBuilder<'a, I, O>
 where
@@ -56,7 +57,7 @@ where
         let prompt = match self.prompt {
             Some(prompt) => prompt,
             None => {
-                MessageTemplate::from_fstring(MessageType::System, DEFAULT_STUFF_QA_TEMPLATE).into()
+                MessageTemplate::from_fstring(Role::System, DEFAULT_STUFF_QA_TEMPLATE).into()
             }
         };
 

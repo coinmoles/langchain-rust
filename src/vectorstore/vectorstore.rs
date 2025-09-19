@@ -3,7 +3,8 @@ use std::error::Error;
 use async_trait::async_trait;
 
 use super::VecStoreOptions;
-use crate::schemas::{self, Document};
+use crate::schemas::Document;
+use crate::vectorstore::retriever::Retriever;
 
 // VectorStore is the trait for saving and querying documents in the
 // form of vector embeddings.
@@ -59,17 +60,18 @@ macro_rules! similarity_search {
 }
 
 // Retriever is a retriever for vector stores.
-pub struct Retriever<F> {
+pub struct VectorStoreRetriever<F> {
     vstore: Box<dyn VectorStore<Options = VecStoreOptions<F>>>,
     num_docs: usize,
     options: VecStoreOptions<F>,
 }
-impl<F> Retriever<F> {
+
+impl<F> VectorStoreRetriever<F> {
     pub fn new<V: Into<Box<dyn VectorStore<Options = VecStoreOptions<F>>>>>(
         vstore: V,
         num_docs: usize,
     ) -> Self {
-        Retriever {
+        VectorStoreRetriever {
             vstore: vstore.into(),
             num_docs,
             options: VecStoreOptions::<F>::new(),
@@ -83,7 +85,7 @@ impl<F> Retriever<F> {
 }
 
 #[async_trait]
-impl<O: Sync + Send> schemas::Retriever for Retriever<O> {
+impl<O: Sync + Send> Retriever for VectorStoreRetriever<O> {
     async fn get_relevant_documents(&self, query: &str) -> Result<Vec<Document>, Box<dyn Error>> {
         self.vstore
             .similarity_search(query, self.num_docs, &self.options)

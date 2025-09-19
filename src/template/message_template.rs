@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::chain::TextReplacements;
-use crate::schemas::{Message, MessageType};
+use crate::schemas::{Message, Role};
 use crate::template::TemplateError;
 
 #[derive(Debug, Clone)]
@@ -12,7 +12,7 @@ pub enum TemplateFormat {
 
 #[derive(Debug, Clone)]
 pub struct MessageTemplate {
-    message_type: MessageType,
+    message_type: Role,
     template: String,
     variables: HashSet<String>,
     format: TemplateFormat,
@@ -20,7 +20,7 @@ pub struct MessageTemplate {
 
 impl MessageTemplate {
     pub fn new(
-        message_type: MessageType,
+        message_type: Role,
         template: impl Into<String>,
         variables: HashSet<String>,
         format: TemplateFormat,
@@ -33,7 +33,7 @@ impl MessageTemplate {
         }
     }
 
-    pub fn from_fstring(message_type: MessageType, content: impl Into<String>) -> Self {
+    pub fn from_fstring(message_type: Role, content: impl Into<String>) -> Self {
         let content = content.into();
 
         let re = regex::Regex::new(r"\{(\w+)\}").unwrap();
@@ -45,7 +45,7 @@ impl MessageTemplate {
         Self::new(message_type, content, variables, TemplateFormat::FString)
     }
 
-    pub fn from_jinja2(message_type: MessageType, content: impl Into<String>) -> Self {
+    pub fn from_jinja2(message_type: Role, content: impl Into<String>) -> Self {
         let content = content.into();
 
         let re = regex::Regex::new(r"\{\{(\w+)\}\}").unwrap();
@@ -101,7 +101,7 @@ mod tests {
 
     #[test]
     fn test_fstring_template() {
-        let template = MessageTemplate::from_fstring(MessageType::Ai, "Hello {name}, how are you?");
+        let template = MessageTemplate::from_fstring(Role::Ai, "Hello {name}, how are you?");
 
         let input = HashMap::from([("name", "Alice".into())]);
 
@@ -112,7 +112,7 @@ mod tests {
     #[test]
     fn test_jinja2_template() {
         let template =
-            MessageTemplate::from_jinja2(MessageType::Ai, "Hello {{name}}, how are you?");
+            MessageTemplate::from_jinja2(Role::Ai, "Hello {{name}}, how are you?");
 
         let input_variables = HashMap::from([("name", "Alice".into())]);
 
@@ -123,7 +123,7 @@ mod tests {
     #[test]
     fn test_jinja2_template_duplicate() {
         let template = MessageTemplate::from_jinja2(
-            MessageType::Ai,
+            Role::Ai,
             "Hello {{name}}, how are you? Nice to meet you {{name}}!",
         );
 

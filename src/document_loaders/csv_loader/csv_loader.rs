@@ -136,11 +136,11 @@ Jane Smith,32,London,United Kingdom";
 
         let expected1 = "name: John Doe\nage: 25\ncity: New York\ncountry: United States\n";
         assert_eq!(documents[0].metadata.get("row").unwrap(), &Value::from(1));
-        assert_eq!(documents[0].page_content, expected1);
+        assert_eq!(documents[0].content, expected1);
 
         let expected2 = "name: Jane Smith\nage: 32\ncity: London\ncountry: United Kingdom\n";
         assert_eq!(documents[1].metadata.get("row").unwrap(), &Value::from(2));
-        assert_eq!(documents[1].page_content, expected2);
+        assert_eq!(documents[1].content, expected2);
     }
 
     #[tokio::test]
@@ -166,10 +166,10 @@ Jane Smith,32,London,United Kingdom";
 
         let expected1 = "name: John Doe\nage: 25\ncity: New York\ncountry: United States\n";
         assert_eq!(documents[0].metadata.get("row").unwrap(), &Value::from(1));
-        assert_eq!(documents[0].page_content, expected1);
+        assert_eq!(documents[0].content, expected1);
 
         let expected2 = "name: Jane Smith\nage: 32\ncity: London\ncountry: United Kingdom\n";
         assert_eq!(documents[1].metadata.get("row").unwrap(), &Value::from(2));
-        assert_eq!(documents[1].page_content, expected2);
+        assert_eq!(documents[1].content, expected2);
     }
 }

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use super::Memory;
-use crate::schemas::messages::Message;
+use crate::schemas::Message;
 
 pub struct DummyMemory {}
 

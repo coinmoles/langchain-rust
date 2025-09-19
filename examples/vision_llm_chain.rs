@@ -2,7 +2,7 @@ use base64::prelude::*;
 use langchain_rust::chain::{Chain, DefaultChainInput, DefaultChainInputCtor, LLMChain};
 use langchain_rust::llm::OpenAIChat;
 use langchain_rust::prompt_template;
-use langchain_rust::schemas::{Message, MessageType};
+use langchain_rust::schemas::{ImageContent, Message, Role};
 use langchain_rust::template::MessageTemplate;
 
 #[tokio::main]
@@ -10,11 +10,11 @@ async fn main() {
     // Convert image to base64. Can also pass a link to an image instead.
     let image = std::fs::read("./src/llm/test_data/example.jpg").unwrap();
     let image_base64 = BASE64_STANDARD.encode(image);
+    let image_content = ImageContent::new(format!("data:image/jpeg;base64,{image_base64}"));
 
     let prompt = prompt_template![
-        MessageTemplate::from_fstring(MessageType::Human, "{input}"),
-        Message::new_human_message("")
-            .with_images(vec![format!("data:image/jpeg;base64,{image_base64}")])
+        MessageTemplate::from_fstring(Role::Human, "{input}"),
+        Message::new_human_message("").with_images(vec![image_content])
     ];
 
     // let open_ai = OpenAI::new(langchain_rust::llm::ollama::openai::OllamaConfig::default())

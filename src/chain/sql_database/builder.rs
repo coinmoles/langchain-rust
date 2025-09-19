@@ -5,9 +5,10 @@ use crate::chain::{LLMChain, SqlChainLLMChainInputCtor, StringCtor};
 use crate::llm::{CallOptions, LLM};
 use crate::output_parser::OutputParser;
 use crate::prompt_template;
-use crate::schemas::{BuilderError, MessageType};
+use crate::schemas::Role;
 use crate::template::{MessageTemplate, PromptTemplate};
 use crate::tools::SQLDatabase;
+use crate::utils::BuilderError;
 
 pub struct SQLDatabaseChainBuilder<'b> {
     llm: Option<Box<dyn LLM>>,
@@ -67,7 +68,7 @@ impl<'b> SQLDatabaseChainBuilder<'b> {
             .ok_or(BuilderError::MissingField("database"))?;
 
         let prompt: PromptTemplate = prompt_template![MessageTemplate::from_jinja2(
-            MessageType::Human,
+            Role::Human,
             format!("{DEFAULT_SQLTEMPLATE}{DEFAULT_SQLSUFFIX}"),
         )];
 

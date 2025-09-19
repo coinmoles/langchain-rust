@@ -7,13 +7,21 @@ use serde_json::json;
 use crate::tools::{EmptyFunctionInput, FunctionTool, McpTool, describe_parameters};
 use crate::utils::helper::normalize_tool_name;
 
+/// The specification of tools available to the LLM.
+///
+/// # Fields
+/// - `functions`: A list of function tools.
+/// - `mcps`: A list of MCP tools.
 #[derive(Debug, Clone)]
 pub struct ToolSpec {
+    /// A list of functions available to the LLM.
     pub functions: Vec<FunctionSpec>,
+    /// A list of MCP tools available to the LLM.
     pub mcps: Vec<McpTool>,
 }
 
 impl ToolSpec {
+    /// Constructs a new `ToolSpec`.
     pub fn new(functions: Vec<FunctionSpec>, mcps: Vec<McpTool>) -> Option<Self> {
         if functions.is_empty() && mcps.is_empty() {
             return None;
@@ -21,15 +29,18 @@ impl ToolSpec {
         Some(Self { functions, mcps })
     }
 
+    /// Constructs a new `ToolSpec` from a list of function tools and MCP tools.
     pub fn from_tools(functions: &[&dyn FunctionTool], mcps: Vec<McpTool>) -> Option<Self> {
         let functions = functions.iter().map(|f| f.get_spec()).collect();
         Self::new(functions, mcps)
     }
 
+    /// Returns true if there are no tools defined.
     pub fn is_empty(&self) -> bool {
         self.functions.is_empty() && self.mcps.is_empty()
     }
 
+    /// Converts the `ToolSpec` into a list of `ToolDefinition`s.
     pub fn into_tool_definitions(self) -> Vec<ToolDefinition> {
         let mut definitions: Vec<ToolDefinition> =
             self.functions.into_iter().map(Into::into).collect();
@@ -42,22 +53,30 @@ impl ToolSpec {
     }
 }
 
-/// A struct representing the tool definition payload.
+/// The specification of a function tool available to the LLM.
 ///
-/// While `async_openai` provides structs for this,
-/// two separate structs exist for the responses api
-/// ([`Function`](async_openai::types::responses::Function)) and the chat completions api
-/// [`FunctionObject`](async_openai::types::FunctionObject)). This struct provides a unified api for
-/// internal use with easy conversion into the two structs.
+/// Corresponds to [`FunctionObject`](async_openai::types::FunctionObject) for the chat completions
+/// api and [`Function`](async_openai::types::responses::Function) for the responses api.
+///
+/// # Fields
+/// - `name`: The name of the function.
+/// - `description`: A description of the function.
+/// - `parameters`: The parameters of the function as a JSON schema.
+/// - `strict`: Whether the function should be called with strict parameter validation.
 #[derive(Debug, Clone)]
 pub struct FunctionSpec {
+    /// The name of the function.
     pub name: String,
+    /// A description of the function.
     pub description: Option<String>,
+    /// The parameters of the function as a JSON schema.
     pub parameters: Schema,
+    /// Whether the function should be called with strict parameter validation.
     pub strict: bool,
 }
 
 impl FunctionSpec {
+    /// Constructs a new `FunctionSpec`.
     pub fn new(
         name: String,
         description: Option<String>,
@@ -72,6 +91,7 @@ impl FunctionSpec {
         }
     }
 
+    /// Returns the JSON representation of the function specification.
     pub fn as_json(&self) -> String {
         let json = json!({
             "name": self.name,
@@ -82,6 +102,7 @@ impl FunctionSpec {
         serde_json::to_string_pretty(&json).unwrap_or_else(|_| json.to_string())
     }
 
+    /// Returns a human-readable description of the function specification.
     pub fn describe(&self) -> String {
         let name = normalize_tool_name(&self.name);
         let desc = self.description.as_deref().unwrap_or("");

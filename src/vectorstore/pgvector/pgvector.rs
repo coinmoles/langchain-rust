@@ -204,7 +204,7 @@ impl VectorStore for Store {
             );
             return Err(err.into());
         }
-        let texts: Vec<String> = docs.iter().map(|d| d.page_content.clone()).collect();
+        let texts: Vec<String> = docs.iter().map(|d| d.content.clone()).collect();
 
         let embedder = opt.embedder.as_ref().unwrap_or(&self.embedder);
 
@@ -231,7 +231,7 @@ impl VectorStore for Store {
                 self.embedder_table_name
             })
             .bind(&id)
-            .bind(&doc.page_content)
+            .bind(&doc.content)
             .bind(&vector_value)
             .bind(json!(&doc.metadata))
             .bind(&self.collection_uuid)
@@ -306,7 +306,7 @@ impl VectorStore for Store {
         let docs = rows
             .into_iter()
             .map(|row| {
-                let page_content: String = row.try_get(0)?;
+                let content: String = row.try_get(0)?;
                 let metadata_json: Value = row.try_get(1)?;
                 let score: f64 = row.try_get(2)?;
 
@@ -317,7 +317,7 @@ impl VectorStore for Store {
                 };
 
                 Ok(Document {
-                    page_content,
+                    content,
                     metadata,
                     score,
                 })

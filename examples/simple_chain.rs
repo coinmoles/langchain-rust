@@ -4,7 +4,7 @@ use std::io::{self, Write};
 use async_openai::config::OpenAIConfig;
 use langchain_rust::chain::{Chain, ChainInput, Ctor, LLMChain};
 use langchain_rust::llm::{OpenAIChat, OpenAIModel};
-use langchain_rust::schemas::MessageType;
+use langchain_rust::schemas::Role;
 use langchain_rust::template::MessageTemplate; // Include io Library for terminal input
 
 #[derive(Clone, ChainInput, Ctor)]
@@ -16,7 +16,7 @@ pub struct ProductoInput<'a> {
 #[tokio::main]
 async fn main() {
     let prompt = MessageTemplate::from_jinja2(
-        MessageType::Human,
+        Role::Human,
         "Give me a creative name for a store that sells: {{producto}}",
     );
 
