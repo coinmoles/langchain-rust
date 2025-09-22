@@ -51,7 +51,7 @@ where
     pub mcp_functions: Option<HashMap<String, Box<dyn FunctionTool>>>,
     /// Tool spec for the run
     pub tool_spec: Option<ToolSpec>,
-    /// Initial messages from the prompt
+    /// Initial messages from the prompt, not including any messages from memory.
     initial_messages: Vec<Message>,
     _phantom: std::marker::PhantomData<O>,
 }
