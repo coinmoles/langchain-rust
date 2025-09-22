@@ -9,7 +9,7 @@ use crate::agent::{
 };
 use crate::chain::{ChainError, ChainOutput, InputCtor, OutputCtor};
 use crate::llm::LLMOutput;
-use crate::schemas::{IntoWithUsage, Message, Role, TokenUsage, ToolCall, ToolSpec, WithUsage};
+use crate::schemas::{Message, Role, TokenUsage, ToolCall, ToolSpec};
 use crate::tools::{FunctionTool, McpTool, Tool};
 use crate::utils::helper::normalize_tool_name;
 
@@ -265,14 +265,13 @@ where
             memory.write().await.add_messages(messages);
         }
 
-        let WithUsage { content, usage } = answer.with_usage(self.total_usage);
-        let extra_content = self
+        let extra = self
             .strategy
             .finalize()
             .await
             .map_err(FinalizeFailure::Abort)?;
 
-        Ok(ExecutionOutput::new(content, extra_content, usage))
+        Ok(ExecutionOutput::new(answer, extra, self.total_usage))
     }
 
     fn get_tool_with_use_count_check(&mut self, tool_name: &str) -> Option<&dyn FunctionTool> {
