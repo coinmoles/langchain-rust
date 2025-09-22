@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt::Display;
 
 use itertools::{Either, Itertools};
-use tracing::{Instrument, info_span};
+use tracing::instrument;
 
 use crate::agent::{
     AgentError, AgentExecutor, AgentInput, AgentStep, DefaultStrategy, ExecutionOutput, Strategy,
@@ -87,37 +87,32 @@ where
     }
 
     /// Begin the execution.
+    #[instrument(name = "agent", level = "info", skip(self), fields(id = self.executor.agent.id()))]
     pub async fn start(mut self) -> Result<ExecutionOutput<'input, O, S>, ChainError> {
-        let span = info_span!("agent", id = self.executor.agent.id());
+        self.input = self.strategy.prepare_input::<I>(self.input).await?;
+        self.save_initial_messages()?;
+        self.log_initial_messages()?;
+        self.strategy
+            .scan_initial_messages(&self.initial_messages)
+            .await?;
+        self.load_memory().await?;
+        self.prepare_tools().await?;
 
-        async move {
-            self.input = self.strategy.prepare_input::<I>(self.input).await?;
-            self.save_initial_messages()?;
-            self.log_initial_messages()?;
-            self.strategy
-                .scan_initial_messages(&self.initial_messages)
-                .await?;
-            self.load_memory().await?;
-            self.prepare_tools().await?;
+        while !self.fail_limit_reached() {
+            let Ok(plan) = self.plan_step().await else {
+                continue;
+            };
 
-            while !self.fail_limit_reached() {
-                let Ok(plan) = self.plan_step().await else {
-                    continue;
-                };
-
-                match plan {
-                    LLMOutput::ToolCall(tool_calls) => self.handle_tool_calls(tool_calls).await,
-                    LLMOutput::Text(final_answer) => match self.finalize(final_answer).await {
-                        Ok(ok) => return Ok(ok),
-                        Err(FinalizeFailure::Abort(e)) => return Err(e),
-                        Err(FinalizeFailure::Retry(new_context)) => self = new_context,
-                    },
-                }
+            match plan {
+                LLMOutput::ToolCall(tool_calls) => self.handle_tool_calls(tool_calls).await,
+                LLMOutput::Text(final_answer) => match self.finalize(final_answer).await {
+                    Ok(ok) => return Ok(ok),
+                    Err(FinalizeFailure::Abort(e)) => return Err(e),
+                    Err(FinalizeFailure::Retry(new_context)) => self = new_context,
+                },
             }
-            Err(AgentError::TooManyConsecutiveFails(self.consecutive_fails).into())
         }
-        .instrument(span)
-        .await
+        Err(AgentError::TooManyConsecutiveFails(self.consecutive_fails).into())
     }
 
     fn save_initial_messages(&mut self) -> Result<(), ChainError> {
