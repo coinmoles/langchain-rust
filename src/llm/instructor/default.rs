@@ -62,7 +62,7 @@ impl DefaultInstructor {
     fn deserialize_llm_output(&self, value: Value) -> Result<LLMOutput, serde_json::Error> {
         #[derive(Debug, Deserialize)]
         #[serde(untagged)]
-        enum AgentOutputHelp {
+        enum OutputHelp {
             Action {
                 #[serde(default)]
                 id: Option<String>,
@@ -75,9 +75,9 @@ impl DefaultInstructor {
             },
         }
 
-        let helper: AgentOutputHelp = serde_json::from_value(value)?;
+        let helper: OutputHelp = serde_json::from_value(value)?;
         let llm_output = match helper {
-            AgentOutputHelp::Action {
+            OutputHelp::Action {
                 id,
                 action,
                 action_input,
@@ -85,7 +85,7 @@ impl DefaultInstructor {
                 let tool_call = ToolCall::new(id, action, action_input);
                 LLMOutput::ToolCall(vec![tool_call])
             }
-            AgentOutputHelp::FinalAnswer { final_answer } => {
+            OutputHelp::FinalAnswer { final_answer } => {
                 let final_answer = flatten_final_answer(final_answer)?;
                 LLMOutput::Text(final_answer)
             }

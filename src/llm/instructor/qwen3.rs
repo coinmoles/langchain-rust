@@ -39,7 +39,7 @@ impl Qwen3Instructor {
     fn deserialize_tool_call(&self, value: Value) -> Result<LLMOutput, serde_json::Error> {
         #[derive(Deserialize)]
         #[serde(untagged)]
-        enum AgentOutputHelp {
+        enum OutputHelp {
             Action {
                 #[serde(default)]
                 id: Option<String>,
@@ -53,9 +53,9 @@ impl Qwen3Instructor {
             },
         }
 
-        let helper: AgentOutputHelp = serde_json::from_value(value)?;
+        let helper: OutputHelp = serde_json::from_value(value)?;
         let agent_output = match helper {
-            AgentOutputHelp::Action {
+            OutputHelp::Action {
                 id,
                 name,
                 arguments,
@@ -63,7 +63,7 @@ impl Qwen3Instructor {
                 let tool_call = ToolCall::new(id, name, arguments);
                 LLMOutput::ToolCall(vec![tool_call])
             }
-            AgentOutputHelp::FinalAnswer { final_answer } => {
+            OutputHelp::FinalAnswer { final_answer } => {
                 let final_answer = flatten_final_answer(final_answer)?;
                 LLMOutput::Text(final_answer)
             }

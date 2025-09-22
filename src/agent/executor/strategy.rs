@@ -25,7 +25,7 @@ pub struct ResolvedTools {
 /// **Lifecycle (in order)**
 /// 1. [`additional_tools`] — inject extra tools to be used during this execution.
 /// 2. [`prepare_input`] — inject / normalize fields on the initial `AgentInput`.
-/// 3. [`process_plan`] — validate or rewrite every model-produced `AgentOutput`.
+/// 3. [`process_plan`] — validate or rewrite every model-produced `LLMOutput`.
 /// 4. [`build_step`] — turn each `(ToolCall, ToolOutput)` into an [`AgentStep`] (e.g.,
 ///    reformatting, tagging, indexing).
 /// 5. [`process_final_answer`] — validate/transform the final LLM answer before converting it to
