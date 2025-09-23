@@ -181,18 +181,14 @@ impl Display for LLMOutput {
                     return Ok(());
                 }
 
-                if self.thought.is_some() {
-                    writeln!(f, "```json")?;
-                }
+                writeln!(f, "```json")?;
                 for (i, tool_call) in tool_calls.iter().enumerate() {
                     if i > 0 {
                         writeln!(f)?;
                     }
                     write!(f, "{tool_call}")?;
                 }
-                if self.thought.is_some() {
-                    write!(f, "\n```")?;
-                }
+                write!(f, "\n```")?;
             }
         }
         Ok(())
