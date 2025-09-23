@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use async_openai::Client as OpenAIClient;
 use async_openai::config::{Config, OpenAIConfig};
 use async_openai::types::CreateChatCompletionStreamResponse;
@@ -59,11 +61,18 @@ impl<C: Config> GenericChat<C> {
 
                 // Convert tool call/result messages to normal ai/human messages
                 if let Some(tool_calls) = message.tool_calls {
-                    message.content = tool_calls
-                        .iter()
-                        .map(|tc| tc.to_string())
-                        .collect::<Vec<_>>()
-                        .join("\n");
+                    if self.call_options.drop_thought && !tool_calls.is_empty() {
+                        message.content = String::new()
+                    } else {
+                        writeln!(message.content).expect("`Write` to `String` never fails");
+                    }
+
+                    writeln!(message.content, "```json").expect("`Write` to `String` never fails");
+                    for tool_call in &tool_calls {
+                        writeln!(message.content, "{tool_call}")
+                            .expect("`Write` to `String` never fails");
+                    }
+                    writeln!(message.content, "```").expect("`Write` to `String` never fails");
                     message.tool_calls = None;
                 }
                 if message.role == Role::Tool {

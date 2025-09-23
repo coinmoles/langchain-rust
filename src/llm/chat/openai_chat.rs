@@ -31,13 +31,21 @@ impl<C: Config> OpenAIChat<C> {
     }
 
     fn process_prompt(&self, prompt: Prompt) -> Vec<Message> {
-        let mut messages = prompt.to_messages();
-        for message in messages.iter_mut() {
-            if self.call_options.system_is_assistant && message.role == Role::System {
-                message.role = Role::Ai;
-            }
-        }
-        messages
+        prompt
+            .to_messages()
+            .into_iter()
+            .map(|mut message| {
+                if self.call_options.system_is_assistant && message.role == Role::System {
+                    message.role = Role::Ai;
+                }
+                if self.call_options.drop_thought
+                    && message.tool_calls.as_deref().is_some_and(|t| !t.is_empty())
+                {
+                    message.content = "".into();
+                }
+                message
+            })
+            .collect()
     }
 }
 

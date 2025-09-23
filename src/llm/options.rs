@@ -42,6 +42,7 @@ pub struct CallOptions {
     pub stream: Option<bool>,
     pub stream_option: Option<StreamOption>,
     pub system_is_assistant: bool,
+    pub drop_thought: bool,
 }
 
 impl Default for CallOptions {
@@ -71,6 +72,7 @@ impl CallOptions {
             stream: None,
             stream_option: None,
             system_is_assistant: false,
+            drop_thought: true,
         }
     }
 
@@ -161,6 +163,11 @@ impl CallOptions {
         self
     }
 
+    pub fn with_drop_thought(mut self, drop_thought: bool) -> Self {
+        self.drop_thought = drop_thought;
+        self
+    }
+
     pub fn merge_options(&mut self, incoming_options: CallOptions) {
         // For simple scalar types wrapped in Option, prefer incoming option if it is Some
         self.candidate_count = incoming_options.candidate_count.or(self.candidate_count);
@@ -198,5 +205,6 @@ impl CallOptions {
         }
 
         self.system_is_assistant = self.system_is_assistant || incoming_options.system_is_assistant;
+        self.drop_thought = self.drop_thought && incoming_options.drop_thought;
     }
 }

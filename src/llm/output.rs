@@ -152,12 +152,17 @@ impl Display for LLMEvent {
         match self {
             LLMEvent::Text(text) => write!(f, "{text}"),
             LLMEvent::ToolCall(tool_calls) => {
+                if tool_calls.is_empty() {
+                    return Ok(());
+                }
+                writeln!(f, "```json")?;
                 for (i, tool_call) in tool_calls.iter().enumerate() {
                     if i > 0 {
                         writeln!(f)?;
                     }
                     write!(f, "{tool_call}")?;
                 }
+                write!(f, "\n```")?;
                 Ok(())
             }
         }
@@ -168,29 +173,8 @@ impl Display for LLMOutput {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(thought) = &self.thought {
             writeln!(f, "{thought}")?;
+            writeln!(f)?;
         }
-        match &self.event {
-            LLMEvent::Text(text) => {
-                if self.thought.is_some() {
-                    writeln!(f)?;
-                }
-                write!(f, "{text}")?;
-            }
-            LLMEvent::ToolCall(tool_calls) => {
-                if tool_calls.is_empty() {
-                    return Ok(());
-                }
-
-                writeln!(f, "```json")?;
-                for (i, tool_call) in tool_calls.iter().enumerate() {
-                    if i > 0 {
-                        writeln!(f)?;
-                    }
-                    write!(f, "{tool_call}")?;
-                }
-                write!(f, "\n```")?;
-            }
-        }
-        Ok(())
+        write!(f, "{}", self.event)
     }
 }
