@@ -205,7 +205,7 @@ where
             };
             log::debug!("\nTool {} result:\n{}", &call.name, result.data);
 
-            let action = AgentAction::new(call, result.data.to_string(), result.summary);
+            let action = AgentAction::new(call, result.data, result.summary);
             actions.push(action);
         }
         let step = AgentStep::new(thought, actions);

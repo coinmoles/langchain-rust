@@ -1,4 +1,5 @@
 use crate::schemas::{Message, ToolCall};
+use crate::tools::ToolData;
 
 /// A single step taken by the agent, including the thought process and actions taken.
 #[derive(Clone, Debug)]
@@ -13,7 +14,7 @@ pub struct AgentAction {
     /// The tool call that caused this action.
     pub tool_call: ToolCall,
     /// The result of the tool call.
-    pub result: String,
+    pub output: ToolData,
     /// An optional summary of the step, providing additional context or information.
     pub summary: Option<String>,
 }
@@ -30,7 +31,8 @@ impl AgentStep {
 
         for action in self.actions {
             let id = action.tool_call.id.clone();
-            result_msgs.push(Message::new_tool_message(Some(id), action.result));
+            let msg = Message::new_tool_message(Some(id), action.output.to_string());
+            result_msgs.push(msg);
             tool_calls.push(action.tool_call);
         }
 
@@ -41,10 +43,10 @@ impl AgentStep {
 
 impl AgentAction {
     /// Creates a new `AgentAction` with the specified tool call, result, and summary.
-    pub fn new(tool_call: ToolCall, result: impl Into<String>, summary: Option<String>) -> Self {
+    pub fn new(tool_call: ToolCall, result: ToolData, summary: Option<String>) -> Self {
         Self {
             tool_call,
-            result: result.into(),
+            output: result,
             summary,
         }
     }
