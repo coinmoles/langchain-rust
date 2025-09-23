@@ -68,11 +68,25 @@ pub fn extract_from_tag<'a>(text: &'a str, tag: &str) -> &'a str {
 
 pub fn extract_json(s: &str) -> &str {
     if s.is_empty() {
+        return "";
+    }
+
+    let start = match (s.find('{'), s.find('[')) {
+        (Some(pos1), Some(pos2)) => pos1.min(pos2),
+        (Some(pos), None) | (None, Some(pos)) => pos,
+        (None, None) => 0,
+    };
+    let end = match (s.rfind('}'), s.rfind(']')) {
+        (Some(pos1), Some(pos2)) => pos1.max(pos2),
+        (Some(pos), None) | (None, Some(pos)) => pos,
+        (None, None) => s.len() - 1,
+    };
+
+    if end < start {
+        log::warn!("Last closing brace/bracket found before the first opening one.");
         return s;
     }
 
-    let start = s.find('{').unwrap_or(0);
-    let end = s.rfind('}').unwrap_or(s.len() - 1);
     &s[start..=end]
 }
 
