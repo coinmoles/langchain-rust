@@ -5,10 +5,11 @@ use itertools::{Either, Itertools};
 use tracing::instrument;
 
 use crate::agent::{
-    AgentError, AgentExecutor, AgentInput, AgentStep, DefaultStrategy, ExecutionOutput, Strategy,
+    AgentAction, AgentError, AgentExecutor, AgentInput, AgentStep, DefaultStrategy,
+    ExecutionOutput, Strategy,
 };
 use crate::chain::{ChainError, ChainOutput, InputCtor, OutputCtor};
-use crate::llm::LLMOutput;
+use crate::llm::{LLMEvent, LLMOutput};
 use crate::schemas::{Message, Role, TokenUsage, ToolCall, ToolSpec};
 use crate::tools::{FunctionTool, McpTool, Tool};
 use crate::utils::helper::normalize_tool_name;
@@ -103,9 +104,11 @@ where
                 continue;
             };
 
-            match plan {
-                LLMOutput::ToolCall(tool_calls) => self.handle_tool_calls(tool_calls).await,
-                LLMOutput::Text(final_answer) => match self.finalize(final_answer).await {
+            match plan.event {
+                LLMEvent::ToolCall(tool_calls) => {
+                    self.handle_tool_calls(plan.thought, tool_calls).await
+                }
+                LLMEvent::Text(final_answer) => match self.finalize(final_answer).await {
                     Ok(ok) => return Ok(ok),
                     Err(FinalizeFailure::Abort(e)) => return Err(e),
                     Err(FinalizeFailure::Retry(new_context)) => self = new_context,
@@ -168,19 +171,6 @@ where
     }
 
     async fn plan_step(&mut self) -> Result<LLMOutput, ChainError> {
-        // TODO: do not construct scratchpad every step.
-        let scratchpad = self
-            .steps
-            .iter()
-            .flat_map(|step| {
-                [
-                    Message::new_tool_call_message([step.tool_call.clone()]),
-                    Message::new_tool_message(Some(step.tool_call.id.clone()), &step.result),
-                ]
-            })
-            .collect::<Vec<_>>();
-        self.input.set_agent_scratchpad(scratchpad);
-
         let plan = self
             .executor
             .agent
@@ -194,12 +184,13 @@ where
         Ok(plan)
     }
 
-    async fn handle_tool_calls(&mut self, tool_calls: Vec<ToolCall>) {
+    async fn handle_tool_calls(&mut self, thought: Option<String>, tool_calls: Vec<ToolCall>) {
         if self.max_iterations_reached() {
             self.force_final_answer();
             return;
         }
 
+        let mut actions = Vec::with_capacity(tool_calls.len());
         for call in tool_calls {
             log::debug!("\nTool call:\n{call}");
             let tool_name = normalize_tool_name(&call.name);
@@ -226,11 +217,17 @@ where
             else {
                 return;
             };
-            let step = AgentStep::new(call, result.data.to_string(), result.summary);
-            log::debug!("\nTool {} result:\n{}", &step.tool_call.name, step.result);
-            self.steps.push(step);
-            self.consecutive_fails = 0;
+            log::debug!("\nTool {} result:\n{}", &call.name, result.data);
+            let action = AgentAction::new(call, result.data.to_string(), result.summary);
+            actions.push(action);
         }
+        let step = AgentStep::new(thought, actions);
+        self.steps.push(step.clone());
+        self.input
+            .agent_scratchpad
+            .get_or_insert_default()
+            .extend(step.into_messages());
+        self.consecutive_fails = 0;
     }
 
     async fn finalize(

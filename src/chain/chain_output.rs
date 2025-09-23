@@ -18,15 +18,19 @@ pub trait ChainOutput<I>: Sized + Send + Sync {
         }
     }
 
-    fn from_tool_call(tool_calls: Vec<ToolCall>) -> Result<Self, OutputParseError> {
+    fn from_tool_call(
+        _thought: Option<String>,
+        tool_calls: Vec<ToolCall>,
+    ) -> Result<Self, OutputParseError> {
         Err(OutputParseError::UnexpectedToolCall(tool_calls))
     }
 
     fn from_tool_call_and_input(
         input: I,
+        thought: Option<String>,
         tool_calls: Vec<ToolCall>,
     ) -> Result<Self, (I, OutputParseError)> {
-        Self::from_tool_call(tool_calls).map_err(|e| (input, e))
+        Self::from_tool_call(thought, tool_calls).map_err(|e| (input, e))
     }
 }
 

@@ -4,7 +4,7 @@ use async_openai::error::OpenAIError;
 use async_openai::types::responses::{Content, OutputContent, Response, ResponseStream};
 use futures::StreamExt;
 
-use crate::llm::{LLMError, LLMOutput, LLMStream, LLMStreamChunk, ResponsesRequest};
+use crate::llm::{LLMError, LLMEvent, LLMOutput, LLMStream, LLMStreamChunk, ResponsesRequest};
 use crate::schemas::{TokenUsage, ToolCall};
 
 // fn add_option_numbers<T>(a: Option<T>, b: Option<T>) -> Option<T>
@@ -186,15 +186,20 @@ pub fn construct_output(output: Vec<OutputContent>) -> Result<LLMOutput, LLMErro
         }
     }
 
-    if !tool_calls.is_empty() {
-        Ok(LLMOutput::ToolCall(tool_calls))
+    let event = if !tool_calls.is_empty() {
+        LLMEvent::ToolCall(tool_calls)
     } else if let Some(t) = text {
-        Ok(LLMOutput::Text(t))
+        LLMEvent::Text(t)
     } else {
-        Err(LLMError::ContentNotFound(
+        return Err(LLMError::ContentNotFound(
             "No text or tool call found in output".to_string(),
-        ))
-    }
+        ));
+    };
+
+    Ok(LLMOutput {
+        thought: None,
+        event,
+    })
 }
 
 pub async fn generate<C: Config>(

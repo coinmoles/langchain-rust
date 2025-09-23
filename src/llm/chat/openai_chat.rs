@@ -84,10 +84,10 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
         let choice: async_openai::types::ChatChoice = select_choice(response.choices)
             .ok_or(LLMError::ContentNotFound("No choices".into()))?;
 
-        let result: LLMOutput = choice.message.try_into()?;
+        let output: LLMOutput = choice.message.try_into()?;
         let usage = response.usage.map(Into::into);
 
-        Ok(result.with_usage(usage))
+        Ok(output.with_usage(usage))
     }
 
     async fn stream(

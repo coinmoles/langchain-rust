@@ -3,10 +3,10 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use super::Instructor;
-use crate::llm::LLMOutput;
+use crate::llm::{LLMEvent, LLMOutput};
 use crate::output_parser::{
-    OutputParseError, extract_from_codeblock, fix_text, flatten_final_answer, is_malformed_event,
-    is_malformed_event_str, parse_partial_json, remove_thought,
+    OutputParseError, extract_from_codeblock, extract_json, fix_text, flatten_final_answer,
+    is_malformed_event, is_malformed_event_str, parse_partial_json, remove_thought,
 };
 use crate::schemas::{FunctionSpec, ToolCall};
 use crate::utils::helper::normalize_tool_name;
@@ -59,7 +59,7 @@ const VALID_KEYS: &[&[&str]] = &[&[ACTION_KEY, ACTION_INPUT_KEY], &[FINAL_ANSWER
 pub struct DefaultInstructor;
 
 impl DefaultInstructor {
-    fn deserialize_llm_output(&self, value: Value) -> Result<LLMOutput, serde_json::Error> {
+    fn deserialize_llm_output(&self, value: Value) -> Result<LLMEvent, serde_json::Error> {
         #[derive(Debug, Deserialize)]
         #[serde(untagged)]
         enum OutputHelp {
@@ -76,31 +76,31 @@ impl DefaultInstructor {
         }
 
         let helper: OutputHelp = serde_json::from_value(value)?;
-        let llm_output = match helper {
+        let event = match helper {
             OutputHelp::Action {
                 id,
                 action,
                 action_input,
             } => {
                 let tool_call = ToolCall::new(id, action, action_input);
-                LLMOutput::ToolCall(vec![tool_call])
+                LLMEvent::ToolCall(vec![tool_call])
             }
             OutputHelp::FinalAnswer { final_answer } => {
                 let final_answer = flatten_final_answer(final_answer)?;
-                LLMOutput::Text(final_answer)
+                LLMEvent::Text(final_answer)
             }
         };
-        Ok(llm_output)
+        Ok(event)
     }
 
-    fn parse_with_regex(&self, text: &str) -> Option<LLMOutput> {
+    fn parse_with_regex(&self, text: &str) -> Option<LLMEvent> {
         let final_answer_re = Regex::new(r#"(?m)"final_answer"\s*:\s*"(.*)"\s*\n"#).unwrap();
         let action_regex = Regex::new(r#"(?m)"action"\s*:\s*"(.*)"\s*\n"#).unwrap();
         let action_input_regex = Regex::new(r#"(?m)"action_input"\s*:\s*"(.*)"\s*\n"#).unwrap();
 
         if let Some(final_answer) = final_answer_re.captures(text) {
             let final_answer = final_answer.get(1)?.as_str();
-            return Some(LLMOutput::Text(fix_text(final_answer)));
+            return Some(LLMEvent::Text(fix_text(final_answer)));
         }
 
         if let (Some(action), Some(action_input)) = (
@@ -112,7 +112,7 @@ impl DefaultInstructor {
             let action = fix_text(action);
             let action_input = serde_json::from_str(action_input).ok()?;
             let tool_call = ToolCall::new(None, action.to_string(), Some(action_input));
-            return Some(LLMOutput::ToolCall(vec![tool_call]));
+            return Some(LLMEvent::ToolCall(vec![tool_call]));
         }
 
         None
@@ -139,7 +139,14 @@ impl Instructor for DefaultInstructor {
     fn parse_tool_use(&self, output: String) -> Result<LLMOutput, OutputParseError> {
         let text = remove_thought(&output);
         let text = extract_from_codeblock(text);
+        let text = extract_json(text);
 
+        let thought = output.find(text).map(|idx| {
+            output[..idx]
+                .trim()
+                .trim_end_matches(r"```[\w+-]")
+                .to_string()
+        });
         let json = parse_partial_json(text, false);
 
         let is_malformed_event = match json.as_ref() {
@@ -147,14 +154,16 @@ impl Instructor for DefaultInstructor {
             Err(_) => is_malformed_event_str(text, VALID_KEYS),
         };
 
-        match json
+        let event = match json
             .and_then(|json| self.deserialize_llm_output(json))
             .or_else(|e| self.parse_with_regex(text).ok_or(e))
         {
-            Ok(llm_output) => Ok(llm_output),
-            Err(_) if !is_malformed_event => Ok(LLMOutput::Text(text.into())),
-            Err(e) => Err(OutputParseError::Deserialize(e, text.into())),
-        }
+            Ok(event) => event,
+            Err(_) if !is_malformed_event => LLMEvent::Text(text.into()),
+            Err(e) => return Err(OutputParseError::Deserialize(e, text.into())),
+        };
+
+        Ok(LLMOutput { thought, event })
     }
 
     fn clone_box(&self) -> Box<dyn Instructor> {
@@ -169,7 +178,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_agent_output() {
+    fn test_parse_agent_output() -> Result<(), Box<dyn std::error::Error>> {
         let test_output = indoc! {r#"
             ```json
             {
@@ -179,16 +188,16 @@ mod tests {
             ```
         "#};
 
-        let parsed_output = DefaultInstructor.parse_tool_use(test_output.into());
+        let output = DefaultInstructor.parse_tool_use(test_output.into())?;
 
-        match parsed_output {
-            Ok(LLMOutput::ToolCall(tool_calls)) => {
+        match output.event {
+            LLMEvent::ToolCall(tool_calls) => {
                 assert!(tool_calls.len() == 1);
                 let tool_call = &tool_calls[0];
                 assert_eq!(tool_call.name, "generate");
                 assert_eq!(tool_call.arguments, "Hello, world!");
             }
-            _ => panic!("Expected AgentEvent::Action, got {parsed_output:#?}"),
+            _ => panic!("Expected `LLMEvent::ToolCall` got {output:#?}"),
         }
 
         let test_final_answer = indoc! {r#"
@@ -198,19 +207,18 @@ mod tests {
             }
             ```
         "#};
+        let output = DefaultInstructor.parse_tool_use(test_final_answer.into())?;
 
-        let parsed_output = DefaultInstructor.parse_tool_use(test_final_answer.into());
-
-        match parsed_output {
-            Ok(LLMOutput::Text(final_answer)) => {
-                assert_eq!(final_answer, "Goodbye, world!");
-            }
-            _ => panic!("Expected LLMOutput::Text, got {parsed_output:#?}"),
+        match output.event {
+            LLMEvent::Text(final_answer) => assert_eq!(final_answer, "Goodbye, world!"),
+            _ => panic!("Expected `LLMEvent::Text`, got {output:#?}"),
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_parse_object_answer() {
+    fn test_parse_object_answer() -> Result<(), Box<dyn std::error::Error>> {
         let test_final_answer = indoc! {r#"
             ```json
             {
@@ -241,18 +249,18 @@ mod tests {
             ```
         "#};
 
-        let result = DefaultInstructor.parse_tool_use(test_final_answer.into());
+        let output = DefaultInstructor.parse_tool_use(test_final_answer.into())?;
 
-        match result {
-            Ok(LLMOutput::Text(final_answer)) => {
-                println!("{final_answer}");
-            }
-            _ => panic!("Expected LLMOutput::Text, got {result:#?}"),
+        match output.event {
+            LLMEvent::Text(final_answer) => println!("{final_answer}"),
+            _ => panic!("Expected `LLMEvent::Text`, got {output:#?}"),
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_parse_quotation_in_string() {
+    fn test_parse_quotation_in_string() -> Result<(), Box<dyn std::error::Error>> {
         let test_final_answer: &str = indoc! {r#"
             ```json
             {
@@ -261,36 +269,36 @@ mod tests {
             ```
         "#};
 
-        let result = DefaultInstructor.parse_tool_use(test_final_answer.into());
+        let output = DefaultInstructor.parse_tool_use(test_final_answer.into())?;
 
-        match result {
-            Ok(LLMOutput::Text(final_answer)) => {
-                println!("{final_answer}");
-            }
-            _ => panic!("Expected LLMOutput::Text, got {result:#?}"),
+        match output.event {
+            LLMEvent::Text(final_answer) => println!("{final_answer}"),
+            _ => panic!("Expected `LLMEvent::Text`, got {output:#?}"),
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_parse_trailing_comma() {
+    fn test_parse_trailing_comma() -> Result<(), Box<dyn std::error::Error>> {
         let test_final_answer: &str = indoc! {r#"
             {
                 "final_answer": "Understanding the circadian regulation of sphingosine-1-phosphate (S1P) signaling is crucial for advancing our comprehension of how lipid mediators influence cardiovascular physiology across different times of the day. The research findings suggest that fluctuations in S1P levels, guided by intrinsic circadian rhythms, play a significant role in regulating cardiovascular parameters such as vascular tone and heart rate variability. With the emerging insights into the time-dependent nature of S1P signaling, future studies in cardiovascular physiology can build upon this foundation to investigate how disruptions in these rhythms might contribute to cardiovascular diseases.\n\nThe amalgamation of circadian biology with lipid signalling not only enhances our understanding of the mechanisms underlying cardiovascular homeostasis but also opens new avenues for therapeutic interventions. By elucidating the fundamental principles that govern lipid mediator activity in relation to time, researchers may develop innovative strategies to address cardiovascular health issues that fluctuate with the circadian cycle. This knowledge serves to not only improve our grasp of cardiovascular responses to physiological changes but also enrich the field of chronobiology, which seeks to understand how biological processes are influenced by time. Thus, there lies a tremendous potential for translating these findings into clinical practice, optimising treatment protocols according to the circadian patterns of S1P signaling in individuals, and ultimately fostering advancements in the management of cardiovascular diseases. As research continues, the integration of these insights may significantly contribute to the evolution of both cardiovascular physiology and lipid signalling research, paving the way for comprehensive understanding and novel therapeutic approaches.",
             }
         "#};
 
-        let result = DefaultInstructor.parse_tool_use(test_final_answer.into());
+        let output = DefaultInstructor.parse_tool_use(test_final_answer.into())?;
 
-        match result {
-            Ok(LLMOutput::Text(final_answer)) => {
-                println!("{final_answer}");
-            }
-            _ => panic!("Expected LLMOutput::Text, got {result:#?}"),
+        match output.event {
+            LLMEvent::Text(final_answer) => println!("{final_answer}"),
+            _ => panic!("Expected `LLMEvent::Text`, got {output:#?}"),
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_remove_thoughts() {
+    fn test_remove_thoughts() -> Result<(), Box<dyn std::error::Error>> {
         let text = indoc! {r#"
             <think> This is a thought </think>
             {
@@ -299,20 +307,26 @@ mod tests {
             }
         "#};
 
-        let result = DefaultInstructor.parse_tool_use(text.into()).unwrap();
-        match result {
-            LLMOutput::ToolCall(tool_calls) => {
+        let output = DefaultInstructor.parse_tool_use(text.into())?;
+        match output.event {
+            LLMEvent::ToolCall(tool_calls) => {
+                assert_eq!(
+                    output.thought.unwrap(),
+                    "<think> This is a thought </think>"
+                );
                 assert_eq!(tool_calls.len(), 1);
                 let tool_call = &tool_calls[0];
                 assert_eq!(tool_call.name, "generate");
                 assert_eq!(tool_call.arguments, "Hello, world!");
             }
-            _ => panic!("Expected AgentEvent::Action, got {result:#?}"),
+            _ => panic!("Expected `LLMEvent::ToolCall`, got {output:#?}"),
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_final_answer_multiline() {
+    fn test_final_answer_multiline() -> Result<(), Box<dyn std::error::Error>> {
         let text = indoc! {r#"
         {
             "final_answer": "Cyclin-dependent kinases (CDKs) have long been established as critical regulators of the cell cycle, driving cellular progression through distinct phases and presenting attractive targets for oncological intervention [Molecular mechanisms of cell death: recommendations of the Nomenclature Committee on Cell Death 2018](https://doi.org/10.1038/s41418-017-0012-4). Initially developed as cytotoxic agents, CDK inhibitors – including palbociclib, ribociclib, and abemaciclib – have demonstrated significant clinical efficacy in hormone receptor-positive, HER2-negative breast cancer, and are increasingly being investigated in other malignancies [Effects and mechanisms of innate immune molecules on inhibiting nasopharyngeal carcinoma](https://doi.org/10.1097/cm9.0000000000000132). However, growing clinical evidence reveals that the effects of CDK inhibition extend beyond cell cycle arrest, encompassing significant modulation of the host immune landscape. This emerging paradigm suggests that CDK inhibitors may exert both direct and indirect effects on immune cell function, potentially contributing to both therapeutic efficacy and immune-related adverse events.
@@ -322,30 +336,31 @@ mod tests {
         The precise mechanisms linking CDK inhibition to NF-κB activation remain incompletely understood but likely involve complex interactions between multiple signalling pathways. While the precise molecular details are still under investigation, potential mechanisms include altered regulation of upstream kinases (such as RIP1 and IKK) involved in NF-κB activation, and/or modulation of NF-κB transcriptional activity itself. A comprehensive understanding of these mechanisms is crucial not only for elucidating the immunological consequences of CDK inhibitor therapy, but also for developing strategies to mitigate potential immune-related toxicities and maximize therapeutic benefit. Further investigation into the underlying mechanisms is therefore warranted and will be a focus of current research."
         }"#};
 
-        let result = DefaultInstructor.parse_tool_use(text.into()).unwrap();
-        match result {
-            LLMOutput::Text(final_answer) => {
-                println!("{final_answer}");
-            }
-            _ => panic!("Expected LLMOutput::Text, got {result:#?}"),
+        let output = DefaultInstructor.parse_tool_use(text.into())?;
+        match output.event {
+            LLMEvent::Text(final_answer) => println!("{final_answer}"),
+            _ => panic!("Expected `LLMEvent::Text`, got {output:#?}"),
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_final_answer_raw_text() {
-        let text = indoc! {"
-        My final answer is 5"};
+    fn test_final_answer_raw_text() -> Result<(), Box<dyn std::error::Error>> {
+        let text = "My final answer is 5";
 
-        let result = DefaultInstructor.parse_tool_use(text.into()).unwrap();
+        let output = DefaultInstructor.parse_tool_use(text.into())?;
 
-        match result {
-            LLMOutput::Text(final_answer) => assert_eq!(final_answer, "My final answer is 5"),
-            _ => panic!("Expected LLMOutput::Text, got {result:#?}"),
+        match output.event {
+            LLMEvent::Text(final_answer) => assert_eq!(final_answer, "My final answer is 5"),
+            _ => panic!("Expected `LLMEvent::Text`, got {output:#?}"),
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_final_answer_raw_json() {
+    fn test_final_answer_raw_json() -> Result<(), Box<dyn std::error::Error>> {
         let text = indoc! {r#"
             ```json
             [
@@ -367,18 +382,18 @@ mod tests {
             ]
             ```"#};
 
-        let result = DefaultInstructor.parse_tool_use(text.into()).unwrap();
+        let output = DefaultInstructor.parse_tool_use(text.into())?;
 
-        match result {
-            LLMOutput::Text(final_answer) => {
-                println!("{final_answer}");
-            }
-            _ => panic!("Expected LLMOutput::Text, got {result:#?}"),
+        match output.event {
+            LLMEvent::Text(final_answer) => println!("{final_answer}"),
+            _ => panic!("Expected LLMOutput::Text, got {output:#?}"),
         }
+
+        Ok(())
     }
 
     #[test]
-    fn test_final_answer_malformed_json() {
+    fn test_final_answer_malformed_json() -> Result<(), Box<dyn std::error::Error>> {
         let text = r#"
         {
             "final_answer": {
@@ -392,15 +407,18 @@ mod tests {
         let result = DefaultInstructor.parse_tool_use(text.into());
 
         assert!(result.is_err(), "Expected err, got {result:#?}");
+
+        Ok(())
     }
 
     #[test]
-    fn test_parse_list() {
+    fn test_parse_list() -> Result<(), Box<dyn std::error::Error>> {
         let text = r#"["`hypoxia` AND `endothelial mitotic activity` AND `vascular remodeling` AND `cellular response`", "`regulatory motifs` AND `hypoxia` AND `gene regulation` AND `DNA binding`", "`vascular responses` AND `genomic data` AND `hypoxia` AND `molecular mechanisms`"]
 "#;
 
         let result = DefaultInstructor.parse_tool_use(text.into());
 
         println!("{result:#?}");
+        Ok(())
     }
 }

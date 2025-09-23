@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 use super::LLMChainBuilder;
 use crate::chain::{Chain, ChainError, ChainOutput, GetPrompt, InputCtor, OutputCtor, StringCtor};
-use crate::llm::{LLM, LLMError, LLMOutput, LLMStream, LlmCapabilities};
+use crate::llm::{LLM, LLMError, LLMEvent, LLMStream, LlmCapabilities};
 use crate::output_parser::OutputParser;
 use crate::schemas::{IntoWithUsage, Prompt, ToolSpec, WithUsage};
 use crate::template::{PromptTemplate, TemplateError};
@@ -44,9 +44,11 @@ where
             log::trace!("\nToken usage:\n{usage}");
         }
 
-        let content = match content {
-            LLMOutput::Text(text) => self.output_parser.parse_from_text(text),
-            LLMOutput::ToolCall(tool_calls) => O::Target::from_tool_call(tool_calls),
+        let content = match content.event {
+            LLMEvent::Text(text) => self.output_parser.parse_from_text(text),
+            LLMEvent::ToolCall(tool_calls) => {
+                O::Target::from_tool_call(content.thought, tool_calls)
+            }
         }?;
 
         Ok(content.with_usage(usage))
@@ -72,7 +74,7 @@ where
         let prompt = self.prompt.format(&input)?;
         let WithUsage { content, usage } = self.llm.generate(prompt, None).await?;
 
-        if matches!(&content, LLMOutput::ToolCall(tool_calls) if tool_calls.is_empty()) {
+        if matches!(&content.event, LLMEvent::ToolCall(tool_calls) if tool_calls.is_empty()) {
             return Err(LLMError::EmptyToolCall.into());
         }
 
@@ -81,9 +83,11 @@ where
             log::trace!("\nToken usage:\n{usage}");
         }
 
-        let content = match content {
-            LLMOutput::Text(text) => self.output_parser.parse_from_text_and_input(input, text)?,
-            LLMOutput::ToolCall(tool_calls) => O::Target::from_tool_call(tool_calls)?,
+        let content = match content.event {
+            LLMEvent::Text(text) => self.output_parser.parse_from_text_and_input(input, text)?,
+            LLMEvent::ToolCall(tool_calls) => {
+                O::Target::from_tool_call(content.thought, tool_calls)?
+            }
         };
 
         Ok(content.with_usage(usage))

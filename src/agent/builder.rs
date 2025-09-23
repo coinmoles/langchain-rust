@@ -111,13 +111,7 @@ impl<'a, 'b, 'tool, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, 'tool, I, 
             .build()
             .unwrap_or_else(|_| unreachable!("All necessary fields are provided"));
 
-        Agent {
-            id,
-            llm_chain,
-            tools,
-            toolboxes,
-            _phantom: std::marker::PhantomData,
-        }
+        Agent::new(id, llm_chain, tools, toolboxes)
     }
 }
 

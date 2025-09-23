@@ -9,16 +9,22 @@ use crate::llm::LLMError;
 use crate::schemas::ToolCall;
 
 #[derive(Debug, Clone, Ctor)]
-pub enum LLMOutput {
+pub struct LLMOutput {
+    pub thought: Option<String>,
+    pub event: LLMEvent,
+}
+
+#[derive(Debug, Clone)]
+pub enum LLMEvent {
     Text(String),
     ToolCall(Vec<ToolCall>),
 }
 
-impl LLMOutput {
+impl LLMEvent {
     pub fn into_text(self) -> Result<String, serde_json::Error> {
         let text = match self {
-            LLMOutput::Text(text) => text,
-            LLMOutput::ToolCall(tool_calls) => tool_calls
+            LLMEvent::Text(text) => text,
+            LLMEvent::ToolCall(tool_calls) => tool_calls
                 .iter()
                 .map(|tool_call| tool_call.to_string())
                 .collect::<Vec<_>>()
@@ -28,21 +34,27 @@ impl LLMOutput {
     }
 }
 
-impl Default for LLMOutput {
+impl Default for LLMEvent {
     fn default() -> Self {
-        LLMOutput::Text("".into())
+        LLMEvent::Text("".into())
     }
 }
 
 impl<T> ChainOutput<T> for LLMOutput {
     fn from_text(text: impl Into<String>) -> Result<Self, crate::output_parser::OutputParseError> {
-        Ok(LLMOutput::Text(text.into()))
+        let event = LLMEvent::Text(text.into());
+        Ok(LLMOutput {
+            thought: None,
+            event,
+        })
     }
 
     fn from_tool_call(
+        thought: Option<String>,
         tool_calls: Vec<ToolCall>,
     ) -> Result<Self, crate::output_parser::OutputParseError> {
-        Ok(LLMOutput::ToolCall(tool_calls))
+        let event = LLMEvent::ToolCall(tool_calls);
+        Ok(LLMOutput { thought, event })
     }
 }
 
@@ -57,16 +69,24 @@ impl TryFrom<ChatCompletionResponseMessage> for LLMOutput {
                     .into_iter()
                     .map(TryInto::try_into)
                     .collect::<Result<Vec<_>, _>>()?;
-                return Ok(LLMOutput::ToolCall(tool_calls));
+                return Ok(LLMOutput {
+                    thought: value.content,
+                    event: LLMEvent::ToolCall(tool_calls),
+                });
             }
         }
         #[allow(deprecated)]
         if let Some(function_call) = value.function_call {
-            let tool_calls = vec![function_call.try_into()?];
-            return Ok(LLMOutput::ToolCall(tool_calls));
+            return Ok(LLMOutput {
+                thought: value.content,
+                event: LLMEvent::ToolCall(vec![function_call.try_into()?]),
+            });
         }
         if let Some(content) = value.content {
-            return Ok(LLMOutput::Text(content));
+            return Ok(LLMOutput {
+                thought: None,
+                event: LLMEvent::Text(content),
+            });
         }
         if let Some(refusal) = value.refusal {
             return Err(LLMError::Refused(refusal));
@@ -83,8 +103,8 @@ impl TryFrom<LLMOutput> for ChatCompletionResponseMessage {
 
     fn try_from(value: LLMOutput) -> Result<Self, Self::Error> {
         #[allow(deprecated)]
-        match value {
-            LLMOutput::Text(text) => Ok(ChatCompletionResponseMessage {
+        match value.event {
+            LLMEvent::Text(text) => Ok(ChatCompletionResponseMessage {
                 content: Some(text),
                 refusal: None,
                 role: Role::Assistant,
@@ -92,8 +112,8 @@ impl TryFrom<LLMOutput> for ChatCompletionResponseMessage {
                 tool_calls: None,
                 function_call: None,
             }),
-            LLMOutput::ToolCall(tool_calls) => Ok(ChatCompletionResponseMessage {
-                content: None,
+            LLMEvent::ToolCall(tool_calls) => Ok(ChatCompletionResponseMessage {
+                content: value.thought,
                 refusal: None,
                 role: Role::Assistant,
                 audio: None,
@@ -127,11 +147,11 @@ impl<'de> Deserialize<'de> for LLMOutput {
     }
 }
 
-impl Display for LLMOutput {
+impl Display for LLMEvent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            LLMOutput::Text(text) => write!(f, "{text}"),
-            LLMOutput::ToolCall(tool_calls) => {
+            LLMEvent::Text(text) => write!(f, "{text}"),
+            LLMEvent::ToolCall(tool_calls) => {
                 for (i, tool_call) in tool_calls.iter().enumerate() {
                     if i > 0 {
                         writeln!(f)?;
@@ -141,5 +161,40 @@ impl Display for LLMOutput {
                 Ok(())
             }
         }
+    }
+}
+
+impl Display for LLMOutput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(thought) = &self.thought {
+            writeln!(f, "{thought}")?;
+        }
+        match &self.event {
+            LLMEvent::Text(text) => {
+                if self.thought.is_some() {
+                    writeln!(f, "</think>")?;
+                }
+                write!(f, "{text}")?;
+            }
+            LLMEvent::ToolCall(tool_calls) => {
+                if tool_calls.is_empty() {
+                    return Ok(());
+                }
+
+                if self.thought.is_some() {
+                    writeln!(f, "```json")?;
+                }
+                for (i, tool_call) in tool_calls.iter().enumerate() {
+                    if i > 0 {
+                        writeln!(f)?;
+                    }
+                    write!(f, "{tool_call}")?;
+                }
+                if self.thought.is_some() {
+                    write!(f, "\n```")?;
+                }
+            }
+        }
+        Ok(())
     }
 }

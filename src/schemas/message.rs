@@ -99,9 +99,12 @@ impl Message {
     }
 
     /// Constructs a new tool call message.
-    pub fn new_tool_call_message(tool_calls: impl IntoIterator<Item = ToolCall>) -> Self {
+    pub fn new_tool_call_message(
+        thought: Option<String>,
+        tool_calls: impl IntoIterator<Item = ToolCall>,
+    ) -> Self {
         Message {
-            content: String::new(),
+            content: thought.unwrap_or_default(),
             role: Role::Ai,
             id: None,
             tool_calls: Some(tool_calls.into_iter().collect()),

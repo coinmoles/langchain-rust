@@ -2,7 +2,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use super::Instructor;
-use crate::llm::LLMOutput;
+use crate::llm::{LLMEvent, LLMOutput};
 use crate::output_parser::{
     OutputParseError, extract_from_codeblock, extract_from_tag, flatten_final_answer,
     is_malformed_event, is_malformed_event_str, parse_partial_json, remove_thought,
@@ -36,7 +36,7 @@ const ALTERNATIVE_KEYS: &[&[&str]] = &[&[ALTERNATIVE_NAME_KEY, ALTERNATIVE_ARGUM
 pub struct Qwen3Instructor;
 
 impl Qwen3Instructor {
-    fn deserialize_tool_call(&self, value: Value) -> Result<LLMOutput, serde_json::Error> {
+    fn deserialize_tool_call(&self, value: Value) -> Result<LLMEvent, serde_json::Error> {
         #[derive(Deserialize)]
         #[serde(untagged)]
         enum OutputHelp {
@@ -54,21 +54,21 @@ impl Qwen3Instructor {
         }
 
         let helper: OutputHelp = serde_json::from_value(value)?;
-        let agent_output = match helper {
+        let event = match helper {
             OutputHelp::Action {
                 id,
                 name,
                 arguments,
             } => {
                 let tool_call = ToolCall::new(id, name, arguments);
-                LLMOutput::ToolCall(vec![tool_call])
+                LLMEvent::ToolCall(vec![tool_call])
             }
             OutputHelp::FinalAnswer { final_answer } => {
                 let final_answer = flatten_final_answer(final_answer)?;
-                LLMOutput::Text(final_answer)
+                LLMEvent::Text(final_answer)
             }
         };
-        Ok(agent_output)
+        Ok(event)
     }
 }
 
@@ -87,6 +87,12 @@ impl Instructor for Qwen3Instructor {
         let text = extract_from_tag(text, "tool_call");
         let text = extract_from_codeblock(text);
 
+        let thought = output.find(text).map(|idx| {
+            output[..idx]
+                .trim()
+                .trim_end_matches(r"```[\w+-]")
+                .to_string()
+        });
         let json = parse_partial_json(text, false);
 
         let is_malformed_event = match json.as_ref() {
@@ -99,11 +105,13 @@ impl Instructor for Qwen3Instructor {
             }
         };
 
-        match json.and_then(|json| self.deserialize_tool_call(json)) {
-            Ok(llm_output) => Ok(llm_output),
-            Err(_) if !is_malformed_event => Ok(LLMOutput::Text(text.into())),
-            Err(e) => Err(OutputParseError::Deserialize(e, text.into())),
-        }
+        let event = match json.and_then(|json| self.deserialize_tool_call(json)) {
+            Ok(event) => event,
+            Err(_) if !is_malformed_event => LLMEvent::Text(text.into()),
+            Err(e) => return Err(OutputParseError::Deserialize(e, text.into())),
+        };
+
+        Ok(LLMOutput { thought, event })
     }
 
     fn clone_box(&self) -> Box<dyn Instructor> {

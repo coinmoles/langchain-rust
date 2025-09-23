@@ -1,4 +1,3 @@
-use crate::agent::AgentStep;
 use crate::schemas::{Message, ToolCall};
 
 pub trait Memory: Send + Sync {
@@ -19,15 +18,11 @@ pub trait Memory: Send + Sync {
     fn update(
         &mut self,
         initial_messages: Vec<Message>,
-        steps: Vec<AgentStep>,
+        scratchpad: Vec<Message>,
         final_answer: String,
     ) {
         self.add_messages(initial_messages);
-        for step in steps {
-            let tool_call_id = step.tool_call.id.clone();
-            self.add_tool_call_message(vec![step.tool_call]);
-            self.add_tool_message(Some(tool_call_id), step.result);
-        }
+        self.add_messages(scratchpad);
         self.add_ai_message(final_answer);
     }
 
@@ -39,8 +34,8 @@ pub trait Memory: Send + Sync {
         self.add_message(Message::new_ai_message(content))
     }
 
-    fn add_tool_call_message(&mut self, tool_calls: Vec<ToolCall>) {
-        self.add_message(Message::new_tool_call_message(tool_calls))
+    fn add_tool_call_message(&mut self, thought: Option<String>, tool_calls: Vec<ToolCall>) {
+        self.add_message(Message::new_tool_call_message(thought, tool_calls))
     }
 
     fn add_tool_message(&mut self, id: Option<String>, content: String) {

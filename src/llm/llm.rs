@@ -24,7 +24,7 @@ pub trait LLM: Sync + Send {
     /// Invokes the LLM with a single human message as prompt.
     async fn invoke(&self, msg: &str) -> Result<String, LLMError> {
         let prompt = Prompt::single(msg);
-        let result = self.generate(prompt, None).await?.content.into_text()?;
+        let result = self.generate(prompt, None).await?.content.to_string();
         Ok(result)
     }
 

@@ -11,7 +11,7 @@ use crate::chain::{
     Chain, ChainError, ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain,
     OutputCtor, StringCtor,
 };
-use crate::llm::{LLMOutput, LLMOutputCtor, LLMStream};
+use crate::llm::{LLMEvent, LLMOutputCtor, LLMStream};
 use crate::memory::Memory;
 use crate::schemas::{IntoWithUsage, Message, Prompt, WithUsage};
 use crate::template::TemplateError;
@@ -56,16 +56,20 @@ where
         let mut memory = self.memory.write().await;
         memory.add_message(human_message);
 
-        match &result.content {
-            LLMOutput::Text(text) => memory.add_ai_message(text.clone()),
-            LLMOutput::ToolCall(tool_calls) => memory.add_tool_call_message(tool_calls.clone()),
+        match &result.content.event {
+            LLMEvent::Text(text) => memory.add_ai_message(text.clone()),
+            LLMEvent::ToolCall(tool_calls) => {
+                memory.add_tool_call_message(result.content.thought.clone(), tool_calls.clone())
+            }
         }
 
-        let content = match result.content {
-            LLMOutput::Text(text) => O::Target::from_text_and_input(input.inner, text)?,
-            LLMOutput::ToolCall(tool_calls) => {
-                O::Target::from_tool_call_and_input(input.inner, tool_calls)?
-            }
+        let content = match result.content.event {
+            LLMEvent::Text(text) => O::Target::from_text_and_input(input.inner, text)?,
+            LLMEvent::ToolCall(tool_calls) => O::Target::from_tool_call_and_input(
+                input.inner,
+                result.content.thought,
+                tool_calls,
+            )?,
         };
 
         Ok(content.with_usage(result.usage))
