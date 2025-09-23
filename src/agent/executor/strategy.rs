@@ -2,11 +2,11 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 
-use crate::agent::{Agent, AgentInput};
+use crate::agent::{Agent, AgentInput, AgentStep};
 use crate::chain::{ChainError, InputCtor, OutputCtor};
 use crate::llm::LLMOutput;
-use crate::schemas::{Message, ToolCall, ToolSpec};
-use crate::tools::{FunctionTool, Tool, ToolOutput};
+use crate::schemas::{Message, ToolSpec};
+use crate::tools::{FunctionTool, Tool};
 
 /// The tools resolved for the current execution.
 pub struct ResolvedTools {
@@ -26,8 +26,8 @@ pub struct ResolvedTools {
 /// 1. [`additional_tools`] — inject extra tools to be used during this execution.
 /// 2. [`prepare_input`] — inject / normalize fields on the initial `AgentInput`.
 /// 3. [`process_plan`] — validate or rewrite every model-produced `LLMOutput`.
-/// 4. [`build_step`] — turn each `(ToolCall, ToolOutput)` into an [`AgentStep`] (e.g.,
-///    reformatting, tagging, indexing).
+/// 4. [`process_step`] — validate or rewrite every `AgentStep` before appending it to the
+///    transcript.
 /// 5. [`process_final_answer`] — validate/transform the final LLM answer before converting it to
 ///    `O::Target`.
 /// 6. [`finalize`] — produce any strategy-specific artifact to return to the caller.
@@ -116,7 +116,7 @@ pub trait Strategy: Send + Sync {
         Ok(plan)
     }
 
-    /// Convert a `(ToolCall, ToolOutput)` pair into an [`AgentStep`] to be recorded.
+    /// Processes the tool call and its output **after each tool execution**.
     ///
     /// Typical uses:
     /// - Reformat or wrap tool outputs (e.g., XML/JSON tagging).
@@ -125,12 +125,8 @@ pub trait Strategy: Send + Sync {
     ///
     /// Return an `AgentStep` to append to the transcript. Returning `Err` makes the executor
     /// retry (until the fail limit) with the same context.
-    async fn process_step(
-        &mut self,
-        call: ToolCall,
-        output: ToolOutput,
-    ) -> Result<(ToolCall, ToolOutput), ChainError> {
-        Ok((call, output))
+    async fn process_step(&mut self, step: AgentStep) -> Result<AgentStep, ChainError> {
+        Ok(step)
     }
 
     /// Validate / transform the final model answer **before** it is converted into `O::Target`.
@@ -201,15 +197,11 @@ where
         }
     }
 
-    async fn process_step(
-        &mut self,
-        call: ToolCall,
-        output: ToolOutput,
-    ) -> Result<(ToolCall, ToolOutput), ChainError> {
+    async fn process_step(&mut self, step: AgentStep) -> Result<AgentStep, ChainError> {
         if let Some(strategy) = self {
-            strategy.process_step(call, output).await
+            strategy.process_step(step).await
         } else {
-            Ok((call, output))
+            Ok(step)
         }
     }
 
@@ -259,13 +251,9 @@ where
         self.1.process_plan(plan).await
     }
 
-    async fn process_step(
-        &mut self,
-        call: ToolCall,
-        output: ToolOutput,
-    ) -> Result<(ToolCall, ToolOutput), ChainError> {
-        let (call, output) = self.0.process_step(call, output).await?;
-        self.1.process_step(call, output).await
+    async fn process_step(&mut self, step: AgentStep) -> Result<AgentStep, ChainError> {
+        let step = self.0.process_step(step).await?;
+        self.1.process_step(step).await
     }
 
     async fn process_final_answer(&mut self, final_answer: String) -> Result<String, ChainError> {
@@ -313,14 +301,10 @@ where
         self.2.process_plan(plan).await
     }
 
-    async fn process_step(
-        &mut self,
-        call: ToolCall,
-        output: ToolOutput,
-    ) -> Result<(ToolCall, ToolOutput), ChainError> {
-        let (call, output) = self.0.process_step(call, output).await?;
-        let (call, output) = self.1.process_step(call, output).await?;
-        self.2.process_step(call, output).await
+    async fn process_step(&mut self, step: AgentStep) -> Result<AgentStep, ChainError> {
+        let step = self.0.process_step(step).await?;
+        let step = self.1.process_step(step).await?;
+        self.2.process_step(step).await
     }
 
     async fn process_final_answer(&mut self, final_answer: String) -> Result<String, ChainError> {

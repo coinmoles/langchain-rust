@@ -193,35 +193,27 @@ where
         let mut actions = Vec::with_capacity(tool_calls.len());
         for call in tool_calls {
             log::debug!("\nTool call:\n{call}");
-            let tool_name = normalize_tool_name(&call.name);
 
+            let tool_name = normalize_tool_name(&call.name);
             let Some(tool) = self.get_tool_with_use_count_check(&tool_name) else {
                 return;
             };
 
-            let Ok(result) = tool
-                .call(call.arguments.clone())
-                .await
-                .inspect_err(|e| failure!(self, "Tool '{tool_name}' error: {e}"))
-            else {
-                return;
-            };
-
-            log::trace!("\nTool {} raw result:\n{}", &call.name, result.data);
-
-            let Ok((call, result)) = self
-                .strategy
-                .process_step(call, result)
-                .await
-                .inspect_err(|e| failure!(self, "Failed to process tool step: {e}"))
-            else {
-                return;
+            let result = match tool.call(call.arguments.clone()).await {
+                Ok(result) => result,
+                Err(e) => return failure!(self, "Tool '{tool_name}' error: {e}"),
             };
             log::debug!("\nTool {} result:\n{}", &call.name, result.data);
+
             let action = AgentAction::new(call, result.data.to_string(), result.summary);
             actions.push(action);
         }
         let step = AgentStep::new(thought, actions);
+        let step = match self.strategy.process_step(step).await {
+            Ok(step) => step,
+            Err(e) => return failure!(self, "Failed to process agent step: {e}"),
+        };
+
         self.steps.push(step.clone());
         self.input
             .agent_scratchpad
