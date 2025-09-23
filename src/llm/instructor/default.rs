@@ -5,8 +5,9 @@ use serde_json::Value;
 use super::Instructor;
 use crate::llm::{LLMEvent, LLMOutput};
 use crate::output_parser::{
-    OutputParseError, extract_from_codeblock, extract_json, fix_text, flatten_final_answer,
-    is_malformed_event, is_malformed_event_str, parse_partial_json, remove_thought,
+    OutputParseError, extract_from_codeblock, extract_json, extract_thought, fix_text,
+    flatten_final_answer, is_malformed_event, is_malformed_event_str, parse_partial_json,
+    remove_thought,
 };
 use crate::schemas::{FunctionSpec, ToolCall};
 use crate::utils::helper::normalize_tool_name;
@@ -141,12 +142,7 @@ impl Instructor for DefaultInstructor {
         let text = extract_from_codeblock(text);
         let text = extract_json(text);
 
-        let thought = output.find(text).map(|idx| {
-            output[..idx]
-                .trim()
-                .trim_end_matches(r"```[\w+-]")
-                .to_string()
-        });
+        let thought = extract_thought(&output, text).map(Into::into);
         let json = parse_partial_json(text, false);
 
         let is_malformed_event = match json.as_ref() {

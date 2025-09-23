@@ -1,4 +1,22 @@
+use std::ops::Not;
+
 use regex::Regex;
+
+pub fn extract_thought<'a>(text: &'a str, json: &str) -> Option<&'a str> {
+    let re_codeblock = Regex::new(r"\s*```[\w+-]*").unwrap();
+
+    let thought_end = text.find(json)?;
+    let thought = text[..thought_end].trim();
+
+    let codeblock_start = re_codeblock
+        .find_iter(thought)
+        .last()
+        .map(|m| m.start())
+        .unwrap_or(thought.len());
+    let trimmed = thought[..codeblock_start].trim();
+
+    trimmed.is_empty().not().then_some(trimmed)
+}
 
 pub fn remove_thought(text: &str) -> &str {
     if text.contains("</think>") {
@@ -63,6 +81,33 @@ mod tests {
     use indoc::indoc;
 
     use super::*;
+
+    #[test]
+    fn test_extract_thought() {
+        let output = indoc! {r#"
+        I think I should use the tool because of that.
+
+        ```json
+        {
+            "name": "test_tool",
+            "arguments": {
+                "arg1": "value1"
+            }
+        }
+        ```
+        "#};
+        let json = indoc! {r#"
+        {
+            "name": "test_tool",
+            "arguments": {
+                "arg1": "value1"
+            }
+        }
+        "#};
+        let result = extract_thought(output, json);
+        let expected = "I think I should use the tool because of that.";
+        assert_eq!(result, Some(expected));
+    }
 
     #[test]
     fn test_extract_from_codeblock() {
