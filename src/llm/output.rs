@@ -172,7 +172,7 @@ impl Display for LLMOutput {
         match &self.event {
             LLMEvent::Text(text) => {
                 if self.thought.is_some() {
-                    writeln!(f, "</think>")?;
+                    writeln!(f)?;
                 }
                 write!(f, "{text}")?;
             }
