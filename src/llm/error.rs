@@ -44,3 +44,9 @@ pub enum LLMError {
     #[error("Error: {0}")]
     OtherError(String),
 }
+
+impl LLMError {
+    pub fn other(msg: impl Into<String>) -> Self {
+        LLMError::OtherError(msg.into())
+    }
+}

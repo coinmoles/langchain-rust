@@ -53,17 +53,17 @@ impl TryFrom<ChatCompletionResponseMessage> for LLMOutput {
     fn try_from(value: ChatCompletionResponseMessage) -> Result<Self, Self::Error> {
         if let Some(tool_calls) = value.tool_calls {
             if !tool_calls.is_empty() {
-                return Ok(LLMOutput::ToolCall(
-                    tool_calls
-                        .into_iter()
-                        .map(TryInto::try_into)
-                        .collect::<Result<Vec<_>, _>>()?,
-                ));
+                let tool_calls = tool_calls
+                    .into_iter()
+                    .map(TryInto::try_into)
+                    .collect::<Result<Vec<_>, _>>()?;
+                return Ok(LLMOutput::ToolCall(tool_calls));
             }
         }
         #[allow(deprecated)]
         if let Some(function_call) = value.function_call {
-            return Ok(LLMOutput::ToolCall(vec![function_call.try_into()?]));
+            let tool_calls = vec![function_call.try_into()?];
+            return Ok(LLMOutput::ToolCall(tool_calls));
         }
         if let Some(content) = value.content {
             return Ok(LLMOutput::Text(content));
@@ -72,8 +72,8 @@ impl TryFrom<ChatCompletionResponseMessage> for LLMOutput {
             return Err(LLMError::Refused(refusal));
         }
         // TODO: Add other cases (Audio, etc.)
-        Err(LLMError::OtherError(
-            "Cannot convert LLM generation result to LLMOutput".into(),
+        Err(LLMError::other(
+            "Cannot convert LLM generation result to LLMOutput",
         ))
     }
 }
@@ -132,7 +132,6 @@ impl Display for LLMOutput {
         match self {
             LLMOutput::Text(text) => write!(f, "{text}"),
             LLMOutput::ToolCall(tool_calls) => {
-                writeln!(f, "Structured tool call:")?;
                 for (i, tool_call) in tool_calls.iter().enumerate() {
                     if i > 0 {
                         writeln!(f)?;
