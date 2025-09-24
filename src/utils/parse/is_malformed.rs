@@ -31,3 +31,35 @@ pub fn is_malformed_event_str(text: &str, valid_keys: &[&[&str]]) -> bool {
             .all(|key| text.contains(&format!(r#""{key}""#)))
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+    use serde_json::json;
+
+    use super::*;
+
+    #[rstest]
+    #[case(json!({ "action": 1, "action_input": "lalala" }), &[["action", "action_input"].as_slice()], true)]
+    #[case(json!({ "name": "pikachu", "dex_no": 25 }), &[["action", "action_input"].as_slice()], false)]
+    fn test_is_malformed_event(
+        #[case] json: Value,
+        #[case] valid_keys: &[&[&str]],
+        #[case] expected: bool,
+    ) {
+        let result = is_malformed_event(&json, valid_keys);
+        assert_eq!(result, expected);
+    }
+
+    #[rstest]
+    #[case(r#"{ "action": 1\n"action_input": "lalala""#, &[["action", "action_input"].as_slice()], true)]
+    #[case(r#"{ "name": "pikachu"\n"dex_no": 25 }"#, &[["action", "action_input"].as_slice()], false)]
+    fn test_is_malformed_event_str(
+        #[case] text: &str,
+        #[case] valid_keys: &[&[&str]],
+        #[case] expected: bool,
+    ) {
+        let result = is_malformed_event_str(text, valid_keys);
+        assert_eq!(result, expected);
+    }
+}
