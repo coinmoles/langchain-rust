@@ -54,6 +54,8 @@ where
     pub tool_spec: Option<ToolSpec>,
     /// Initial messages from the prompt, not including any messages from memory.
     initial_messages: Vec<Message>,
+    /// Set to true when final answer is forced due to max iterations reached.
+    final_answer_forced: bool,
     _phantom: std::marker::PhantomData<O>,
 }
 
@@ -83,6 +85,7 @@ where
             total_usage: None,
             mcp_functions: None,
             tool_spec: None,
+            final_answer_forced: false,
             _phantom: std::marker::PhantomData,
         }
     }
@@ -171,11 +174,17 @@ where
     }
 
     async fn plan_step(&mut self) -> Result<LLMOutput, ChainError> {
+        let tool_spec = if self.final_answer_forced {
+            None
+        } else {
+            self.tool_spec.as_ref()
+        };
+
         let plan = self
             .executor
             .agent
             .llm_chain
-            .call_llm(&self.input, self.tool_spec.as_ref())
+            .call_llm(&self.input, tool_spec)
             .await
             .inspect_err(|e| failure!(self, "Failed to plan next step: {e}"))?;
 
@@ -310,6 +319,7 @@ where
 
     fn force_final_answer(&mut self) {
         log::warn!("Forcing final answer due to max iterations reached");
+        self.final_answer_forced = true;
         self.input.enable_ultimatum();
     }
 }
