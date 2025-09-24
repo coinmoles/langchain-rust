@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 
 use regex::Regex;
 
+/// Fixes escape sequence issues in the input text.
 pub fn fix_text(text: &str) -> String {
     let re = Regex::new(r"\\(.)").unwrap();
     re.replace_all(text, |caps: &regex::Captures| match &caps[1] {
@@ -13,6 +14,7 @@ pub fn fix_text(text: &str) -> String {
     .to_string()
 }
 
+/// Removes newline characters within JSON strings by replacing them with `\n`.
 pub fn remove_multiline(s: &str) -> String {
     let mut cleaned = String::new();
     let mut inside_string = false;
@@ -41,7 +43,8 @@ pub fn remove_multiline(s: &str) -> String {
     cleaned
 }
 
-pub(super) fn remove_trailing_commas(s: &str) -> String {
+/// Removes trailing commas before closing braces or brackets.
+pub fn remove_trailing_commas(s: &str) -> String {
     let mut cleaned = String::new();
     let mut chars = s.chars();
     let mut inside_string = false;
@@ -78,6 +81,7 @@ pub(super) fn remove_trailing_commas(s: &str) -> String {
     cleaned
 }
 
+/// Balances unclosed JSON structures by adding the necessary closing braces or brackets.
 pub fn balance_parenthesis(s: &str) -> String {
     let mut new_s = String::new();
     let mut stack: VecDeque<char> = VecDeque::new();
