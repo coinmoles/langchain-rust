@@ -1,5 +1,6 @@
 use serde_json::Value;
 
+/// Flattens nested `final_answer` fields in a JSON value and returns the innermost value.
 pub fn flatten_final_answer(mut final_answer: Value) -> Result<String, serde_json::Error> {
     while let Value::Object(mut map) = final_answer {
         if let Some(inner) = map.remove("final_answer") {
