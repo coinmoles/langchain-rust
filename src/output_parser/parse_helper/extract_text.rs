@@ -103,163 +103,231 @@ pub fn extract_thought<'a>(text: &'a str, json: &str) -> Option<&'a str> {
 #[cfg(test)]
 mod tests {
     use indoc::indoc;
+    use rstest::rstest;
 
     use super::*;
 
-    #[test]
-    fn test_extract_thought() {
-        let output = indoc! {r#"
-        I think I should use the tool because of that.
-
+    #[rstest]
+    #[case(indoc! {r#"
         ```json
         {
-            "name": "test_tool",
-            "arguments": {
-                "arg1": "value1"
-            }
+            "key": "value"
         }
-        ```
-        "#};
-        let json = indoc! {r#"
+        ```"#
+    }, indoc! {r#"
         {
-            "name": "test_tool",
-            "arguments": {
-                "arg1": "value1"
-            }
+            "key": "value"
+        }"#
+    })]
+    #[case(indoc! {r#"
+        ```json
+        {
+            "key": "value"
+        }"#
+    }, indoc! {r#"
+        {
+            "key": "value"
+        }"#
+    })]
+    #[case(indoc! {r#"
+        {
+            "key": "value"
         }
-        "#};
-        let result = extract_thought(output, json);
-        let expected = "I think I should use the tool because of that.";
-        assert_eq!(result, Some(expected));
+        ```"#
+    }, indoc! {r#"
+        {
+            "key": "value"
+        }"#
+    })]
+    fn test_extract_from_codeblock(#[case] text: &str, #[case] expected: &str) {
+        let extracted = extract_from_codeblock(text);
+        assert_eq!(extracted, expected);
     }
 
-    #[test]
-    fn test_extract_from_codeblock() {
-        let text = indoc! {r#"
-        ```json
-        {
-            "key": "value"
-        }
-        ```
-        "#};
-        let result = extract_from_codeblock(text);
-        let expected = indoc! {r#"
-            {
-                "key": "value"
-            }"#
-        };
-        assert_eq!(result, expected);
-
-        let text = indoc! {r#"
-        ```json
-        {
-            "key": "value"
-        }
-        "#};
-        let result = extract_from_codeblock(text);
-        let expected = indoc! {r#"
-            {
-                "key": "value"
-            }"#
-        };
-        assert_eq!(result, expected);
-
-        let text = indoc! {r#"
-        {
-            "key": "value"
-        }
-        ```"#};
-        let expected = indoc! {r#"
-            {
-                "key": "value"
-            }"#
-        };
-        let result = extract_from_codeblock(text);
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn test_extract_from_tag() {
-        let text =
-            r#"<tool_call> {"name": "test_tool", "arguments": {"arg1": "value1"}}</tool_call>"#;
-        let result = extract_from_tag(text, "tool_call");
-        assert_eq!(
-            result,
-            r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#
-        );
-
-        let text = r#"<tool_call> {"name": "test_tool", "arguments": {"arg1": "value1"}}"#;
-        let result = extract_from_tag(text, "tool_call");
-        assert_eq!(
-            result,
-            r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#
-        );
-
-        let text = r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}</tool_call>"#;
-        let result = extract_from_tag(text, "tool_call");
-        assert_eq!(
-            result,
-            r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#
-        );
-
-        let text = r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#;
-        let result = extract_from_tag(text, "tool_call");
-        assert_eq!(
-            result,
-            r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#
-        );
-
-        let text = r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}</tool_call> <FINAL_ANSWER_FORMAT>final answer"#;
-        let result = extract_from_tag(text, "tool_call");
-        assert_eq!(
-            result,
-            r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#
-        );
-
-        let text = indoc! {r#"
-        <tool_call> 
-        {
-            "name": "test_tool",
-            "arguments": {
-                "arg1": "value1"
-            }
-        }
-        </tool_call>"#};
-        let result = extract_from_tag(text, "tool_call");
-        assert_eq!(
-            result,
-            indoc! {r#"
+    #[rstest]
+    #[case(
+        r#"<tool_call> {"name": "test_tool", "arguments": {"arg1": "value1"}}</tool_call>"#,
+        "tool_call",
+        r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#
+    )]
+    #[case(
+        r#"<tool_call> {"name": "test_tool", "arguments": {"arg1": "value1"}}"#,
+        "tool_call",
+        r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#
+    )]
+    #[case(
+        r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}</tool_call>"#,
+        "tool_call",
+        r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#
+    )]
+    #[case(
+        r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#,
+        "tool_call",
+        r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#
+    )]
+    #[case(
+        r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}</tool_call> <FINAL_ANSWER_FORMAT>final answer"#,
+        "tool_call",
+        r#"{"name": "test_tool", "arguments": {"arg1": "value1"}}"#
+    )]
+    #[case(
+        indoc! {r#"
+            <tool_call> 
             {
                 "name": "test_tool",
                 "arguments": {
                     "arg1": "value1"
                 }
-            }"#}
-        );
-    }
-
-    #[test]
-    fn test_extract_json() {
-        let text = indoc! {r#"
-        So I decided to call this because of that:
-        
+            }
+            </tool_call>"#
+        },
+        "tool_call",
+        indoc! {r#"
         {
             "name": "test_tool",
             "arguments": {
                 "arg1": "value1"
             }
-        }"#};
+        }"#
+    },
+    )]
+    fn test_extract_from_tag(#[case] text: &str, #[case] tag: &str, #[case] expected: &str) {
+        let extracted = extract_from_tag(text, tag);
+        assert_eq!(extracted, expected);
+    }
 
-        let result = extract_json(text);
-        assert_eq!(
-            result,
-            indoc! {r#"
+    #[rstest]
+    #[case(
+        indoc! {r#"
+            So I decided to call this because of that:
+            
             {
                 "name": "test_tool",
                 "arguments": {
                     "arg1": "value1"
                 }
-            }"#}
-        );
+            }"#
+        },
+        indoc! {r#"
+            {
+                "name": "test_tool",
+                "arguments": {
+                    "arg1": "value1"
+                }
+            }"#
+        }
+    )]
+    #[case(
+        indoc! {r#"
+            Here are some of the cities in East Asia:
+            
+            [
+                {
+                    "country": "South Korea",
+                    "city": "Seoul",
+                },
+                {
+                    "country": "Japan",
+                    "city": "Tokyo",
+                }
+            ]"#
+        },
+        indoc! {r#"
+            [
+                {
+                    "country": "South Korea",
+                    "city": "Seoul",
+                },
+                {
+                    "country": "Japan",
+                    "city": "Tokyo",
+                }
+            ]"#
+        }
+    )]
+    fn test_extract_json(#[case] text: &str, #[case] expected: &str) {
+        let extracted = extract_json(text);
+        assert_eq!(extracted, expected);
+    }
+
+    #[rstest]
+    #[case(
+        indoc! {r#"
+            I think I should use the tool because of that.
+
+            {
+                "name": "test_tool",
+                "arguments": {
+                    "arg1": "value1"
+                }
+            }
+            "#
+        },
+        indoc! {r#"
+            {
+                "name": "test_tool",
+                "arguments": {
+                    "arg1": "value1"
+                }
+            }
+            "#
+        },
+        Some("I think I should use the tool because of that.")
+    )]
+    #[case(
+        indoc! {r#"
+            I think I should use the tool because of that.
+
+            ```json
+            {
+                "name": "test_tool",
+                "arguments": {
+                    "arg1": "value1"
+                }
+            }
+            ```
+            "#
+        },
+        indoc! {r#"
+            {
+                "name": "test_tool",
+                "arguments": {
+                    "arg1": "value1"
+                }
+            }
+            "#
+        },
+        Some("I think I should use the tool because of that.")
+    )]
+    #[case(
+        indoc! {r#"
+            ```json
+            {
+                "name": "test_tool",
+                "arguments": {
+                    "arg1": "value1"
+                }
+            }
+            ```
+            "#
+        },
+        indoc! {r#"
+            {
+                "name": "test_tool",
+                "arguments": {
+                    "arg1": "value1"
+                }
+            }
+            "#
+        },
+        None
+    )]
+    fn test_extract_thought(
+        #[case] text: &str,
+        #[case] json: &str,
+        #[case] expected: Option<&str>,
+    ) {
+        let extracted = extract_thought(text, json);
+        assert_eq!(extracted, expected);
     }
 }
