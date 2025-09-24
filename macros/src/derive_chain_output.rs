@@ -230,7 +230,7 @@ pub fn derive_chain_output(
             };
             quote! {
                 #deser_struct
-                let value = match #crate_path::output_parser::parse_partial_json(&original, false) {
+                let value = match #crate_path::__private::parse_partial_json(&original, false) {
                     Ok(value) => value,
                     Err(e) => return Err(#err),
                 };
