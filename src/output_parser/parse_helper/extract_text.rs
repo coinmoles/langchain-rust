@@ -2,22 +2,8 @@ use std::ops::Not;
 
 use regex::Regex;
 
-pub fn extract_thought<'a>(text: &'a str, json: &str) -> Option<&'a str> {
-    let re_codeblock = Regex::new(r"\s*```[\w+-]*").unwrap();
-
-    let thought_end = text.find(json)?;
-    let thought = text[..thought_end].trim();
-
-    let codeblock_start = re_codeblock
-        .find_iter(thought)
-        .last()
-        .map(|m| m.start())
-        .unwrap_or(thought.len());
-    let trimmed = thought[..codeblock_start].trim();
-
-    trimmed.is_empty().not().then_some(trimmed)
-}
-
+/// Returns the trimmed text after the closing `</think>` tag. If no tag is found, returns the input
+/// unchanged.
 pub fn remove_thought(text: &str) -> &str {
     if text.contains("</think>") {
         let parts: Vec<&str> = text.split("</think>").collect();
@@ -27,25 +13,29 @@ pub fn remove_thought(text: &str) -> &str {
     }
 }
 
-pub fn extract_from_codeblock(json_markdown: &str) -> &str {
+/// Returns the trimmed text inside a Markdown code block. If no code block is found, returns the
+/// input unchanged.
+pub fn extract_from_codeblock(text: &str) -> &str {
     let re_single_start = Regex::new(r"^\s*```[\w+-]*").unwrap();
     let re_single_end = Regex::new(r"```\s*$").unwrap();
 
     let start = re_single_start
-        .find_iter(json_markdown)
+        .find_iter(text)
         .next()
         .map(|m| m.end())
         .unwrap_or(0);
 
     let end = re_single_end
-        .find_iter(json_markdown)
+        .find_iter(text)
         .last()
         .map(|m| m.start())
-        .unwrap_or(json_markdown.len());
+        .unwrap_or(text.len());
 
-    json_markdown[start..end].trim()
+    text[start..end].trim()
 }
 
+/// Returns the trimmed content inside the specified XML-like tag. If no tag is found, returns the
+/// input unchanged.
 pub fn extract_from_tag<'a>(text: &'a str, tag: &str) -> &'a str {
     let tag = regex::escape(tag);
     let re_start = Regex::new(&format!(r"<{tag}>")).unwrap();
@@ -66,28 +56,48 @@ pub fn extract_from_tag<'a>(text: &'a str, tag: &str) -> &'a str {
     text[start..end].trim()
 }
 
-pub fn extract_json(s: &str) -> &str {
-    if s.is_empty() {
+/// Returns the substring containing the first valid JSON object or array. If no valid JSON, returns
+/// the input unchanged.
+pub fn extract_json(text: &str) -> &str {
+    if text.is_empty() {
         return "";
     }
 
-    let start = match (s.find('{'), s.find('[')) {
+    let start = match (text.find('{'), text.find('[')) {
         (Some(pos1), Some(pos2)) => pos1.min(pos2),
         (Some(pos), None) | (None, Some(pos)) => pos,
         (None, None) => 0,
     };
-    let end = match (s.rfind('}'), s.rfind(']')) {
+    let end = match (text.rfind('}'), text.rfind(']')) {
         (Some(pos1), Some(pos2)) => pos1.max(pos2),
         (Some(pos), None) | (None, Some(pos)) => pos,
-        (None, None) => s.len() - 1,
+        (None, None) => text.len() - 1,
     };
 
     if end < start {
         log::warn!("Last closing brace/bracket found before the first opening one.");
-        return s;
+        return text;
     }
 
-    &s[start..=end]
+    &text[start..=end]
+}
+
+/// Returns the trimmed text preceding the given JSON. If the preceding text is empty, returns
+/// `None`.
+pub fn extract_thought<'a>(text: &'a str, json: &str) -> Option<&'a str> {
+    let re_codeblock = Regex::new(r"\s*```[\w+-]*").unwrap();
+
+    let thought_end = text.find(json)?;
+    let thought = text[..thought_end].trim();
+
+    let codeblock_start = re_codeblock
+        .find_iter(thought)
+        .last()
+        .map(|m| m.start())
+        .unwrap_or(thought.len());
+    let trimmed = thought[..codeblock_start].trim();
+
+    trimmed.is_empty().not().then_some(trimmed)
 }
 
 #[cfg(test)]
