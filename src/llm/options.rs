@@ -2,26 +2,7 @@ use async_openai::types::{
     ChatCompletionStreamOptions, ChatCompletionToolChoiceOption, ResponseFormat,
 };
 
-#[derive(Clone, Default, Debug)]
-pub struct StreamOption {
-    pub include_usage: bool,
-}
-
-impl StreamOption {
-    pub fn with_stream_usage(mut self, stream_usage: bool) -> Self {
-        self.include_usage = stream_usage;
-        self
-    }
-}
-
-impl From<StreamOption> for ChatCompletionStreamOptions {
-    fn from(option: StreamOption) -> Self {
-        ChatCompletionStreamOptions {
-            include_usage: option.include_usage,
-        }
-    }
-}
-
+/// Options for LLM calls.
 #[derive(Clone, Debug)]
 pub struct CallOptions {
     pub candidate_count: Option<usize>,
@@ -45,6 +26,12 @@ pub struct CallOptions {
     pub drop_thought: bool,
 }
 
+/// Options for streaming LLM responses.
+#[derive(Clone, Debug)]
+pub struct StreamOption {
+    pub include_usage: bool,
+}
+
 impl Default for CallOptions {
     fn default() -> Self {
         CallOptions::new()
@@ -52,6 +39,7 @@ impl Default for CallOptions {
 }
 
 impl CallOptions {
+    /// Constructs a new `CallOptions`.
     pub fn new() -> Self {
         CallOptions {
             candidate_count: None,
@@ -76,93 +64,110 @@ impl CallOptions {
         }
     }
 
-    // Refactored "with" functions as methods of CallOptions
+    /// Sets the `max_tokens`.
     pub fn with_max_tokens(mut self, max_tokens: u32) -> Self {
         self.max_tokens = Some(max_tokens);
         self
     }
 
+    /// Sets the `candidate_count`.
     pub fn with_candidate_count(mut self, candidate_count: usize) -> Self {
         self.candidate_count = Some(candidate_count);
         self
     }
 
+    /// Sets the `temperature`.
     pub fn with_temperature(mut self, temperature: f32) -> Self {
         self.temperature = Some(temperature);
         self
     }
 
+    /// Sets the `stop_words`.
     pub fn with_stop_words(mut self, stop_words: Vec<String>) -> Self {
         self.stop_words = Some(stop_words);
         self
     }
 
+    /// Sets the `top_k`.
     pub fn with_top_k(mut self, top_k: usize) -> Self {
         self.top_k = Some(top_k);
         self
     }
 
+    /// Sets the `top_p`.
     pub fn with_top_p(mut self, top_p: f32) -> Self {
         self.top_p = Some(top_p);
         self
     }
 
+    /// Sets the `seed`.
     pub fn with_seed(mut self, seed: i64) -> Self {
         self.seed = Some(seed);
         self
     }
 
+    /// Sets the `min_length`.
     pub fn with_min_length(mut self, min_length: usize) -> Self {
         self.min_length = Some(min_length);
         self
     }
 
+    /// Sets the `max_length`.
     pub fn with_max_length(mut self, max_length: usize) -> Self {
         self.max_length = Some(max_length);
         self
     }
 
+    /// Sets the `n`.
     pub fn with_n(mut self, n: u8) -> Self {
         self.n = Some(n);
         self
     }
 
+    /// Sets the `repetition_penalty`.
     pub fn with_repetition_penalty(mut self, repetition_penalty: f32) -> Self {
         self.repetition_penalty = Some(repetition_penalty);
         self
     }
 
+    /// Sets the `frequency_penalty`.
     pub fn with_frequency_penalty(mut self, frequency_penalty: f32) -> Self {
         self.frequency_penalty = Some(frequency_penalty);
         self
     }
 
+    /// Sets the `presence_penalty`.
     pub fn with_presence_penalty(mut self, presence_penalty: f32) -> Self {
         self.presence_penalty = Some(presence_penalty);
         self
     }
 
+    /// Sets the `tool_choice`.
     pub fn with_tool_choice(mut self, tool_choice: ChatCompletionToolChoiceOption) -> Self {
         self.tool_choice = Some(tool_choice);
         self
     }
 
+    /// Sets the `response_format`.
     pub fn with_response_format(mut self, response_format: ResponseFormat) -> Self {
         self.response_format = Some(response_format);
         self
     }
 
+    /// Sets the `stream` and `stream_option`.
     pub fn with_stream(mut self, stream: StreamOption) -> Self {
         self.stream = Some(true);
         self.stream_option = Some(stream);
         self
     }
 
+    /// Sets the `system_is_assistant`.
     pub fn with_system_is_assistant(mut self, system_is_assistant: bool) -> Self {
         self.system_is_assistant = system_is_assistant;
         self
     }
 
+    /// Sets the `drop_thought`.
     pub fn with_drop_thought(mut self, drop_thought: bool) -> Self {
         self.drop_thought = drop_thought;
         self
@@ -206,5 +211,32 @@ impl CallOptions {
 
         self.system_is_assistant = self.system_is_assistant || incoming_options.system_is_assistant;
         self.drop_thought = self.drop_thought && incoming_options.drop_thought;
+    }
+}
+
+impl Default for StreamOption {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl StreamOption {
+    pub fn new() -> Self {
+        StreamOption {
+            include_usage: true,
+        }
+    }
+
+    pub fn with_stream_usage(mut self, stream_usage: bool) -> Self {
+        self.include_usage = stream_usage;
+        self
+    }
+}
+
+impl From<StreamOption> for ChatCompletionStreamOptions {
+    fn from(option: StreamOption) -> Self {
+        ChatCompletionStreamOptions {
+            include_usage: option.include_usage,
+        }
     }
 }
