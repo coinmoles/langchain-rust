@@ -17,7 +17,9 @@ pub fn is_malformed_event(json: &Value, valid_keys: &[&[&str]]) -> bool {
 }
 
 pub fn is_malformed_event_str(text: &str, valid_keys: &[&[&str]]) -> bool {
-    valid_keys
-        .iter()
-        .any(|valid| valid.iter().all(|key| text.contains(key)))
+    valid_keys.iter().any(|valid| {
+        valid
+            .iter()
+            .all(|key| text.contains(&format!(r#""{key}""#)))
+    })
 }
