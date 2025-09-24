@@ -3,12 +3,11 @@ use serde_json::Value;
 
 use super::Instructor;
 use crate::llm::{LLMEvent, LLMOutput};
-use crate::output_parser::{
-    OutputParseError, extract_from_codeblock, extract_from_tag, extract_thought,
-    flatten_final_answer, is_malformed_event, is_malformed_event_str, parse_partial_json,
-    remove_thought,
-};
 use crate::schemas::{FunctionSpec, ToolCall};
+use crate::utils::parse::{
+    ParseError, extract_from_codeblock, extract_from_tag, extract_thought, flatten_final_answer,
+    is_malformed_event, is_malformed_event_str, parse_partial_json, remove_thought,
+};
 
 const QWEN3_TOOL_PROMPT: &str = r#"
 
@@ -83,7 +82,7 @@ impl Instructor for Qwen3Instructor {
         QWEN3_TOOL_PROMPT.replace("{{?tools}}", &tools_str)
     }
 
-    fn parse_tool_use<'a>(&self, output: String) -> Result<LLMOutput, OutputParseError> {
+    fn parse_tool_use<'a>(&self, output: String) -> Result<LLMOutput, ParseError> {
         let text = remove_thought(&output);
         let text = extract_from_tag(text, "tool_call");
         let text = extract_from_codeblock(text);
@@ -104,7 +103,7 @@ impl Instructor for Qwen3Instructor {
         let event = match json.and_then(|json| self.deserialize_tool_call(json)) {
             Ok(event) => event,
             Err(_) if !is_malformed_event => LLMEvent::Text(text.into()),
-            Err(e) => return Err(OutputParseError::Deserialize(e, text.into())),
+            Err(e) => return Err(ParseError::Deserialize(e, text.into())),
         };
 
         Ok(LLMOutput { thought, event })

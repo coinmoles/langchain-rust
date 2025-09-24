@@ -4,7 +4,7 @@ use serde_json::Error as SerdeJsonError;
 use thiserror::Error;
 use tokio::time::error::Elapsed;
 
-use crate::output_parser::OutputParseError;
+use crate::utils::parse::ParseError;
 
 #[derive(Error, Debug)]
 pub enum LLMError {
@@ -15,9 +15,9 @@ pub enum LLMError {
     RequestError(#[from] ReqwestError),
 
     #[error("Output parse error: {0}")]
-    OutputParseError(#[from] OutputParseError),
+    ParseError(#[from] ParseError),
 
-    #[error("JSON serialization/deserialization error: {0}")]
+    #[error("JSON serialization/deserialization error: {0:?}")]
     SerdeError(#[from] SerdeJsonError),
 
     #[error("IO error: {0}")]

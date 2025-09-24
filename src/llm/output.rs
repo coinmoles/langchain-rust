@@ -41,7 +41,7 @@ impl Default for LLMEvent {
 }
 
 impl<T> ChainOutput<T> for LLMOutput {
-    fn from_text(text: impl Into<String>) -> Result<Self, crate::output_parser::OutputParseError> {
+    fn from_text(text: impl Into<String>) -> Result<Self, crate::utils::parse::ParseError> {
         let event = LLMEvent::Text(text.into());
         Ok(LLMOutput {
             thought: None,
@@ -52,7 +52,7 @@ impl<T> ChainOutput<T> for LLMOutput {
     fn from_tool_call(
         thought: Option<String>,
         tool_calls: Vec<ToolCall>,
-    ) -> Result<Self, crate::output_parser::OutputParseError> {
+    ) -> Result<Self, crate::utils::parse::ParseError> {
         let event = LLMEvent::ToolCall(tool_calls);
         Ok(LLMOutput { thought, event })
     }

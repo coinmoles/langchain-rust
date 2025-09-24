@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 
 use crate::chain::{Chain, ChainError, ChainOutput, Ctor, InputCtor};
-use crate::output_parser::{OutputParseError, parse_partial_json};
+use crate::utils::parse::{ParseError, parse_partial_json};
 use crate::schemas::WithUsage;
 
 pub struct PureOutput<O: DeserializeOwned + Send + Sync + 'static>(pub O);
@@ -18,15 +18,15 @@ impl<O: DeserializeOwned + Send + Sync + 'static> PureOutput<O> {
 }
 
 impl<T, O: DeserializeOwned + Send + Sync> ChainOutput<T> for PureOutput<O> {
-    fn from_text(output: impl Into<String>) -> Result<Self, OutputParseError> {
+    fn from_text(output: impl Into<String>) -> Result<Self, ParseError> {
         let original: String = output.into();
         let value = match parse_partial_json(&original, false) {
             Ok(value) => value,
-            Err(e) => return Err(OutputParseError::Deserialize(e, original)),
+            Err(e) => return Err(ParseError::Deserialize(e, original)),
         };
         let deserialized = match serde_json::from_value::<O>(value) {
             Ok(deserialized) => deserialized,
-            Err(e) => return Err(OutputParseError::Deserialize(e, original)),
+            Err(e) => return Err(ParseError::Deserialize(e, original)),
         };
         Ok(PureOutput(deserialized))
     }

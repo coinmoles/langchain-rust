@@ -84,9 +84,9 @@ fn field_initializers(
             ChainOutputSource::Response => {
                 let ty = &f.field.ty;
                 let err = if use_input {
-                    quote! { (input, #crate_path::output_parser::OutputParseError::Deserialize(e, original)) }
+                    quote! { (input, #crate_path::__private::ParseError::Deserialize(e, original)) }
                 } else {
-                    quote! { #crate_path::output_parser::OutputParseError::Deserialize(e, original) }
+                    quote! { #crate_path::__private::ParseError::Deserialize(e, original) }
                 };
                 quote! {
                     #ident: match #serde_json_path::from_str::<#ty>(&original) {
@@ -224,9 +224,9 @@ pub fn derive_chain_output(
         .then(|| {
             let deser_struct = deser_struct(&field_specs, &serde_path, &rename_all);
             let err = if use_input {
-                quote! { (input, #crate_path::output_parser::OutputParseError::Deserialize(e, original)) }
+                quote! { (input, #crate_path::__private::ParseError::Deserialize(e, original)) }
             } else {
-                quote! { #crate_path::output_parser::OutputParseError::Deserialize(e, original) }
+                quote! { #crate_path::__private::ParseError::Deserialize(e, original) }
             };
             quote! {
                 #deser_struct
@@ -257,9 +257,9 @@ pub fn derive_chain_output(
     };
 
     let fn_signature = if use_input {
-        quote! { fn from_text_and_input(input: #from_input, text: impl Into<String>) -> Result<Self, (#input_ty, #crate_path::output_parser::OutputParseError)> }
+        quote! { fn from_text_and_input(input: #from_input, text: impl Into<String>) -> Result<Self, (#input_ty, #crate_path::__private::ParseError)> }
     } else {
-        quote! { fn from_text(text: impl Into<String>) -> Result<Self, #crate_path::output_parser::OutputParseError> }
+        quote! { fn from_text(text: impl Into<String>) -> Result<Self, #crate_path::__private::ParseError> }
     };
 
     let expanded = quote! {

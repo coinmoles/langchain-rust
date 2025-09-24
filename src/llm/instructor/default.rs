@@ -4,13 +4,13 @@ use serde_json::Value;
 
 use super::Instructor;
 use crate::llm::{LLMEvent, LLMOutput};
-use crate::output_parser::{
-    OutputParseError, extract_from_codeblock, extract_json, extract_thought, fix_text,
+use crate::schemas::{FunctionSpec, ToolCall};
+use crate::utils::helper::normalize_tool_name;
+use crate::utils::parse::{
+    ParseError, extract_from_codeblock, extract_json, extract_thought, fix_text,
     flatten_final_answer, is_malformed_event, is_malformed_event_str, parse_partial_json,
     remove_thought,
 };
-use crate::schemas::{FunctionSpec, ToolCall};
-use crate::utils::helper::normalize_tool_name;
 
 const DEFAULT_TOOL_PROMPT: &str = r#"
 
@@ -137,7 +137,7 @@ impl Instructor for DefaultInstructor {
             .replace("{{?tools}}", &tool_descriptions)
     }
 
-    fn parse_tool_use(&self, output: String) -> Result<LLMOutput, OutputParseError> {
+    fn parse_tool_use(&self, output: String) -> Result<LLMOutput, ParseError> {
         let text = remove_thought(&output);
         let text = extract_from_codeblock(text);
         let text = extract_json(text);
@@ -156,7 +156,7 @@ impl Instructor for DefaultInstructor {
         {
             Ok(event) => event,
             Err(_) if !is_malformed_event => LLMEvent::Text(text.into()),
-            Err(e) => return Err(OutputParseError::Deserialize(e, text.into())),
+            Err(e) => return Err(ParseError::Deserialize(e, text.into())),
         };
 
         Ok(LLMOutput { thought, event })

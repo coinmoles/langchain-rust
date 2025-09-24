@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use super::OutputParser;
 use crate::chain::{ChainOutput, InputCtor, OutputCtor};
-use crate::output_parser::OutputParseError;
+use crate::utils::parse::ParseError;
 
 pub struct SimpleParser<I, O>
 where
@@ -49,7 +49,7 @@ where
         &self,
         input: I::Target<'a>,
         output: String,
-    ) -> Result<O::Target<'a>, (I::Target<'a>, OutputParseError)> {
+    ) -> Result<O::Target<'a>, (I::Target<'a>, ParseError)> {
         if self.trim {
             O::Target::from_text_and_input(input, output.trim())
         } else {
@@ -57,7 +57,7 @@ where
         }
     }
 
-    fn parse_from_text<'a>(&self, output: String) -> Result<O::Target<'a>, OutputParseError> {
+    fn parse_from_text<'a>(&self, output: String) -> Result<O::Target<'a>, ParseError> {
         if self.trim {
             O::Target::from_text(output.trim())
         } else {

@@ -11,6 +11,10 @@ pub mod template;
 pub mod text_splitter;
 pub mod tools;
 pub mod vectorstore;
-pub extern crate url;
 
-pub(crate) mod utils;
+mod utils;
+
+#[doc(hidden)]
+pub mod __private {
+    pub use crate::utils::parse::{ParseError, parse_partial_json};
+}

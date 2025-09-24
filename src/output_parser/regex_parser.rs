@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 use regex::Regex;
 
-use super::{OutputParseError, OutputParser};
+use super::OutputParser;
 use crate::chain::{ChainOutput, InputCtor, OutputCtor};
-use crate::output_parser::ParseResultExt;
+use crate::utils::parse::{ParseError, ParseResultExt};
 
 pub struct RegexParser<I, O>
 where
@@ -40,15 +40,15 @@ where
         Self::new(re)
     }
 
-    pub fn sanitize<'a>(&self, output: &'a str) -> Result<&'a str, OutputParseError> {
+    pub fn sanitize<'a>(&self, output: &'a str) -> Result<&'a str, ParseError> {
         let cap = self
             .re
             .captures(output)
-            .ok_or_else(|| OutputParseError::Other("No match found".into()))?;
+            .ok_or_else(|| ParseError::Other("No match found".into()))?;
 
         let captured = cap
             .get(1)
-            .ok_or_else(|| OutputParseError::Other("Failed to capture code block".into()))?
+            .ok_or_else(|| ParseError::Other("Failed to capture code block".into()))?
             .as_str();
 
         if self.trim {
@@ -68,12 +68,12 @@ where
         &self,
         input: I::Target<'a>,
         output: String,
-    ) -> Result<O::Target<'a>, (I::Target<'a>, OutputParseError)> {
+    ) -> Result<O::Target<'a>, (I::Target<'a>, ParseError)> {
         let (input, sanitized_output) = self.sanitize(&output).with_input(input)?;
         O::Target::from_text_and_input(input, sanitized_output)
     }
 
-    fn parse_from_text<'a>(&self, output: String) -> Result<O::Target<'a>, OutputParseError> {
+    fn parse_from_text<'a>(&self, output: String) -> Result<O::Target<'a>, ParseError> {
         O::Target::from_text(self.sanitize(&output)?)
     }
 }

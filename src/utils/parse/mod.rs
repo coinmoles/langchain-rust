@@ -1,3 +1,5 @@
+//! Utilities for parsing LLM outputs.
+
 mod is_malformed;
 pub use is_malformed::*;
 
@@ -12,3 +14,6 @@ pub use json::*;
 
 mod flatten_final_answer;
 pub use flatten_final_answer::*;
+
+mod error;
+pub use error::*;

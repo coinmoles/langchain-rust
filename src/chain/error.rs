@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::agent::AgentError;
 use crate::llm::LLMError;
-use crate::output_parser::OutputParseError;
+use crate::utils::parse::ParseError;
 use crate::template::TemplateError;
 use crate::tools::{McpError, ToolError};
 
@@ -18,7 +18,7 @@ pub enum ChainError {
     RetrieverError(String),
 
     #[error("Output parse error: {0}")]
-    OutputParseError(#[from] OutputParseError),
+    ParseError(#[from] ParseError),
 
     #[error("Prompt error: {0}")]
     PromptError(#[from] TemplateError),
@@ -27,9 +27,9 @@ pub enum ChainError {
     OtherError(String),
 }
 
-impl<I> From<(I, OutputParseError)> for ChainError {
-    fn from((_, err): (I, OutputParseError)) -> Self {
-        ChainError::OutputParseError(err)
+impl<I> From<(I, ParseError)> for ChainError {
+    fn from((_, err): (I, ParseError)) -> Self {
+        ChainError::ParseError(err)
     }
 }
 
