@@ -2,6 +2,7 @@ use thiserror::Error;
 
 use crate::schemas::ToolCall;
 
+/// Errors that can occur during parsing of LLM outputs.
 #[derive(Debug, Error)]
 pub enum ParseError {
     #[error("Deserialization error: {0}\nOriginal: {1}")]
@@ -17,7 +18,9 @@ pub enum ParseError {
     Other(String),
 }
 
+/// Extension trait for `Result` to attach input context to parsing results.
 pub trait ParseResultExt<T, E> {
+    /// Attaches the original input to the result.
     fn with_input<I>(self, input: I) -> Result<(I, T), (I, E)>;
 }
 
