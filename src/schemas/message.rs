@@ -183,9 +183,13 @@ impl From<Message> for ChatCompletionRequestMessage {
                 .build()
                 .expect("All required fields are set.")
         }
-        fn tool_calls(tool_calls: Vec<ToolCall>) -> ChatCompletionRequestAssistantMessage {
+        fn tool_calls(
+            content: String,
+            tool_calls: Vec<ToolCall>,
+        ) -> ChatCompletionRequestAssistantMessage {
             let calls = tool_calls.into_iter().map(Into::into).collect::<Vec<_>>();
             ChatCompletionRequestAssistantMessageArgs::default()
+                .content(content)
                 .tool_calls(calls)
                 .build()
                 .expect("All required fields are set.")
@@ -200,7 +204,7 @@ impl From<Message> for ChatCompletionRequestMessage {
 
         match value.role {
             Role::Ai => match value.tool_calls {
-                Some(calls) => tool_calls(calls).into(),
+                Some(calls) => tool_calls(value.content, calls).into(),
                 None => assistant(value.content).into(),
             },
             Role::Human => match value.images {
