@@ -32,10 +32,14 @@ const ALTERNATIVE_ARGUMENTS_KEY: &str = "action_input";
 const VALID_KEYS: &[&[&str]] = &[&[NAME_KEY, ARGUMENTS_KEY]];
 const ALTERNATIVE_KEYS: &[&[&str]] = &[&[ALTERNATIVE_NAME_KEY, ALTERNATIVE_ARGUMENTS_KEY]];
 
+/// The instructor implementation for Qwen3 models.
+///
+/// Uses the [Qwen3 chat template](https://huggingface.co/Qwen/Qwen3-235B-A22B-Thinking-2507?chat_template=default) for tool use instructions.
 #[derive(Default)]
 pub struct Qwen3Instructor;
 
 impl Qwen3Instructor {
+    /// Deserializes the LLM output json.
     fn deserialize_tool_call(&self, value: Value) -> Result<LLMEvent, serde_json::Error> {
         #[derive(Deserialize)]
         #[serde(untagged)]

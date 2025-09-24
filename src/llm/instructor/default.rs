@@ -56,10 +56,12 @@ const ACTION_INPUT_KEY: &str = "action_input";
 const FINAL_ANSWER_KEY: &str = "final_answer";
 const VALID_KEYS: &[&[&str]] = &[&[ACTION_KEY, ACTION_INPUT_KEY], &[FINAL_ANSWER_KEY]];
 
+/// The default instructor implementation.
 #[derive(Default)]
 pub struct DefaultInstructor;
 
 impl DefaultInstructor {
+    /// Deserializes the LLM output json.
     fn deserialize_llm_output(&self, value: Value) -> Result<LLMEvent, serde_json::Error> {
         #[derive(Debug, Deserialize)]
         #[serde(untagged)]
@@ -94,6 +96,7 @@ impl DefaultInstructor {
         Ok(event)
     }
 
+    /// Parses the LLM output using regex as a fallback.
     fn parse_with_regex(&self, text: &str) -> Option<LLMEvent> {
         let final_answer_re = Regex::new(r#"(?m)"final_answer"\s*:\s*"(.*)"\s*\n"#).unwrap();
         let action_regex = Regex::new(r#"(?m)"action"\s*:\s*"(.*)"\s*\n"#).unwrap();
