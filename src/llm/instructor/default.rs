@@ -22,7 +22,7 @@ const DEFAULT_TOOL_PROMPT: &str = r#"
 - When not using a tool, directly give your final answer
 - ALL RESPONSES MUST BE IN JSON FORMAT
 
-Option 1 : Use a tool (If you have tools and you need to use them)
+Option 1 : Use a tool
 The following is the description of the tools available to you:
 {{?tools}}
 - IF YOU DON'T HAVE TOOLS, PASS THIS OPTION
@@ -31,7 +31,7 @@ The following is the description of the tools available to you:
 ```json
 {
     "action": (string), The action to take; MUST BE one of [{{?tool_names}}],
-    "action_input": (object), The input to the action, JSON object. The structure object depends on the action you are taking, and is specified in the tool description below.
+    "action_input": (object), The input to the action, JSON object. The structure object depends on the action you are taking, and is specified in the tool description above.
 }
 ```
 </TOOL_USAGE_OUTPUT_FORMAT>
