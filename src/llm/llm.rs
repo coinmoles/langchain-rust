@@ -4,7 +4,7 @@ use crate::llm::options::CallOptions;
 use crate::llm::{LLMError, LLMOutput, LLMStream, LlmCapabilities};
 use crate::schemas::{Prompt, ToolSpec, WithUsage};
 
-/// A trait representing a wrapper arround Large Language Models (LLMs).
+/// A wrapper arround Large Language Models (LLMs).
 ///
 /// This trait defines a common interface for interacting with LLM backends.
 /// The methods defined here accepts crate-specific schema types.

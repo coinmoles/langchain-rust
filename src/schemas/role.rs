@@ -5,13 +5,6 @@ use serde::{Deserialize, Serialize};
 /// The type of a message.
 ///
 /// Corresponds to [`Role`](async_openai::types::responses::Role) for the responses api.
-///
-/// # Usage
-/// ```rust,ignore
-/// let system_message_type = MessageType::SystemMessage;
-/// let ai_message_type = MessageType::AIMessage;
-/// let human_message_type = MessageType::HumanMessage;
-/// ```
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 pub enum Role {
     #[serde(rename = "system")]
