@@ -115,3 +115,73 @@ pub fn balance_parenthesis(s: &str) -> String {
 
     new_s
 }
+
+#[cfg(test)]
+mod tests {
+    use indoc::indoc;
+    use rstest::rstest;
+
+    use super::*;
+
+    #[rstest]
+    #[case(
+        r#"This is a test\nNew line\tTabbed\rCarriage return"#,
+        "This is a test\nNew line\tTabbed\rCarriage return"
+    )]
+    fn test_fix_text(#[case] input: &str, #[case] expected: &str) {
+        let fixed = fix_text(input);
+        assert_eq!(fixed, expected);
+    }
+
+    #[rstest]
+    #[case(
+        indoc! {r#"
+            {
+                "key1": "This is a malformed JSON string.
+            The newline within the string is incorrectly parsed as an actual newline.",
+                "key2": "value2"
+            }"#
+        },
+        indoc! {r#"
+            {
+                "key1": "This is a malformed JSON string.\nThe newline within the string is incorrectly parsed as an actual newline.",
+                "key2": "value2"
+            }"#
+        }
+    )]
+    fn test_remove_multiline(#[case] input: &str, #[case] expected: &str) {
+        let cleaned = remove_multiline(input);
+        assert_eq!(cleaned, expected);
+    }
+
+    #[rstest]
+    #[case(
+        indoc! {r#"
+            {
+                "key1": "value1",
+                "key2": "value2",
+            }"#
+        },
+        indoc! {r#"
+            {
+                "key1": "value1",
+                "key2": "value2"
+            }"#
+        }
+    )]
+    #[case(r#"["item1", "item2",]"#, r#"["item1", "item2"]"#)]
+    fn test_remove_trailing_commas(#[case] input: &str, #[case] expected: &str) {
+        let cleaned = remove_trailing_commas(input);
+        assert_eq!(cleaned, expected);
+    }
+
+    #[rstest]
+    #[case(
+        r#"{"key1": "value1", "key2": ["item1", "item2""#,
+        r#"{"key1": "value1", "key2": ["item1", "item2"]}"#
+    )]
+    fn test_balance_parenthesis(#[case] input: &str, #[case] expected: &str) {
+        let balanced = balance_parenthesis(input);
+        assert_eq!(balanced, expected);
+    }
+}
