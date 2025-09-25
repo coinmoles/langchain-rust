@@ -1,3 +1,5 @@
+//! Helper functions for the chat completions api.
+
 use std::collections::HashMap;
 use std::ops::Add;
 
@@ -15,6 +17,7 @@ use futures::StreamExt;
 use crate::llm::{ChatRequest, LLMError, LLMStream, LLMStreamChunk};
 use crate::schemas::TokenUsage;
 
+/// Adds two optional numbers, treating `None` as zero.
 fn add_option_numbers<T>(a: Option<T>, b: Option<T>) -> Option<T>
 where
     T: Add<Output = T> + Default + Copy,
@@ -25,6 +28,7 @@ where
     }
 }
 
+/// Merges two `PromptTokensDetails`, summing their fields where both are `Some`.
 fn merge_prompt_tokens_details(
     details: Option<PromptTokensDetails>,
     chunk_details: Option<PromptTokensDetails>,
@@ -40,6 +44,7 @@ fn merge_prompt_tokens_details(
     }
 }
 
+/// Merges two `CompletionTokensDetails`, summing their fields where both are `Some`.
 fn merge_completion_tokens_details(
     details: Option<CompletionTokensDetails>,
     chunk_details: Option<CompletionTokensDetails>,
@@ -66,6 +71,7 @@ fn merge_completion_tokens_details(
     }
 }
 
+/// Merges two `CompletionUsage`, summing their fields where both are `Some`.
 fn merge_usage(
     usage: Option<CompletionUsage>,
     chunk_usage: Option<CompletionUsage>,
@@ -90,6 +96,7 @@ fn merge_usage(
     }
 }
 
+/// Aggregates a `ChatChoiceStream` into a `ChatChoice`.
 fn aggregate_choice(choice: &mut ChatChoice, choice_stream: ChatChoiceStream) {
     let delta = choice_stream.delta;
 
@@ -164,6 +171,8 @@ fn aggregate_choice(choice: &mut ChatChoice, choice_stream: ChatChoiceStream) {
     }
 }
 
+/// Constructs a full `CreateChatCompletionResponse` from a stream of
+/// `CreateChatCompletionStreamResponse`.
 pub async fn construct_chat_completion_response(
     mut stream: ChatCompletionResponseStream,
 ) -> Result<CreateChatCompletionResponse, OpenAIError> {
@@ -226,6 +235,7 @@ pub async fn construct_chat_completion_response(
     })
 }
 
+/// Selects the best `ChatChoice` from a list of choices based on finish reason and index.
 pub fn select_choice(choices: Vec<ChatChoice>) -> Option<ChatChoice> {
     if choices.is_empty() {
         return None;
@@ -249,6 +259,7 @@ pub fn select_choice(choices: Vec<ChatChoice>) -> Option<ChatChoice> {
     Some(selected_choice.clone())
 }
 
+/// Generates a chat completion, either streaming or not based on the `stream` flag.
 pub async fn generate<C: Config>(
     client: &OpenAiClient<C>,
     request: ChatRequest,
@@ -271,6 +282,7 @@ pub async fn generate<C: Config>(
     Ok(response)
 }
 
+/// Maps a `ChatCompletionResponseStream` into an `LLMStream`.
 pub fn map_stream(original: ChatCompletionResponseStream) -> LLMStream {
     let new = original.map(|result| match result {
         Ok(completion) => {
