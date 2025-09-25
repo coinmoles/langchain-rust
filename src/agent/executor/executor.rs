@@ -26,9 +26,11 @@ where
     for<'any> I::Target<'any>: Display,
     for<'any> O::Target<'any>: ChainOutput<I::Target<'any>>,
 {
+    /// The agent used by the executor.
     pub(super) agent: Agent<'tool, I, O>,
-    // pub(super) tools: Vec<Box<dyn FunctionTool>>,
+    /// The memory that stores messages across executions.
     pub(super) memory: Option<Arc<RwLock<dyn Memory>>>,
+    /// The execution options.
     pub(super) options: ExecutorOptions,
 }
 
@@ -54,13 +56,13 @@ where
         self.memory.clone()
     }
 
-    /// Sets the memory for the executor.
+    /// Attaches a memory to the executor.
     pub fn with_memory(mut self, memory: Arc<RwLock<dyn Memory>>) -> Self {
         self.memory = Some(memory);
         self
     }
 
-    /// Sets the options for the executor.
+    /// Sets the execution options.
     pub fn with_options(mut self, options: ExecutorOptions) -> Self {
         self.options = options;
         self
