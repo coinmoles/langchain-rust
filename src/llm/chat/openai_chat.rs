@@ -11,14 +11,50 @@ use crate::llm::options::CallOptions;
 use crate::llm::{LLM, LLMError, LLMOutput, LLMStream, LlmCapabilities, OpenAIModel};
 use crate::schemas::{IntoWithUsage, Message, Prompt, Role, ToolSpec, WithUsage};
 
+/// A wrapper for OpenAI chat models.
+///
+/// This struct implements tool use by relying on the model's structured tool call capabilities.
+/// Consequently, it can also be used for non-OpenAI models with native tool call support as well.
 #[derive(Clone)]
-pub struct OpenAIChat<C: Config> {
+pub struct OpenAIChat<C: Config = OpenAIConfig> {
+    /// The OpenAI client.
     client: OpenAIClient<C>,
+    /// The model id.
     model: String,
+    /// The call options.
     call_options: CallOptions,
 }
 
+impl<C: Config + Default> OpenAIChat<C> {
+    /// Creates a [`OpenAIChatBuilder`] to configure an [`OpenAIChat`].
+    ///
+    /// This is the same as calling [`OpenAIChatBuilder::new`].
+    ///
+    /// # Example
+    /// ```rust
+    /// use langchain_rust::llm::{OpenAIChat, OpenAIChatBuilder};
+    ///
+    /// let chat: OpenAIChat = OpenAIChat::builder().with_model("gpt-4o").build();
+    /// ```
+    #[must_use]
+    pub fn builder() -> OpenAIChatBuilder<C> {
+        OpenAIChatBuilder::new()
+    }
+}
+
 impl<C: Config> OpenAIChat<C> {
+    /// Constructs a new [`OpenAIChat`].
+    ///
+    /// ```rust
+    /// use langchain_rust::llm::{OpenAIChat, OpenAIModel};
+    ///
+    /// let chat: OpenAIChat = OpenAIChat::new(
+    ///     async_openai::Client::default(),
+    ///     OpenAIModel::Gpt4o,
+    ///     Default::default(),
+    /// );
+    /// ```
+    #[must_use]
     pub fn new<S>(client: OpenAIClient<C>, model: S, call_options: CallOptions) -> Self
     where
         S: Into<String>,
@@ -30,6 +66,11 @@ impl<C: Config> OpenAIChat<C> {
         }
     }
 
+    /// Processes the prompt into messages.
+    ///
+    /// The processing includes:
+    /// - Converting system messages to ai messages if configured.
+    /// - Dropping the content of messages with tool calls if configured.
     fn process_prompt(&self, prompt: Prompt) -> Vec<Message> {
         prompt
             .to_messages()
@@ -46,12 +87,6 @@ impl<C: Config> OpenAIChat<C> {
                 message
             })
             .collect()
-    }
-}
-
-impl<C: Config + Default> OpenAIChat<C> {
-    pub fn builder() -> OpenAIChatBuilder<C> {
-        OpenAIChatBuilder::default()
     }
 }
 
