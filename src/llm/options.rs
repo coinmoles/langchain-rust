@@ -210,6 +210,12 @@ impl LLMOptions {
         self
     }
 
+    /// Sets the [`use_max_tokens`](Self::use_max_tokens).
+    pub fn with_use_max_tokens(mut self, use_max_tokens: bool) -> Self {
+        self.use_max_tokens = use_max_tokens;
+        self
+    }
+
     /// Sets the [`top_p`](Self::top_p).
     pub fn with_top_p(mut self, top_p: f32) -> Self {
         self.top_p = Some(top_p);
