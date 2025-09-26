@@ -1,192 +1,283 @@
-use async_openai::types::{
-    ChatCompletionStreamOptions, ChatCompletionToolChoiceOption, ResponseFormat,
-};
+use async_openai::types::ReasoningEffort;
+
+use crate::schemas::{ResponseFormat, ToolChoice};
 
 /// Options for LLM calls.
 #[derive(Clone, Debug)]
-pub struct CallOptions {
-    pub candidate_count: Option<usize>,
-    pub max_tokens: Option<u32>,
-    pub temperature: Option<f32>,
-    pub stop_words: Option<Vec<String>>,
-    pub top_k: Option<usize>,
-    pub top_p: Option<f32>,
-    pub seed: Option<i64>,
-    pub min_length: Option<usize>,
-    pub max_length: Option<usize>,
-    pub n: Option<u8>,
-    pub repetition_penalty: Option<f32>,
-    pub frequency_penalty: Option<f32>,
-    pub presence_penalty: Option<f32>,
-    pub tool_choice: Option<ChatCompletionToolChoiceOption>,
-    pub response_format: Option<ResponseFormat>,
+pub struct LLMOptions {
+    /// If set to true, the model response data will be streamed to the client as it is generated
+    /// using server-sent events.
+    ///
+    /// Corresponds to [`ChatCompletionRequest::stream`](crate::llm::ChatRequest::stream) or
+    /// [`ResponsesRequest::stream`](crate::llm::ResponsesRequest::stream).
     pub stream: Option<bool>,
-    pub stream_option: Option<StreamOption>,
-    pub system_is_assistant: bool,
-    pub drop_thought: bool,
+
+    /// Controls which (if any) tool is called by the model.
+    ///
+    /// Corresponds to [`ChatCompletionRequest::tool_choice`](crate::llm::ChatRequest::tool_choice)
+    /// or [`ResponsesRequest::tool_choice`](crate::llm::ResponsesRequest::tool_choice).
+    pub tool_choice: Option<ToolChoice>,
+
+    /// Whether to enable parallel function calling during tool use.
+    ///
+    /// Corresponds to
+    /// [`ChatCompletionRequest::parallel_tool_calls`](crate::llm::ChatRequest::parallel_tool_calls) or
+    /// [`ResponsesRequest::parallel_tool_calls`](crate::llm::ResponsesRequest::parallel_tool_calls).
+    pub parallel_tool_calls: Option<bool>,
+
+    /// How many chat completion choices to generate for each input message.
+    ///
+    /// Corresponds to [`ChatCompletionRequest::n`](crate::llm::ChatRequest::n).
+    ///
+    /// Not compatible with the responses api.
+    pub n: Option<u8>,
+
+    /// Constrains effort on reasoning for reasoning models.
+    ///
+    /// Corresponds to
+    /// [`ChatCompletionRequest::reasoning_effort`](crate::llm::ChatRequest::reasoning_effort) or
+    /// [`ResponsesRequest::reasoning_effort`](crate::llm::ResponsesRequest::reasoning_effort).
+    ///
+    /// Only supported for certain OpenAI models.
+    pub reasoning_effort: Option<ReasoningEffort>,
+
+    /// The sampling temperature. Higher values like 0.8 will make the output more random, while
+    /// lower values like 0.2 will make it more focused and deterministic.
+    ///
+    /// Corresponds to [`ChatCompletionRequest::temperature`](crate::llm::ChatRequest::temperature)
+    /// or [`ResponsesRequest::temperature`](crate::llm::ResponsesRequest::temperature).
+    pub temperature: Option<f32>,
+
+    /// The parameter for the top-p sampling method. The model considers the results of the tokens
+    /// with `top_p` probability mass. Lower values will make the output more deterministic.
+    ///
+    /// Corresponds to [`ChatCompletionRequest::top_p`](crate::llm::ChatRequest::top_p) or
+    /// [`ResponsesRequest::top_p`](crate::llm::ResponsesRequest::top_p).
+    pub top_p: Option<f32>,
+
+    /// The parameter for the top-k sampling method. The model considers the top `top_k` tokens
+    /// with the highest probability. Lower values will make the output more deterministic.
+    ///
+    /// Corresponds to [`ChatCompletionRequest::top_k`](crate::llm::ChatRequest::top_k) or
+    /// [`ResponsesRequest::top_k`](crate::llm::ResponsesRequest::top_k).
+    ///
+    /// Not part of the OpenAI chat completions API or the responses API, but used by some other
+    /// providers.
+    pub top_k: Option<usize>,
+
+    /// Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing
+    /// frequency in the text so far, decreasing the model's likelihood to repeat the same line
+    /// verbatim.
+    ///
+    /// Corresponds to
+    /// [`ChatCompletionRequest::frequency_penalty`](crate::llm::ChatRequest::frequency_penalty) or
+    /// [`ResponsesRequest::frequency_penalty`](crate::llm::ResponsesRequest::frequency_penalty).
+    pub frequency_penalty: Option<f32>,
+
+    /// Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they
+    /// appear in the text so far, increasing the model's likelihood to talk about new topics.
+    ///
+    /// Corresponds to
+    /// [`ChatCompletionRequest::presence_penalty`](crate::llm::ChatRequest::presence_penalty) or
+    /// [`ResponsesRequest::presence_penalty`](crate::llm::ResponsesRequest::presence_penalty).
+    pub presence_penalty: Option<f32>,
+
+    /// Number between 0.0 and 2.0. Positive values discourage the model from repeating the same
+    /// line verbatim.
+    ///
+    /// Corresponds to
+    /// [`ChatCompletionRequest::repetition_penalty`](crate::llm::ChatRequest::repetition_penalty)
+    /// or
+    /// [`ResponsesRequest::repetition_penalty`](crate::llm::ResponsesRequest::repetition_penalty).
+    ///
+    /// Not part of the OpenAI chat completions API or the responses API, but used by some other
+    /// providers.
+    pub repetition_penalty: Option<f32>,
+
+    /// The maximum number of tokens to generate in the completion.
+    ///
+    /// Corresponds to
+    /// [`ChatCompletionRequest::max_completion_tokens`](crate::llm::ChatRequest::max_completion_tokens)
+    /// or [`ResponsesRequest::max_output_tokens`](crate::llm::ResponsesRequest::max_output_tokens).
+    pub max_tokens: Option<u32>,
+
+    /// Up to 4 sequences where the API will stop generating further tokens. The returned text will
+    /// not contain the stop sequence.
+    ///
+    /// Corresponds to [`ChatCompletionRequest::stop`](crate::llm::ChatRequest::stop).
+    ///
+    /// Not compatible with the responses api.
+    pub stop_words: Option<Vec<String>>,
+
+    /// An object specifying the format that the model must output.
+    ///
+    /// Corresponds to
+    /// [`ChatCompletionRequest::response_format`](crate::llm::ChatRequest::response_format) or
+    /// the [`format`](async_openai::types::responses::TextConfig::format) field of
+    /// [`ResponsesRequest::text`](crate::llm::ResponsesRequest::text).
+    pub response_format: Option<ResponseFormat>,
+
+    /// Whether to convert system message into assistant message.
+    ///
+    /// Some LLMs do not support system messages. Set this field to `true` for those models.
+    pub system_is_assistant: Option<bool>,
+
+    /// Whether to drop the "thought" part of the response.
+    ///
+    /// The "thought" part is the part of the response that contains the model's reasoning
+    /// process. By default, this is dropped in subsequent requests to save tokens. Setting this to
+    /// `false` will keep the thought in the conversation history.
+    pub drop_thought: Option<bool>,
 }
 
-/// Options for streaming LLM responses.
-#[derive(Clone, Debug)]
-pub struct StreamOption {
-    pub include_usage: bool,
-}
-
-impl Default for CallOptions {
+impl Default for LLMOptions {
     fn default() -> Self {
-        CallOptions::new()
+        LLMOptions::new()
     }
 }
 
-impl CallOptions {
+impl LLMOptions {
     /// Constructs a new `CallOptions`.
     pub fn new() -> Self {
-        CallOptions {
-            candidate_count: None,
-            max_tokens: None,
-            temperature: None,
-            stop_words: None,
-            top_k: None,
-            top_p: None,
-            seed: None,
-            min_length: None,
-            max_length: None,
+        LLMOptions {
+            stream: None,
+            tool_choice: None,
+            parallel_tool_calls: None,
             n: None,
-            repetition_penalty: None,
+            reasoning_effort: None,
+            temperature: None,
+            top_p: None,
+            top_k: None,
             frequency_penalty: None,
             presence_penalty: None,
-            tool_choice: None,
+            repetition_penalty: None,
+            max_tokens: None,
+            stop_words: None,
             response_format: None,
-            stream: None,
-            stream_option: None,
-            system_is_assistant: false,
-            drop_thought: true,
+            system_is_assistant: None,
+            drop_thought: None,
         }
     }
 
-    /// Sets the `max_tokens`.
-    pub fn with_max_tokens(mut self, max_tokens: u32) -> Self {
-        self.max_tokens = Some(max_tokens);
+    /// Sets the [`stream`](Self::stream).
+    pub fn with_stream(mut self, stream: bool) -> Self {
+        self.stream = Some(stream);
         self
     }
 
-    /// Sets the `candidate_count`.
-    pub fn with_candidate_count(mut self, candidate_count: usize) -> Self {
-        self.candidate_count = Some(candidate_count);
+    /// Sets the [`tool_choice`](Self::tool_choice).
+    pub fn with_tool_choice(mut self, tool_choice: ToolChoice) -> Self {
+        self.tool_choice = Some(tool_choice);
         self
     }
 
-    /// Sets the `temperature`.
-    pub fn with_temperature(mut self, temperature: f32) -> Self {
-        self.temperature = Some(temperature);
+    /// Sets the [`parallel_tool_calls`](Self::parallel_tool_calls).
+    pub fn with_parallel_tool_calls(mut self, parallel_tool_calls: bool) -> Self {
+        self.parallel_tool_calls = Some(parallel_tool_calls);
         self
     }
 
-    /// Sets the `stop_words`.
-    pub fn with_stop_words(mut self, stop_words: Vec<String>) -> Self {
-        self.stop_words = Some(stop_words);
-        self
-    }
-
-    /// Sets the `top_k`.
-    pub fn with_top_k(mut self, top_k: usize) -> Self {
-        self.top_k = Some(top_k);
-        self
-    }
-
-    /// Sets the `top_p`.
-    pub fn with_top_p(mut self, top_p: f32) -> Self {
-        self.top_p = Some(top_p);
-        self
-    }
-
-    /// Sets the `seed`.
-    pub fn with_seed(mut self, seed: i64) -> Self {
-        self.seed = Some(seed);
-        self
-    }
-
-    /// Sets the `min_length`.
-    pub fn with_min_length(mut self, min_length: usize) -> Self {
-        self.min_length = Some(min_length);
-        self
-    }
-
-    /// Sets the `max_length`.
-    pub fn with_max_length(mut self, max_length: usize) -> Self {
-        self.max_length = Some(max_length);
-        self
-    }
-
-    /// Sets the `n`.
+    /// Sets the [`n`](Self::n).
+    ///
+    /// Not compatible with the responses api.
     pub fn with_n(mut self, n: u8) -> Self {
         self.n = Some(n);
         self
     }
 
-    /// Sets the `repetition_penalty`.
-    pub fn with_repetition_penalty(mut self, repetition_penalty: f32) -> Self {
-        self.repetition_penalty = Some(repetition_penalty);
+    /// Sets the [`reasoning_effort`](Self::reasoning_effort).
+    ///
+    /// Only supported for certain OpenAI models.
+    pub fn with_reasoning_effort(mut self, reasoning_effort: ReasoningEffort) -> Self {
+        self.reasoning_effort = Some(reasoning_effort);
         self
     }
 
-    /// Sets the `frequency_penalty`.
+    /// Sets the [`max_tokens`](Self::max_tokens).
+    pub fn with_max_tokens(mut self, max_tokens: u32) -> Self {
+        self.max_tokens = Some(max_tokens);
+        self
+    }
+
+    /// Sets the [`top_p`](Self::top_p).
+    pub fn with_top_p(mut self, top_p: f32) -> Self {
+        self.top_p = Some(top_p);
+        self
+    }
+
+    /// Sets the [`top_k`](Self::top_k).
+    ///
+    /// Not part of the OpenAI chat completions API or the responses API, but used by some other
+    /// providers.
+    pub fn with_top_k(mut self, top_k: usize) -> Self {
+        self.top_k = Some(top_k);
+        self
+    }
+
+    /// Sets the [`frequency_penalty`](Self::frequency_penalty).
     pub fn with_frequency_penalty(mut self, frequency_penalty: f32) -> Self {
         self.frequency_penalty = Some(frequency_penalty);
         self
     }
 
-    /// Sets the `presence_penalty`.
+    /// Sets the [`presence_penalty`](Self::presence_penalty).
     pub fn with_presence_penalty(mut self, presence_penalty: f32) -> Self {
         self.presence_penalty = Some(presence_penalty);
         self
     }
 
-    /// Sets the `tool_choice`.
-    pub fn with_tool_choice(mut self, tool_choice: ChatCompletionToolChoiceOption) -> Self {
-        self.tool_choice = Some(tool_choice);
+    /// Sets the [`repetition_penalty`](Self::repetition_penalty).
+    ///
+    /// Not part of the OpenAI chat completions API or the responses API, but used by some other
+    /// providers.
+    pub fn with_repetition_penalty(mut self, repetition_penalty: f32) -> Self {
+        self.repetition_penalty = Some(repetition_penalty);
         self
     }
 
-    /// Sets the `response_format`.
+    /// Sets the [`temperature`](Self::temperature).
+    pub fn with_temperature(mut self, temperature: f32) -> Self {
+        self.temperature = Some(temperature);
+        self
+    }
+
+    /// Sets the [`stop_words`](Self::stop_words).
+    ///
+    /// Not compatible with the responses api.
+    pub fn with_stop_words(mut self, stop_words: Vec<String>) -> Self {
+        self.stop_words = Some(stop_words);
+        self
+    }
+
+    /// Sets the [`response_format`](Self::response_format).
     pub fn with_response_format(mut self, response_format: ResponseFormat) -> Self {
         self.response_format = Some(response_format);
         self
     }
 
-    /// Sets the `stream` and `stream_option`.
-    pub fn with_stream(mut self, stream: StreamOption) -> Self {
-        self.stream = Some(true);
-        self.stream_option = Some(stream);
-        self
-    }
-
-    /// Sets the `system_is_assistant`.
+    /// Sets the [`system_is_assistant`](Self::system_is_assistant).
     pub fn with_system_is_assistant(mut self, system_is_assistant: bool) -> Self {
-        self.system_is_assistant = system_is_assistant;
+        self.system_is_assistant = Some(system_is_assistant);
         self
     }
 
-    /// Sets the `drop_thought`.
+    /// Sets the [`drop_thought`](Self::drop_thought).
     pub fn with_drop_thought(mut self, drop_thought: bool) -> Self {
-        self.drop_thought = drop_thought;
+        self.drop_thought = Some(drop_thought);
         self
     }
 
-    pub fn merge_options(&mut self, incoming_options: CallOptions) {
+    /// Merges another `LLMOptions` into this one.
+    ///
+    /// For each field, if the incoming option is `Some`, it will replace the existing value.
+    /// Otherwise, the existing value is retained.
+    pub fn merge_options(&mut self, incoming_options: LLMOptions) {
         // For simple scalar types wrapped in Option, prefer incoming option if it is Some
-        self.candidate_count = incoming_options.candidate_count.or(self.candidate_count);
         self.max_tokens = incoming_options.max_tokens.or(self.max_tokens);
         self.temperature = incoming_options.temperature.or(self.temperature);
         self.top_k = incoming_options.top_k.or(self.top_k);
         self.top_p = incoming_options.top_p.or(self.top_p);
-        self.seed = incoming_options.seed.or(self.seed);
-        self.min_length = incoming_options.min_length.or(self.min_length);
-        self.max_length = incoming_options.max_length.or(self.max_length);
         self.n = incoming_options.n.or(self.n);
-        self.repetition_penalty = incoming_options
-            .repetition_penalty
-            .or(self.repetition_penalty);
         self.frequency_penalty = incoming_options
             .frequency_penalty
             .or(self.frequency_penalty);
@@ -205,38 +296,9 @@ impl CallOptions {
             }
         }
 
-        if let Some(stream) = incoming_options.stream_option {
-            self.stream_option = Some(stream);
-        }
-
-        self.system_is_assistant = self.system_is_assistant || incoming_options.system_is_assistant;
-        self.drop_thought = self.drop_thought && incoming_options.drop_thought;
-    }
-}
-
-impl Default for StreamOption {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl StreamOption {
-    pub fn new() -> Self {
-        StreamOption {
-            include_usage: true,
-        }
-    }
-
-    pub fn with_stream_usage(mut self, stream_usage: bool) -> Self {
-        self.include_usage = stream_usage;
-        self
-    }
-}
-
-impl From<StreamOption> for ChatCompletionStreamOptions {
-    fn from(option: StreamOption) -> Self {
-        ChatCompletionStreamOptions {
-            include_usage: option.include_usage,
-        }
+        self.system_is_assistant = self
+            .system_is_assistant
+            .or(incoming_options.system_is_assistant);
+        self.drop_thought = self.drop_thought.and(incoming_options.drop_thought);
     }
 }

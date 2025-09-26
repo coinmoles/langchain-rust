@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::llm::options::CallOptions;
+use crate::llm::options::LLMOptions;
 use crate::llm::{LLMError, LLMOutput, LLMStream, LlmCapabilities};
 use crate::schemas::{Prompt, ToolSpec, WithUsage};
 
@@ -35,7 +35,7 @@ pub trait LLM: Sync + Send {
     /// Configure the call options for the LLM.
     ///
     /// This includes parameters like temperature, max tokens, etc.
-    fn with_options(&mut self, options: CallOptions);
+    fn with_options(&mut self, options: LLMOptions);
 }
 
 impl<L> From<L> for Box<dyn LLM>

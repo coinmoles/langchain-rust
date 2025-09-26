@@ -3,7 +3,7 @@ use async_openai::config::{Config, OpenAIConfig};
 use async_openai::types::responses::ResponseEvent;
 use async_trait::async_trait;
 
-use crate::llm::options::CallOptions;
+use crate::llm::options::LLMOptions;
 use crate::llm::responses::helper::{construct_output, generate, map_stream};
 use crate::llm::{
     LLM, LLMError, LLMOutput, LLMStream, LlmCapabilities, OpenAIModel, ResponsesRequest,
@@ -14,25 +14,25 @@ use crate::schemas::{IntoWithUsage, Message, Prompt, Role, ToolSpec, WithUsage};
 pub struct OpenAIResponses<C: Config> {
     client: OpenAIClient<C>,
     model: String,
-    call_options: CallOptions,
+    options: LLMOptions,
 }
 
 impl<C: Config> OpenAIResponses<C> {
-    pub fn new<S>(client: OpenAIClient<C>, model: S, call_options: CallOptions) -> Self
+    pub fn new<S>(client: OpenAIClient<C>, model: S, options: LLMOptions) -> Self
     where
         S: Into<String>,
     {
         Self {
             client,
             model: model.into(),
-            call_options,
+            options,
         }
     }
 
     fn process_prompt(&self, prompt: Prompt) -> Vec<Message> {
         let mut messages = prompt.to_messages();
         for message in messages.iter_mut() {
-            if self.call_options.system_is_assistant && message.role == Role::System {
+            if self.options.system_is_assistant.unwrap_or(false) && message.role == Role::System {
                 message.role = Role::Ai;
             }
         }
@@ -45,7 +45,7 @@ impl Default for OpenAIResponses<OpenAIConfig> {
         Self::new(
             OpenAIClient::default(),
             OpenAIModel::Gpt4oMini,
-            CallOptions::default(),
+            LLMOptions::default(),
         )
     }
 }
@@ -62,8 +62,8 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIResponses<C> {
         tools: Option<&ToolSpec>,
     ) -> Result<WithUsage<LLMOutput>, LLMError> {
         let messages = self.process_prompt(prompt);
-        let options = self.call_options.clone();
-        let stream = self.call_options.stream.unwrap_or(false);
+        let options = self.options.clone();
+        let stream = self.options.stream.unwrap_or(false);
         let request =
             ResponsesRequest::new(&self.model, messages, tools.cloned())?.with_options(options);
         let response = generate(&self.client, request, stream).await?;
@@ -78,7 +78,7 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIResponses<C> {
         tools: Option<&ToolSpec>,
     ) -> Result<LLMStream, LLMError> {
         let messages = self.process_prompt(prompt);
-        let options = self.call_options.clone();
+        let options = self.options.clone();
         let request =
             ResponsesRequest::new(&self.model, messages, tools.cloned())?.with_options(options);
 
@@ -91,7 +91,7 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIResponses<C> {
         Ok(new_stream)
     }
 
-    fn with_options(&mut self, call_options: CallOptions) {
-        self.call_options.merge_options(call_options)
+    fn with_options(&mut self, options: LLMOptions) {
+        self.options.merge_options(options)
     }
 }

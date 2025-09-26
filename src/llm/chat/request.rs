@@ -1,54 +1,144 @@
 use async_openai::types::{
     ChatCompletionRequestMessage, ChatCompletionStreamOptions, ChatCompletionTool,
-    ChatCompletionToolChoiceOption, ResponseFormat,
+    ChatCompletionToolChoiceOption, ReasoningEffort, ResponseFormat,
 };
 use serde::Serialize;
 
 use crate::llm::LLMError;
-use crate::llm::options::CallOptions;
+use crate::llm::options::LLMOptions;
 use crate::schemas::{FunctionSpec, Message};
 
 /// Request payload sent to an OpenAPI-compatible API.
 #[derive(Serialize, Debug)]
 pub struct ChatRequest {
-    pub messages: Vec<ChatCompletionRequestMessage>,
-    pub model: String,
+    /// A list of messages comprising the conversation so far.
+    ///
+    /// See [`messages`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-messages).
+    messages: Vec<ChatCompletionRequestMessage>,
+
+    /// Model ID used to generate the response, like `gpt-4o` or `o3`.
+    ///
+    /// See [`model`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-model).
+    model: String,
+
+    /// If set to true, the model response data will be streamed to the client as it is generated
+    /// using server-sent events.
+    ///
+    /// See [`stream`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub stream: Option<bool>,
+    stream: Option<bool>,
+
+    /// Options for streaming response. When `stream` is set to true, the option is automatically
+    /// configured to `{ "include_usage": true }`
+    ///
+    /// See [`stream_options`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream_options).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub stream_options: Option<ChatCompletionStreamOptions>,
+    stream_options: Option<ChatCompletionStreamOptions>,
+
+    /// A list of tools the model may call. You can provide either custom tools or function tools.
+    ///
+    /// See [`tools`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-tools)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub candidate_count: Option<usize>,
+    tools: Option<Vec<ChatCompletionTool>>,
+
+    /// Controls which (if any) tool is called by the model.
+    ///
+    /// See [`tool_choice`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-tool_choice).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_tokens: Option<u32>,
+    tool_choice: Option<ChatCompletionToolChoiceOption>,
+
+    /// Whether to enable parallel function calling during tool use.
+    ///
+    /// See [`parallel_tool_calls`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-parallel_tool_calls).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub temperature: Option<f32>,
+    parallel_tool_calls: Option<bool>,
+
+    /// How many chat completion choices to generate for each input message.
+    ///
+    /// See [`n`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-n).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub stop: Option<Vec<String>>,
+    n: Option<u8>,
+
+    /// Constrains effort on reasoning for reasoning models.
+    ///
+    /// Only supported for certain OpenAI models.
+    ///
+    /// See [`reasoning_effort`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-reasoning_effort).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub top_k: Option<usize>,
+    reasoning_effort: Option<ReasoningEffort>,
+
+    /// What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the
+    /// output more random, while lower values like 0.2 will make it more focused and
+    /// deterministic.
+    ///
+    /// See [`temperature`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub top_p: Option<f32>,
+    temperature: Option<f32>,
+
+    /// An alternative to sampling with temperature, called nucleus sampling, where the model
+    /// considers the results of the tokens with top_p probability mass. Lower values will make the
+    /// output more deterministic.
+    ///
+    /// See [`top_p`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-top_p).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub seed: Option<i64>,
+    top_p: Option<f32>,
+
+    /// The parameter for the top-k sampling method. The model considers the top `top_k` tokens
+    /// with the highest probability. Lower values will make the output more deterministic.
+    ///
+    /// Not part of the OpenAI chat completions API, but used by some other providers.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub min_length: Option<usize>,
+    top_k: Option<usize>,
+
+    /// Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing
+    /// frequency in the text so far, decreasing the model's likelihood to repeat the same line
+    /// verbatim.
+    ///
+    /// See [`frequency_penalty`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-frequency_penalty).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_length: Option<usize>,
+    frequency_penalty: Option<f32>,
+
+    /// Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they
+    /// appear in the text so far, increasing the model's likelihood to talk about new topics.
+    ///
+    /// See [`presence_penalty`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-presence_penalty).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub n: Option<u8>,
+    presence_penalty: Option<f32>,
+
+    /// Number between 0.0 and 2.0. Positive values discourage the model from repeating the same
+    /// line verbatim.
+    ///
+    /// Not part of the OpenAI chat completions API, but used by some other providers.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub repetition_penalty: Option<f32>,
+    repetition_penalty: Option<f32>,
+
+    /// The maximum number of tokens that can be generated in the chat completion.
+    ///
+    /// Deprecated in the OpenAI API, but still used by some other providers.
+    ///
+    /// See [`max_tokens`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_tokens).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub frequency_penalty: Option<f32>,
+    max_tokens: Option<u32>,
+
+    /// An upper bound for the number of tokens that can be generated for a completion, including
+    /// visible output tokens and reasoning tokens.
+    ///
+    /// See [`max_completion_tokens`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-max_completion_tokens).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub presence_penalty: Option<f32>,
+    max_completion_tokens: Option<u32>,
+
+    /// Up to 4 sequences where the API will stop generating further tokens. The returned text will
+    /// not contain the stop sequence.
+    ///
+    /// See [`stop`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stop).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tools: Option<Vec<ChatCompletionTool>>,
+    stop: Option<Vec<String>>,
+
+    /// An object specifying the format that the model must output.
+    ///
+    /// See [`response_format`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-response_format).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tool_choice: Option<ChatCompletionToolChoiceOption>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub response_format: Option<ResponseFormat>,
+    response_format: Option<ResponseFormat>,
 }
 
 impl ChatRequest {
@@ -66,48 +156,51 @@ impl ChatRequest {
             model: model.into(),
             stream: None,
             stream_options: None,
-            candidate_count: None,
-            max_tokens: None,
-            temperature: None,
-            stop: None,
-            top_k: None,
-            top_p: None,
-            seed: None,
-            min_length: None,
-            max_length: None,
-            n: None,
-            repetition_penalty: None,
-            frequency_penalty: None,
-            presence_penalty: None,
             tools,
             tool_choice: None,
+            parallel_tool_calls: None,
+            n: None,
+            reasoning_effort: None,
+            temperature: None,
+            top_p: None,
+            top_k: None,
+            frequency_penalty: None,
+            presence_penalty: None,
+            repetition_penalty: None,
+            max_tokens: None,
+            max_completion_tokens: None,
+            stop: None,
             response_format: None,
         })
     }
 
     /// Adds options to the request.
-    pub fn with_options(self, options: CallOptions) -> Self {
+    pub fn with_options(self, options: LLMOptions) -> Self {
+        let stream_options =
+            options
+                .stream
+                .unwrap_or_default()
+                .then_some(ChatCompletionStreamOptions {
+                    include_usage: true,
+                });
+
         ChatRequest {
+            tool_choice: options.tool_choice.map(Into::into),
+            parallel_tool_calls: options.parallel_tool_calls,
             stream: options.stream,
-            stream_options: options
-                .stream_option
-                .clone()
-                .map(ChatCompletionStreamOptions::from),
-            candidate_count: options.candidate_count,
-            max_tokens: options.max_tokens,
-            temperature: options.temperature,
-            stop: options.stop_words,
-            top_k: options.top_k,
-            top_p: options.top_p,
-            seed: options.seed,
-            min_length: options.min_length,
-            max_length: options.max_length,
+            stream_options,
             n: options.n,
-            repetition_penalty: options.repetition_penalty,
+            reasoning_effort: options.reasoning_effort,
+            temperature: options.temperature,
+            top_p: options.top_p,
+            top_k: options.top_k,
             frequency_penalty: options.frequency_penalty,
             presence_penalty: options.presence_penalty,
-            tool_choice: options.tool_choice,
-            response_format: options.response_format,
+            repetition_penalty: options.repetition_penalty,
+            max_tokens: options.max_tokens,
+            max_completion_tokens: options.max_tokens,
+            stop: options.stop_words,
+            response_format: options.response_format.map(Into::into),
             ..self
         }
     }

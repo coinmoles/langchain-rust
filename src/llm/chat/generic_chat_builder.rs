@@ -3,7 +3,7 @@ use async_openai::config::Config;
 use reqwest::Client;
 
 use super::GenericChat;
-use crate::llm::options::CallOptions;
+use crate::llm::options::LLMOptions;
 use crate::llm::{DefaultInstructor, Instructor, OpenAIModel};
 
 /// A builder for constructing a [`GenericChat`].
@@ -16,8 +16,8 @@ pub struct GenericChatBuilder<C: Config> {
     model: String,
     /// The [`Instructor`] used to create tool use instruction and parse tool calls.
     instructor: Box<dyn Instructor>,
-    /// The call options.
-    call_options: CallOptions,
+    /// The call options for the LLM.
+    options: LLMOptions,
 }
 
 impl<C: Config + Default> GenericChatBuilder<C> {
@@ -30,7 +30,7 @@ impl<C: Config + Default> GenericChatBuilder<C> {
             api_config: C::default(),
             model: OpenAIModel::Gpt4oMini.to_string(),
             instructor: Box::new(DefaultInstructor),
-            call_options: CallOptions::default(),
+            options: LLMOptions::default(),
             http_client: None,
         }
     }
@@ -67,9 +67,9 @@ impl<C: Config> GenericChatBuilder<C> {
         self
     }
 
-    /// Sets the call options.
-    pub fn with_call_options(mut self, call_options: CallOptions) -> Self {
-        self.call_options = call_options;
+    /// Sets the call options for the LLM.
+    pub fn with_options(mut self, options: LLMOptions) -> Self {
+        self.options = options;
         self
     }
 
@@ -77,7 +77,7 @@ impl<C: Config> GenericChatBuilder<C> {
     pub fn build(self) -> GenericChat<C> {
         let http_client = self.http_client.unwrap_or_default();
         let client = OpenAIClient::build(http_client, self.api_config, Default::default());
-        GenericChat::new(client, self.model, self.instructor, self.call_options)
+        GenericChat::new(client, self.model, self.instructor, self.options)
     }
 }
 

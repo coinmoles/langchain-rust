@@ -3,7 +3,7 @@ use async_openai::config::Config;
 use reqwest::Client;
 
 use super::OpenAIChat;
-use crate::llm::options::CallOptions;
+use crate::llm::options::LLMOptions;
 
 /// A builder for constructing a [`OpenAIChat`].
 pub struct OpenAIChatBuilder<C: Config> {
@@ -13,8 +13,8 @@ pub struct OpenAIChatBuilder<C: Config> {
     api_config: C,
     /// The model id.
     model: String,
-    /// The call options.
-    call_options: CallOptions,
+    /// The call options for the LLM.
+    options: LLMOptions,
 }
 
 impl<C: Config + Default> OpenAIChatBuilder<C> {
@@ -26,7 +26,7 @@ impl<C: Config + Default> OpenAIChatBuilder<C> {
         OpenAIChatBuilder {
             api_config: C::default(),
             model: "gpt-3.5-turbo".to_string(),
-            call_options: CallOptions::default(),
+            options: LLMOptions::default(),
             http_client: None,
         }
     }
@@ -56,9 +56,9 @@ impl<C: Config> OpenAIChatBuilder<C> {
         self
     }
 
-    /// Sets the call options.
-    pub fn with_call_options(mut self, call_options: CallOptions) -> Self {
-        self.call_options = call_options;
+    /// Sets the call options for the LLM.
+    pub fn with_options(mut self, options: LLMOptions) -> Self {
+        self.options = options;
         self
     }
 
@@ -73,7 +73,7 @@ impl<C: Config> OpenAIChatBuilder<C> {
             client
         };
 
-        OpenAIChat::new(client, self.model, self.call_options)
+        OpenAIChat::new(client, self.model, self.options)
     }
 }
 

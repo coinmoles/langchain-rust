@@ -19,6 +19,12 @@ pub use tool_call::*;
 mod tool_spec;
 pub use tool_spec::*;
 
+mod tool_choice;
+pub use tool_choice::*;
+
+mod response_format;
+pub use response_format::*;
+
 mod with_usage;
 pub use with_usage::*;
 

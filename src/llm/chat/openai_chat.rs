@@ -7,7 +7,7 @@ use super::OpenAIChatBuilder;
 use super::helper::select_choice;
 use super::request::ChatRequest;
 use crate::llm::chat::helper::{generate, map_stream};
-use crate::llm::options::CallOptions;
+use crate::llm::options::LLMOptions;
 use crate::llm::{LLM, LLMError, LLMOutput, LLMStream, LlmCapabilities, OpenAIModel};
 use crate::schemas::{IntoWithUsage, Message, Prompt, Role, ToolSpec, WithUsage};
 
@@ -21,8 +21,8 @@ pub struct OpenAIChat<C: Config = OpenAIConfig> {
     client: OpenAIClient<C>,
     /// The model id.
     model: String,
-    /// The call options.
-    call_options: CallOptions,
+    /// The call options for the LLM.
+    options: LLMOptions,
 }
 
 impl<C: Config + Default> OpenAIChat<C> {
@@ -55,14 +55,14 @@ impl<C: Config> OpenAIChat<C> {
     /// );
     /// ```
     #[must_use]
-    pub fn new<S>(client: OpenAIClient<C>, model: S, call_options: CallOptions) -> Self
+    pub fn new<S>(client: OpenAIClient<C>, model: S, options: LLMOptions) -> Self
     where
         S: Into<String>,
     {
         Self {
             client,
             model: model.into(),
-            call_options,
+            options,
         }
     }
 
@@ -76,10 +76,11 @@ impl<C: Config> OpenAIChat<C> {
             .to_messages()
             .into_iter()
             .map(|mut message| {
-                if self.call_options.system_is_assistant && message.role == Role::System {
+                if self.options.system_is_assistant.unwrap_or(false) && message.role == Role::System
+                {
                     message.role = Role::Ai;
                 }
-                if self.call_options.drop_thought
+                if self.options.drop_thought.unwrap_or(true)
                     && message.tool_calls.as_deref().is_some_and(|t| !t.is_empty())
                 {
                     message.content = "".into();
@@ -95,7 +96,7 @@ impl Default for OpenAIChat<OpenAIConfig> {
         Self::new(
             OpenAIClient::default(),
             OpenAIModel::Gpt4oMini,
-            CallOptions::default(),
+            LLMOptions::default(),
         )
     }
 }
@@ -119,8 +120,8 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
         let tools = tools.map(|t| t.functions.to_vec());
 
         let messages = self.process_prompt(prompt);
-        let options = self.call_options.clone();
-        let stream = self.call_options.stream.unwrap_or(false);
+        let options = self.options.clone();
+        let stream = self.options.stream.unwrap_or(false);
         let request = ChatRequest::new(&self.model, messages, tools)?.with_options(options);
         let response = generate(&self.client, request, stream).await?;
 
@@ -146,7 +147,7 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
         let tools = tools.map(|t| t.functions.to_vec());
 
         let messages = self.process_prompt(prompt);
-        let options = self.call_options.clone();
+        let options = self.options.clone();
         let request = ChatRequest::new(&self.model, messages, tools)?.with_options(options);
 
         let original_stream = self
@@ -158,8 +159,8 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
         Ok(new_stream)
     }
 
-    fn with_options(&mut self, call_options: CallOptions) {
-        self.call_options.merge_options(call_options)
+    fn with_options(&mut self, options: LLMOptions) {
+        self.options.merge_options(options)
     }
 }
 
@@ -172,18 +173,17 @@ mod tests {
     use tokio::test;
 
     use super::*;
-    use crate::llm::options::StreamOption;
     use crate::schemas::{ImageContent, Prompt};
 
     #[test]
     #[ignore]
     async fn test_invoke() {
         let message_complete = Arc::new(Mutex::new(String::new()));
-        let call_options = CallOptions::new().with_stream(StreamOption::default());
+        let options = LLMOptions::new().with_stream(true);
         // Setup the OpenAI client with the necessary options
         let llm: OpenAIChat<OpenAIConfig> = OpenAIChat::builder()
             .with_model(OpenAIModel::Gpt35.to_string()) // You can change the model as needed
-            .with_call_options(call_options)
+            .with_options(options)
             .build();
 
         // Define a set of messages to send to the generate function
@@ -207,11 +207,11 @@ mod tests {
     async fn test_generate() {
         // Define the streaming function as an async block without capturing external references
         // directly
-        let call_options = CallOptions::new().with_stream(StreamOption::default());
+        let options = LLMOptions::new().with_stream(true);
         // Setup the OpenAI client with the necessary options
         let llm: OpenAIChat<OpenAIConfig> = OpenAIChat::builder()
             .with_model(OpenAIModel::Gpt35.to_string()) // You can change the model as needed
-            .with_call_options(call_options)
+            .with_options(options)
             .build();
 
         // Define a set of messages to send to the generate function

@@ -25,7 +25,7 @@ tokio-stream = "0.1.17"
 
 indoc = "2.0.6"
 log = "0.4.28"
-regex = "1.11.2"
+regex = "1.11.3"
 secrecy = "0.10.3"
 thiserror = "2.0.16"
 url = "2.5.7"
@@ -37,7 +37,7 @@ schemars = { version = "1.0.4", default-features = false, features = [
     "derive",
     "preserve_order",
 ] }
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0.227", features = ["derive"] }
 serde_json = "1.0"
 
 html-escape = "0.2.13"
@@ -87,7 +87,7 @@ glob = "0.3.3"
 
 # Language parser
 strum_macros = { version = "0.27.2", optional = true }
-tree-sitter = { version = "0.25.9", optional = true }
+tree-sitter = { version = "0.25.10", optional = true }
 tree-sitter-c = { version = "0.24.1", optional = true }
 tree-sitter-c-sharp = { version = "0.23", optional = true }
 tree-sitter-cpp = { version = "0.23", optional = true }
@@ -109,7 +109,7 @@ gix = { version = "0.73.0", default-features = false, optional = true, features 
 ] }
 
 # HTML to Markdown loader
-htmd = { version = "0.3.0", optional = true }
+htmd = { version = "0.3.1", optional = true }
 
 # PDF loader
 lopdf = { version = "0.38.0", optional = true }

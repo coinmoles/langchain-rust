@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use super::helper::select_choice;
 use super::request::ChatRequest;
 use crate::llm::chat::helper::{generate, map_stream};
-use crate::llm::options::CallOptions;
+use crate::llm::options::LLMOptions;
 use crate::llm::{
     DefaultInstructor, GenericChatBuilder, Instructor, LLM, LLMError, LLMOutput, LLMStream,
     LlmCapabilities, OpenAIModel,
@@ -31,8 +31,8 @@ pub struct GenericChat<C: Config = OpenAIConfig> {
     model: String,
     /// The instructor used to create tool use instruction and parse tool calls.
     instructor: Box<dyn Instructor>,
-    /// The call options.
-    call_options: CallOptions,
+    /// The call options for the LLM.
+    options: LLMOptions,
 }
 
 impl<C: Config + Default> GenericChat<C> {
@@ -71,7 +71,7 @@ impl<C: Config> GenericChat<C> {
         client: OpenAIClient<C>,
         model: S,
         instructor: Box<dyn Instructor>,
-        call_options: CallOptions,
+        options: LLMOptions,
     ) -> Self
     where
         S: Into<String>,
@@ -80,7 +80,7 @@ impl<C: Config> GenericChat<C> {
             client,
             model: model.into(),
             instructor,
-            call_options,
+            options,
         }
     }
 
@@ -106,13 +106,14 @@ impl<C: Config> GenericChat<C> {
                 }
 
                 // Change system message to ai message if configured.
-                if self.call_options.system_is_assistant && message.role == Role::System {
+                if self.options.system_is_assistant.unwrap_or(false) && message.role == Role::System
+                {
                     message.role = Role::Ai;
                 }
 
                 // Convert tool call/result messages to normal ai/human messages
                 if let Some(tool_calls) = message.tool_calls {
-                    if self.call_options.drop_thought && !tool_calls.is_empty() {
+                    if self.options.drop_thought.unwrap_or(true) && !tool_calls.is_empty() {
                         // Drop the thought part.
                         message.content = String::new()
                     } else {
@@ -142,7 +143,7 @@ impl Default for GenericChat<OpenAIConfig> {
             OpenAIClient::default(),
             OpenAIModel::Gpt4oMini,
             Box::new(DefaultInstructor),
-            CallOptions::default(),
+            LLMOptions::default(),
         )
     }
 }
@@ -153,7 +154,7 @@ impl<C: Config + Clone> Clone for GenericChat<C> {
             client: self.client.clone(),
             model: self.model.clone(),
             instructor: self.instructor.clone_box(),
-            call_options: self.call_options.clone(),
+            options: self.options.clone(),
         }
     }
 }
@@ -177,8 +178,8 @@ impl<C: Config + Send + Sync + 'static> LLM for GenericChat<C> {
         let tools = tools.map(|t| t.functions.as_slice());
 
         let messages = self.process_prompt(prompt, tools);
-        let options = self.call_options.clone();
-        let stream = self.call_options.stream.unwrap_or(false);
+        let options = self.options.clone();
+        let stream = self.options.stream.unwrap_or(false);
         let request = ChatRequest::new(&self.model, messages, None)?.with_options(options);
         let response = generate(&self.client, request, stream).await?;
 
@@ -206,7 +207,7 @@ impl<C: Config + Send + Sync + 'static> LLM for GenericChat<C> {
         let tools = tools.map(|t| t.functions.as_slice());
 
         let messages = self.process_prompt(prompt, tools);
-        let options = self.call_options.clone();
+        let options = self.options.clone();
         let request = ChatRequest::new(&self.model, messages, None)?.with_options(options);
 
         let original_stream = self
@@ -218,7 +219,7 @@ impl<C: Config + Send + Sync + 'static> LLM for GenericChat<C> {
         Ok(new_stream)
     }
 
-    fn with_options(&mut self, call_options: CallOptions) {
-        self.call_options.merge_options(call_options)
+    fn with_options(&mut self, options: LLMOptions) {
+        self.options.merge_options(options)
     }
 }

@@ -2,7 +2,7 @@ use super::STOP_WORD;
 use super::chain::SQLDatabaseChain;
 use super::prompt::{DEFAULT_SQLSUFFIX, DEFAULT_SQLTEMPLATE};
 use crate::chain::{LLMChain, SqlChainLLMChainInputCtor, StringCtor};
-use crate::llm::{CallOptions, LLM};
+use crate::llm::{LLM, LLMOptions};
 use crate::output_parser::OutputParser;
 use crate::prompt_template;
 use crate::schemas::Role;
@@ -74,7 +74,7 @@ impl<'b> SQLDatabaseChainBuilder<'b> {
 
         let llm_chain = {
             let mut llm = llm;
-            llm.with_options(CallOptions::new().with_stop_words(vec![STOP_WORD.to_string()]));
+            llm.with_options(LLMOptions::new().with_stop_words(vec![STOP_WORD.to_string()]));
 
             let mut builder = LLMChain::builder().prompt(prompt).llm(llm);
 
