@@ -98,8 +98,18 @@ pub struct LLMOptions {
     ///
     /// Corresponds to
     /// [`ChatCompletionRequest::max_completion_tokens`](crate::llm::ChatRequest::max_completion_tokens)
+    /// / [`ChatCompletionRequest::max_tokens`](crate::llm::ChatRequest::max_tokens)
+    /// (depending on [`use_max_tokens`](Self::use_max_tokens))
     /// or [`ResponsesRequest::max_output_tokens`](crate::llm::ResponsesRequest::max_output_tokens).
     pub max_tokens: Option<u32>,
+
+    /// Whether to use `max_tokens` instead of `max_completion_tokens` in the request payload.
+    ///
+    /// OpenAI API deprecated `max_tokens` in favor of `max_completion_tokens`, but some other
+    /// providers still use `max_tokens`. In such cases, set this to `true`.
+    ///
+    /// Irrelevant for the responses API.
+    pub use_max_tokens: bool,
 
     /// Up to 4 sequences where the API will stop generating further tokens. The returned text will
     /// not contain the stop sequence.
@@ -156,6 +166,7 @@ impl LLMOptions {
             response_format: None,
             system_is_assistant: None,
             drop_thought: None,
+            use_max_tokens: false,
         }
     }
 

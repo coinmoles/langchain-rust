@@ -184,6 +184,12 @@ impl ChatRequest {
                     include_usage: true,
                 });
 
+        let (max_tokens, max_completion_tokens) = if options.use_max_tokens {
+            (options.max_tokens, None)
+        } else {
+            (None, options.max_tokens)
+        };
+
         ChatRequest {
             tool_choice: options.tool_choice.map(Into::into),
             parallel_tool_calls: options.parallel_tool_calls,
@@ -197,8 +203,8 @@ impl ChatRequest {
             frequency_penalty: options.frequency_penalty,
             presence_penalty: options.presence_penalty,
             repetition_penalty: options.repetition_penalty,
-            max_tokens: options.max_tokens,
-            max_completion_tokens: options.max_tokens,
+            max_tokens,
+            max_completion_tokens,
             stop: options.stop_words,
             response_format: options.response_format.map(Into::into),
             ..self
