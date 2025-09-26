@@ -70,7 +70,7 @@ impl ToolChoice {
         Self::REQUIRED
     }
 
-    /// The model must call the specified tool.
+    /// The model must call exactly one specific function.
     #[must_use]
     #[inline]
     pub fn function(name: impl Into<String>) -> Self {
