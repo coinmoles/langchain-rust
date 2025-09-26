@@ -16,5 +16,5 @@ mod utils;
 
 #[doc(hidden)]
 pub mod __private {
-    pub use crate::utils::parse::{ParseError, parse_partial_json};
+    pub use crate::utils::parse::{ParseError, extract_json, parse_partial_json};
 }

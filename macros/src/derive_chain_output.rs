@@ -84,9 +84,9 @@ fn field_initializers(
             ChainOutputSource::Response => {
                 let ty = &f.field.ty;
                 let err = if use_input {
-                    quote! { (input, #crate_path::__private::ParseError::Deserialize(e, original)) }
+                    quote! { (input, #crate_path::__private::ParseError::Deserialize(e, text)) }
                 } else {
-                    quote! { #crate_path::__private::ParseError::Deserialize(e, original) }
+                    quote! { #crate_path::__private::ParseError::Deserialize(e, text) }
                 };
                 quote! {
                     #ident: match #serde_json_path::from_str::<#ty>(&original) {
@@ -249,7 +249,8 @@ pub fn derive_chain_output(
     );
 
     let fn_body = quote! {
-        let original = text.into();
+        let text: String = text.into();
+        let original: String = #crate_path::__private::extract_json(&text).into();
         #deserialized
         Ok(Self {
             #(#field_initializers),*
