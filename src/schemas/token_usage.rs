@@ -11,8 +11,11 @@ use serde::{Deserialize, Serialize};
 /// completions api and [`Usage`](async_openai::types::responses::Usage) for the responses api.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TokenUsage {
+    /// The number of tokens in the prompt. a.k.a. input tokens.
     pub prompt_tokens: u32,
+    /// The number of tokens in the completion. a.k.a. output tokens.
     pub completion_tokens: u32,
+    /// The total number of tokens.
     pub total_tokens: u32,
 }
 
