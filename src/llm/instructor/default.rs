@@ -7,8 +7,7 @@ use crate::schemas::{FunctionSpec, LLMEvent, LLMOutput, ToolCall};
 use crate::utils::helper::normalize_tool_name;
 use crate::utils::parse::{
     ParseError, extract_from_codeblock, extract_json, extract_thought, fix_text,
-    flatten_final_answer, is_malformed_event, is_malformed_event_str, parse_partial_json,
-    remove_thought,
+    flatten_final_answer, is_malformed_event, parse_partial_json, remove_thought,
 };
 
 const DEFAULT_TOOL_PROMPT: &str = r#"<TOOL_INTEGRATION>
@@ -134,7 +133,7 @@ impl Instructor for DefaultInstructor {
 
         let is_malformed_event = match json.as_ref() {
             Ok(json) => is_malformed_event(json, VALID_KEYS),
-            Err(_) => is_malformed_event_str(text, VALID_KEYS),
+            Err(_) => false,
         };
 
         let event = match json

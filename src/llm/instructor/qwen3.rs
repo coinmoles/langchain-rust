@@ -5,7 +5,7 @@ use super::Instructor;
 use crate::schemas::{FunctionSpec, LLMEvent, LLMOutput, ToolCall};
 use crate::utils::parse::{
     ParseError, extract_from_codeblock, extract_from_tag, extract_thought, flatten_final_answer,
-    is_malformed_event, is_malformed_event_str, parse_partial_json, remove_thought,
+    is_malformed_event, parse_partial_json, remove_thought,
 };
 
 const QWEN3_TOOL_PROMPT: &str = r#"
@@ -97,10 +97,7 @@ impl Instructor for Qwen3Instructor {
             Ok(json) => {
                 is_malformed_event(json, VALID_KEYS) || is_malformed_event(json, ALTERNATIVE_KEYS)
             }
-            Err(_) => {
-                is_malformed_event_str(text, VALID_KEYS)
-                    || is_malformed_event_str(text, ALTERNATIVE_KEYS)
-            }
+            Err(_) => false,
         };
 
         let event = match json.and_then(|json| self.deserialize_tool_call(json)) {
