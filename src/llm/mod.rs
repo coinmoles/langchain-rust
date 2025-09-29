@@ -1,3 +1,5 @@
+//! A module for LLM wrappers and related functionality.
+
 #[allow(clippy::module_inception)]
 mod llm;
 pub use llm::*;
