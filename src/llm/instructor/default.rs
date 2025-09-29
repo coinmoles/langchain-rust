@@ -41,14 +41,6 @@ Option 2 : Give your best final answer
 - Only return a final answer once all required tools have been used
 - **NEVER RETURN TOOL USE PLAN AS A FINAL ANSWER**
 
-<FINAL_ANSWER_OUTPUT_FORMAT>
-```json
-{
-    "final_answer": Your final answer as requested by the user. The final answer should follow the format specified in the user request
-}
-```
-</FINAL_ANSWER_OUTPUT_FORMAT>
-
 </INSTRUCTIONS>"#;
 
 const ACTION_KEY: &str = "action";
