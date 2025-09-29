@@ -1,5 +1,4 @@
-//! The `executor` module includes components for the actual execution of
-//! [`Agent`](crate::agent::Agent) struct.
+//! A module for the components used in [`Agent`](crate::agent::Agent) execution.
 
 #[allow(clippy::module_inception)]
 mod executor;

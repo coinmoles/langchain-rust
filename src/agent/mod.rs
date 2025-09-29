@@ -1,4 +1,4 @@
-//! The `agent` module includes components for building and executing AI agents.
+//! A module for AI agents and related components.
 
 #[allow(clippy::module_inception)]
 mod agent;
