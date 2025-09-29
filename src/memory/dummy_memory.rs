@@ -5,11 +5,14 @@ use tokio::sync::RwLock;
 use super::Memory;
 use crate::schemas::Message;
 
-pub struct DummyMemory {}
+/// A dummy memory implementation that does not store any messages.
+#[derive(Debug, Clone)]
+pub struct DummyMemory;
 
 impl DummyMemory {
+    /// Constructs a new `DummyMemory`.
     pub fn new() -> Self {
-        Self {}
+        Self
     }
 }
 

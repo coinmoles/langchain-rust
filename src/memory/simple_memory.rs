@@ -5,11 +5,15 @@ use tokio::sync::RwLock;
 use super::Memory;
 use crate::schemas::Message;
 
+/// A simple in-memory memory implementation that saves all messsages as is.
+#[derive(Debug, Clone)]
 pub struct SimpleMemory {
+    /// The messages stored in the memory.
     messages: Vec<Message>,
 }
 
 impl SimpleMemory {
+    /// Constructs a new [`SimpleMemory`].
     pub fn new() -> Self {
         Self {
             messages: Vec::new(),

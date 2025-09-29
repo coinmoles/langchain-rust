@@ -5,23 +5,28 @@ use tokio::sync::RwLock;
 use super::Memory;
 use crate::schemas::Message;
 
+/// A window buffer memory implementation that retains only the most recent messages up to a
+/// specified window size.
 pub struct WindowBufferMemory {
+    /// The maximum number of messages to retain in the memory.
     window_size: usize,
+    /// The messages stored in the memory.
     messages: Vec<Message>,
 }
 
-impl Default for WindowBufferMemory {
-    fn default() -> Self {
-        Self::new(10)
-    }
-}
-
 impl WindowBufferMemory {
+    /// Constructs a new [`WindowBufferMemory`] with the specified window size.
     pub fn new(window_size: usize) -> Self {
         Self {
             messages: Vec::new(),
             window_size,
         }
+    }
+}
+
+impl Default for WindowBufferMemory {
+    fn default() -> Self {
+        Self::new(10)
     }
 }
 

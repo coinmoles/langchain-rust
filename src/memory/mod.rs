@@ -1,3 +1,5 @@
+//! A module for memory implementations used by agents.
+
 #[allow(clippy::module_inception)]
 mod memory;
 pub use memory::*;
