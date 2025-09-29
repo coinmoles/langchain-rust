@@ -33,10 +33,10 @@ Format:
 ```
 </TOOL_INSTRUCTIONS>"#;
 
-const ACTION_KEY: &str = "action";
-const ACTION_INPUT_KEY: &str = "action_input";
-const FINAL_ANSWER_KEY: &str = "final_answer";
-const VALID_KEYS: &[&[&str]] = &[&[ACTION_KEY, ACTION_INPUT_KEY], &[FINAL_ANSWER_KEY]];
+const ACTION_KEY: &str = "name";
+const ACTION_INPUT_KEY: &str = "arguments";
+// const FINAL_ANSWER_KEY: &str = "final_answer";
+const VALID_KEYS: &[&[&str]] = &[&[ACTION_KEY, ACTION_INPUT_KEY]];
 
 /// The default instructor implementation.
 #[derive(Default)]
