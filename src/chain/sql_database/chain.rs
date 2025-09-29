@@ -5,8 +5,7 @@ use super::{
     SqlChainLLMChainInput, SqlChainLLMChainInputCtor,
 };
 use crate::chain::{Chain, ChainError, LLMChain, StringCtor};
-use crate::llm::LLMStream;
-use crate::schemas::{IntoWithUsage, TokenUsage, WithUsage};
+use crate::schemas::{IntoWithUsage, LLMStream, TokenUsage, WithUsage};
 use crate::tools::SQLDatabase;
 
 pub struct SQLDatabaseChain {

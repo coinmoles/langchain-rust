@@ -12,8 +12,8 @@ use crate::chain::{
     Chain, ChainError, ChainOutput, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor,
     StuffQACtor,
 };
-use crate::llm::{LLM, LLMStream};
-use crate::schemas::{Role, Prompt, WithUsage};
+use crate::llm::LLM;
+use crate::schemas::{LLMStream, Prompt, Role, WithUsage};
 use crate::template::{MessageTemplate, TemplateError};
 
 pub struct StuffDocument<I = StuffQACtor, O = StringCtor>

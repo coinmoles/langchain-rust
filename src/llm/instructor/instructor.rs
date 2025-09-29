@@ -1,5 +1,4 @@
-use crate::llm::LLMOutput;
-use crate::schemas::FunctionSpec;
+use crate::schemas::{FunctionSpec, LLMOutput};
 use crate::utils::parse::ParseError;
 
 /// An instructor that provides tool use instructions and parses tool use outputs.

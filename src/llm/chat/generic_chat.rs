@@ -10,10 +10,11 @@ use super::request::ChatRequest;
 use crate::llm::chat::helper::{generate, map_stream};
 use crate::llm::options::LLMOptions;
 use crate::llm::{
-    DefaultInstructor, GenericChatBuilder, Instructor, LLM, LLMError, LLMOutput, LLMStream,
-    LlmCapabilities, OpenAIModel,
+    DefaultInstructor, GenericChatBuilder, Instructor, LLM, LLMError, LlmCapabilities, OpenAIModel,
 };
-use crate::schemas::{FunctionSpec, IntoWithUsage, Message, Prompt, Role, ToolSpec, WithUsage};
+use crate::schemas::{
+    FunctionSpec, IntoWithUsage, LLMOutput, LLMStream, Message, Prompt, Role, ToolSpec, WithUsage,
+};
 
 /// The wrapper for generic chat models that support OpenAI API.
 ///

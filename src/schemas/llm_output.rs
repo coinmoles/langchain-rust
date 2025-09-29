@@ -8,19 +8,36 @@ use crate::chain::ChainOutput;
 use crate::llm::LLMError;
 use crate::schemas::ToolCall;
 
+/// Single LLM output with thought and body.
+///
+/// # Fields
+/// - `thought`: An optional string representing the LLM's internal thought process.
+/// - `event`: An [`LLMEvent`] which can be either text or a tool call.
 #[derive(Debug, Clone, Ctor)]
 pub struct LLMOutput {
+    /// An optional string representing the LLM's internal thought process.
     pub thought: Option<String>,
+    /// The actual output event from the LLM, which can be either text or a tool call.
     pub event: LLMEvent,
 }
 
+/// Body of a single LLM output parsed into one of:
+/// - Plain text output
+/// - Tool call(s)
+///
+/// Does not correspond directly to any OpenAI type, but can be converted to/from
+/// [`ChatCompletionResponseMessage`] for the chat completions API and
+/// [`Response`](async_openai::types::responses::Response) for the responses API.
 #[derive(Debug, Clone)]
 pub enum LLMEvent {
+    /// Plain text output.
     Text(String),
+    /// Tool call(s).
     ToolCall(Vec<ToolCall>),
 }
 
 impl LLMEvent {
+    /// Converts the `LLMEvent` into a plain text representation.
     pub fn into_text(self) -> Result<String, serde_json::Error> {
         let text = match self {
             LLMEvent::Text(text) => text,
@@ -77,7 +94,8 @@ impl TryFrom<ChatCompletionResponseMessage> for LLMOutput {
         }
         #[allow(deprecated)]
         if let Some(function_call) = value.function_call {
-            let function_call = ToolCall::try_from(function_call).map_err(LLMError::ResponseSerdeError)?;
+            let function_call =
+                ToolCall::try_from(function_call).map_err(LLMError::ResponseSerdeError)?;
             return Ok(LLMOutput {
                 thought: value.content,
                 event: LLMEvent::ToolCall(vec![function_call]),

@@ -4,9 +4,9 @@ use async_trait::async_trait;
 
 use super::LLMChainBuilder;
 use crate::chain::{Chain, ChainError, ChainOutput, GetPrompt, InputCtor, OutputCtor, StringCtor};
-use crate::llm::{LLM, LLMEvent, LLMStream, LlmCapabilities};
+use crate::llm::{LLM, LlmCapabilities};
 use crate::output_parser::OutputParser;
-use crate::schemas::{IntoWithUsage, Prompt, ToolSpec, WithUsage};
+use crate::schemas::{IntoWithUsage, LLMEvent, LLMStream, Prompt, ToolSpec, WithUsage};
 use crate::template::{PromptTemplate, TemplateError};
 
 pub struct LLMChain<I: InputCtor, O: OutputCtor = StringCtor>

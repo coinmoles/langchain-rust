@@ -8,8 +8,10 @@ use super::helper::select_choice;
 use super::request::ChatRequest;
 use crate::llm::chat::helper::{generate, map_stream};
 use crate::llm::options::LLMOptions;
-use crate::llm::{LLM, LLMError, LLMOutput, LLMStream, LlmCapabilities, OpenAIModel};
-use crate::schemas::{IntoWithUsage, Message, Prompt, Role, ToolSpec, WithUsage};
+use crate::llm::{LLM, LLMError, LlmCapabilities, OpenAIModel};
+use crate::schemas::{
+    IntoWithUsage, LLMOutput, LLMStream, Message, Prompt, Role, ToolSpec, WithUsage,
+};
 
 /// A wrapper for OpenAI chat models.
 ///

@@ -4,8 +4,7 @@ use async_trait::async_trait;
 
 use crate::agent::{Agent, AgentInput, AgentStep};
 use crate::chain::{ChainError, InputCtor, OutputCtor};
-use crate::llm::LLMOutput;
-use crate::schemas::{Message, ToolSpec};
+use crate::schemas::{LLMOutput, Message, ToolSpec};
 use crate::tools::{FunctionTool, Tool};
 
 /// The tools resolved for the current execution.

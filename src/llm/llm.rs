@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 
 use crate::llm::options::LLMOptions;
-use crate::llm::{LLMError, LLMOutput, LLMStream, LlmCapabilities};
-use crate::schemas::{Prompt, ToolSpec, WithUsage};
+use crate::llm::{LLMError, LlmCapabilities};
+use crate::schemas::{LLMOutput, LLMStream, Prompt, ToolSpec, WithUsage};
 
 /// Trait for LLM wrappers.
 ///

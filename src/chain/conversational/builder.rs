@@ -6,10 +6,10 @@ use tokio::sync::RwLock;
 use super::ConversationalChain;
 use super::prompt::DEFAULT_TEMPLATE;
 use crate::chain::{ChainOutput, ConversationalChainInputCtor, InputCtor, LLMChain, OutputCtor};
-use crate::llm::{LLM, LLMOutputCtor};
+use crate::llm::LLM;
 use crate::memory::{Memory, SimpleMemory};
 use crate::output_parser::OutputParser;
-use crate::schemas::Role;
+use crate::schemas::{LLMOutputCtor, Role};
 use crate::template::{MessageTemplate, PromptTemplate};
 use crate::utils::BuilderError;
 

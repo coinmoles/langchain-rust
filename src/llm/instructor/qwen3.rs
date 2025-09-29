@@ -2,8 +2,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use super::Instructor;
-use crate::llm::{LLMEvent, LLMOutput};
-use crate::schemas::{FunctionSpec, ToolCall};
+use crate::schemas::{FunctionSpec, LLMEvent, LLMOutput, ToolCall};
 use crate::utils::parse::{
     ParseError, extract_from_codeblock, extract_from_tag, extract_thought, flatten_final_answer,
     is_malformed_event, is_malformed_event_str, parse_partial_json, remove_thought,

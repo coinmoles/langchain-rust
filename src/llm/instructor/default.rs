@@ -3,8 +3,7 @@ use serde::Deserialize;
 use serde_json::Value;
 
 use super::Instructor;
-use crate::llm::{LLMEvent, LLMOutput};
-use crate::schemas::{FunctionSpec, ToolCall};
+use crate::schemas::{FunctionSpec, LLMEvent, LLMOutput, ToolCall};
 use crate::utils::helper::normalize_tool_name;
 use crate::utils::parse::{
     ParseError, extract_from_codeblock, extract_json, extract_thought, fix_text,

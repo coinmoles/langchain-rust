@@ -14,7 +14,8 @@ use async_openai::types::{
 };
 use futures::StreamExt;
 
-use crate::llm::{ChatRequest, LLMError, LLMStream, LLMStreamChunk};
+use crate::llm::{ChatRequest, LLMError};
+use crate::schemas::{LLMStream, LLMStreamChunk};
 
 /// Adds two optional numbers, treating `None` as zero.
 fn add_option_numbers<T>(a: Option<T>, b: Option<T>) -> Option<T>
@@ -287,7 +288,8 @@ pub fn map_stream(original: ChatCompletionResponseStream) -> LLMStream {
         Ok(completion) => {
             if let Some(usage) = completion.usage.clone() {
                 let usage = usage.into();
-                let completion = serde_json::to_value(completion).map_err(LLMError::ResponseSerdeError)?;
+                let completion =
+                    serde_json::to_value(completion).map_err(LLMError::ResponseSerdeError)?;
                 return Ok(LLMStreamChunk::new(completion, Some(usage), ""));
             }
             if let Some(content) = completion
@@ -295,7 +297,8 @@ pub fn map_stream(original: ChatCompletionResponseStream) -> LLMStream {
                 .first()
                 .and_then(|c| c.delta.content.clone())
             {
-                let completion = serde_json::to_value(completion).map_err(LLMError::ResponseSerdeError)?;
+                let completion =
+                    serde_json::to_value(completion).map_err(LLMError::ResponseSerdeError)?;
                 return Ok(LLMStreamChunk::new(completion, None, content));
             }
             Err(LLMError::content_not_found("/choices/0/delta/content"))

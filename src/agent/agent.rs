@@ -6,8 +6,7 @@ use crate::agent::{AgentBuilder, AgentExecutor, AgentInput, AgentInputCtor};
 use crate::chain::{
     ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor,
 };
-use crate::llm::LLMOutputCtor;
-use crate::schemas::Prompt;
+use crate::schemas::{LLMOutputCtor, Prompt};
 use crate::template::TemplateError;
 use crate::tools::{Tool, Toolbox};
 

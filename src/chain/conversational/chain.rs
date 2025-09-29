@@ -11,9 +11,10 @@ use crate::chain::{
     Chain, ChainError, ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain,
     OutputCtor, StringCtor,
 };
-use crate::llm::{LLMEvent, LLMOutputCtor, LLMStream};
 use crate::memory::Memory;
-use crate::schemas::{IntoWithUsage, Message, Prompt, WithUsage};
+use crate::schemas::{
+    IntoWithUsage, LLMEvent, LLMOutputCtor, LLMStream, Message, Prompt, WithUsage,
+};
 use crate::template::TemplateError;
 
 pub struct ConversationalChain<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor>

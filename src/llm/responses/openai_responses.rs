@@ -5,10 +5,10 @@ use async_trait::async_trait;
 
 use crate::llm::options::LLMOptions;
 use crate::llm::responses::helper::{construct_output, generate, map_stream};
-use crate::llm::{
-    LLM, LLMError, LLMOutput, LLMStream, LlmCapabilities, OpenAIModel, ResponsesRequest,
+use crate::llm::{LLM, LLMError, LlmCapabilities, OpenAIModel, ResponsesRequest};
+use crate::schemas::{
+    IntoWithUsage, LLMOutput, LLMStream, Message, Prompt, Role, ToolSpec, WithUsage,
 };
-use crate::schemas::{IntoWithUsage, Message, Prompt, Role, ToolSpec, WithUsage};
 
 #[derive(Clone)]
 pub struct OpenAIResponses<C: Config> {

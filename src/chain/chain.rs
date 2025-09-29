@@ -2,8 +2,7 @@ use async_trait::async_trait;
 
 use super::ChainError;
 use crate::chain::{InputCtor, OutputCtor};
-use crate::llm::LLMStream;
-use crate::schemas::{OutputTrace, WithUsage};
+use crate::schemas::{LLMStream, OutputTrace, WithUsage};
 
 #[async_trait]
 pub trait Chain<I: InputCtor, O: OutputCtor>: Sync + Send {

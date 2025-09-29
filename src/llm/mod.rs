@@ -13,12 +13,6 @@ pub use responses::*;
 mod instructor;
 pub use instructor::*;
 
-mod output;
-pub use output::*;
-
-mod stream;
-pub use stream::*;
-
 mod capabilities;
 pub use capabilities::*;
 

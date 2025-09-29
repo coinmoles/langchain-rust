@@ -4,8 +4,8 @@ use async_openai::error::OpenAIError;
 use async_openai::types::responses::{Content, OutputContent, Response, ResponseStream};
 use futures::StreamExt;
 
-use crate::llm::{LLMError, LLMEvent, LLMOutput, LLMStream, LLMStreamChunk, ResponsesRequest};
-use crate::schemas::{TokenUsage, ToolCall};
+use crate::llm::{LLMError, ResponsesRequest};
+use crate::schemas::{LLMEvent, LLMOutput, LLMStream, LLMStreamChunk, TokenUsage, ToolCall};
 
 // fn add_option_numbers<T>(a: Option<T>, b: Option<T>) -> Option<T>
 // where

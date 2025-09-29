@@ -6,8 +6,8 @@ use indoc::indoc;
 
 use super::{ChainError, LLMChain};
 use crate::chain::{Chain, ChainInput, Ctor, InputCtor, StringCtor, TextReplacements};
-use crate::llm::{LLM, LLMStream};
-use crate::schemas::{Document, Message, Role, WithUsage};
+use crate::llm::LLM;
+use crate::schemas::{Document, LLMStream, Message, Role, WithUsage};
 use crate::template::MessageTemplate;
 
 #[derive(Clone, ChainInput, Ctor)]
