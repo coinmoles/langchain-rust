@@ -4,7 +4,7 @@ use crate::llm::options::LLMOptions;
 use crate::llm::{LLMError, LLMOutput, LLMStream, LlmCapabilities};
 use crate::schemas::{Prompt, ToolSpec, WithUsage};
 
-/// A wrapper arround Large Language Models (LLMs).
+/// Trait for LLM wrappers.
 ///
 /// This trait defines a common interface for interacting with LLM backends.
 /// The methods defined here accepts crate-specific schema types.
@@ -21,7 +21,7 @@ pub trait LLM: Sync + Send {
         tools: Option<&ToolSpec>,
     ) -> Result<WithUsage<LLMOutput>, LLMError>;
 
-    /// Invokes the LLM with a single human message as prompt.
+    /// Generate a response from the LLM with a single human message.
     async fn invoke(&self, msg: &str) -> Result<String, LLMError> {
         let prompt = Prompt::single(msg);
         let result = self.generate(prompt, None).await?.content.to_string();
