@@ -11,7 +11,7 @@ pub enum ParseError {
     #[error("Unexpected tool call {0:?}")]
     UnexpectedToolCall(Vec<ToolCall>),
 
-    #[error("Cannot construct input without output")]
+    #[error("Cannot construct output without input")]
     InputRequired,
 
     #[error("Other error: {0}")]
