@@ -142,7 +142,7 @@ pub struct ChatRequest {
 }
 
 impl ChatRequest {
-    /// Creates a new [`OpenAIRequest`].
+    /// Constructs a new [`ChatRequest`].
     pub fn new(
         model: impl Into<String>,
         messages: Vec<Message>,

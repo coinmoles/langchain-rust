@@ -20,7 +20,7 @@ pub struct AgentAction {
 }
 
 impl AgentStep {
-    /// Creates a new `AgentStep` with the specified thought, actions.
+    /// Constructs a new `AgentStep` with the specified thought, actions.
     pub fn new(thought: Option<String>, actions: Vec<AgentAction>) -> Self {
         Self { thought, actions }
     }
@@ -42,7 +42,7 @@ impl AgentStep {
 }
 
 impl AgentAction {
-    /// Creates a new `AgentAction` with the specified tool call, result, and summary.
+    /// Constructs a new `AgentAction` with the specified tool call, result, and summary.
     pub fn new(tool_call: ToolCall, result: ToolData, summary: Option<String>) -> Self {
         Self {
             tool_call,

@@ -21,7 +21,7 @@ pub struct GenericChatBuilder<C: Config> {
 }
 
 impl<C: Config + Default> GenericChatBuilder<C> {
-    /// Creates a new [`GenericChatBuilder`].
+    /// Constructs a new [`GenericChatBuilder`].
     ///
     /// This is the same as calling [`GenericChat::builder`].
     #[must_use]

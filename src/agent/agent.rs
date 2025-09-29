@@ -30,7 +30,7 @@ pub struct Agent<'tool, I: InputCtor = DefaultChainInputCtor, O: OutputCtor = St
 }
 
 impl<'tool, I: InputCtor, O: OutputCtor> Agent<'tool, I, O> {
-    /// Creates a new `Agent` with the given LLM chain and tools.
+    /// Constructs a new `Agent` with the given LLM chain and tools.
     ///
     /// It is recommended to use [`Agent::builder()`] to create an agent instead of calling the
     /// constructor directly.

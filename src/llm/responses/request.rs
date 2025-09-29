@@ -133,7 +133,7 @@ pub struct ResponsesRequest {
 }
 
 impl ResponsesRequest {
-    /// Creates a new [`OpenAIRequest`].
+    /// Constructs a new [`ResponsesRequest`].
     pub fn new(
         model: impl Into<String>,
         messages: Vec<Message>,

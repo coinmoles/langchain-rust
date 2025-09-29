@@ -17,7 +17,7 @@ pub struct PdfExtractLoader {
 }
 
 impl PdfExtractLoader {
-    /// Creates a new PdfLoader from anything that implements the Read trait.
+    /// Constructs a new PdfLoader from anything that implements the Read trait.
     /// This is a generic constructor which can be used with any type of reader.
     ///
     /// # Example
@@ -31,7 +31,7 @@ impl PdfExtractLoader {
         let document = pdf_extract::Document::load_from(reader)?;
         Ok(Self { document })
     }
-    /// Creates a new PdfLoader from a path to a PDF file.
+    /// Constructs a new PdfLoader from a path to a PDF file.
     /// This loads the PDF document and creates a PdfLoader from it.
     ///
     /// # Example
