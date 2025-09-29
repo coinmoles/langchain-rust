@@ -63,17 +63,17 @@ impl TryFrom<ChatCompletionResponseMessage> for LLMOutput {
     type Error = LLMError;
 
     fn try_from(value: ChatCompletionResponseMessage) -> Result<Self, Self::Error> {
-        if let Some(tool_calls) = value.tool_calls {
-            if !tool_calls.is_empty() {
-                let tool_calls = tool_calls
-                    .into_iter()
-                    .map(TryInto::try_into)
-                    .collect::<Result<Vec<_>, _>>()?;
-                return Ok(LLMOutput {
-                    thought: value.content,
-                    event: LLMEvent::ToolCall(tool_calls),
-                });
-            }
+        if let Some(tool_calls) = value.tool_calls
+            && !tool_calls.is_empty()
+        {
+            let tool_calls = tool_calls
+                .into_iter()
+                .map(|tc| ToolCall::try_from(tc).map_err(LLMError::ResponseSerdeError))
+                .collect::<Result<Vec<_>, _>>()?;
+            return Ok(LLMOutput {
+                thought: value.content,
+                event: LLMEvent::ToolCall(tool_calls),
+            });
         }
         #[allow(deprecated)]
         if let Some(function_call) = value.function_call {

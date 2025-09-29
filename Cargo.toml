@@ -3,7 +3,7 @@ workspace = { members = ["macros"] }
 [package]
 description = "LangChain for Rust, the easiest way to write LLM-based programs in Rust"
 documentation = "https://langchain-rust.sellie.tech/get-started/quickstart"
-edition = "2021"
+edition = "2024"
 keywords = ["chain", "chatgpt", "llm", "langchain"]
 license = "MIT"
 name = "langchain-rust"

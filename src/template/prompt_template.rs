@@ -77,16 +77,13 @@ impl PromptTemplate {
     }
 
     pub fn placeholders(&self) -> HashSet<String> {
-        let placeholders = self
-            .messages
+        self.messages
             .iter()
             .filter_map(|m| match m {
                 MessageOrTemplate::Placeholder(p) => Some(p.clone()),
                 _ => None,
             })
-            .collect();
-
-        placeholders
+            .collect()
     }
 }
 

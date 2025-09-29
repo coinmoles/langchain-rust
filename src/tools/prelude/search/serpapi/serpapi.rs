@@ -83,12 +83,10 @@ fn get_answer_box(result: &Value) -> String {
         if let Some(snippet) = map
             .get("snippet_highlighted_words")
             .and_then(|v| v.as_array())
+            && !snippet.is_empty()
+            && let Some(first) = snippet.first().and_then(|v| v.as_str())
         {
-            if !snippet.is_empty() {
-                if let Some(first) = snippet.first().and_then(|v| v.as_str()) {
-                    return first.to_string();
-                }
-            }
+            return first.to_string();
         }
     }
 
@@ -112,36 +110,33 @@ fn process_response(res: &Value) -> Result<String, Box<dyn Error + Send + Sync>>
 }
 
 fn get_sport_result(result: &Value) -> String {
-    if let Some(map) = result["sports_results"].as_object() {
-        if let Some(game_spotlight) = map.get("game_spotlight").and_then(|v| v.as_str()) {
-            return game_spotlight.to_string();
-        }
+    if let Some(map) = result["sports_results"].as_object()
+        && let Some(game_spotlight) = map.get("game_spotlight").and_then(|v| v.as_str())
+    {
+        return game_spotlight.to_string();
     }
 
     "".to_string()
 }
 
 fn get_knowledge_graph(result: &Value) -> String {
-    if let Some(map) = result["knowledge_graph"].as_object() {
-        if let Some(description) = map.get("description").and_then(|v| v.as_str()) {
-            return description.to_string();
-        }
+    if let Some(map) = result["knowledge_graph"].as_object()
+        && let Some(description) = map.get("description").and_then(|v| v.as_str())
+    {
+        return description.to_string();
     }
 
     "".to_string()
 }
 
 fn get_organic_result(result: &Value) -> String {
-    if let Some(array) = result["organic_results"].as_array() {
-        if !array.is_empty() {
-            if let Some(first) = array.first() {
-                if let Some(first_map) = first.as_object() {
-                    if let Some(snippet) = first_map.get("snippet").and_then(|v| v.as_str()) {
-                        return snippet.to_string();
-                    }
-                }
-            }
-        }
+    if let Some(array) = result["organic_results"].as_array()
+        && !array.is_empty()
+        && let Some(first) = array.first()
+        && let Some(first_map) = first.as_object()
+        && let Some(snippet) = first_map.get("snippet").and_then(|v| v.as_str())
+    {
+        return snippet.to_string();
     }
 
     "".to_string()

@@ -63,11 +63,11 @@ pub fn remove_trailing_commas(s: &str) -> String {
             }
             ',' if !inside_string => {
                 // Peek ahead for } or ]
-                if let Some(next_non_ws) = chars.clone().find(|c| !c.is_whitespace()) {
-                    if next_non_ws == '}' || next_non_ws == ']' {
-                        // Skip this comma
-                        continue;
-                    }
+                if let Some(next_non_ws) = chars.clone().find(|c| !c.is_whitespace())
+                    && (next_non_ws == '}' || next_non_ws == ']')
+                {
+                    // Skip this comma
+                    continue;
                 }
                 cleaned.push(c);
             }
