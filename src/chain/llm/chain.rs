@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 use super::LLMChainBuilder;
 use crate::chain::{Chain, ChainError, ChainOutput, GetPrompt, InputCtor, OutputCtor, StringCtor};
-use crate::llm::{LLM, LLMError, LLMEvent, LLMStream, LlmCapabilities};
+use crate::llm::{LLM, LLMEvent, LLMStream, LlmCapabilities};
 use crate::output_parser::OutputParser;
 use crate::schemas::{IntoWithUsage, Prompt, ToolSpec, WithUsage};
 use crate::template::{PromptTemplate, TemplateError};
@@ -73,10 +73,6 @@ where
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
         let prompt = self.prompt.format(&input)?;
         let WithUsage { content, usage } = self.llm.generate(prompt, None).await?;
-
-        if matches!(&content.event, LLMEvent::ToolCall(tool_calls) if tool_calls.is_empty()) {
-            return Err(LLMError::EmptyToolCall.into());
-        }
 
         log::trace!("\nLLM output:\n{content}");
         if let Some(usage) = &usage {

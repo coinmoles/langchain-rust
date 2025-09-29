@@ -77,9 +77,10 @@ impl TryFrom<ChatCompletionResponseMessage> for LLMOutput {
         }
         #[allow(deprecated)]
         if let Some(function_call) = value.function_call {
+            let function_call = ToolCall::try_from(function_call).map_err(LLMError::ResponseSerdeError)?;
             return Ok(LLMOutput {
                 thought: value.content,
-                event: LLMEvent::ToolCall(vec![function_call.try_into()?]),
+                event: LLMEvent::ToolCall(vec![function_call]),
             });
         }
         if let Some(content) = value.content {

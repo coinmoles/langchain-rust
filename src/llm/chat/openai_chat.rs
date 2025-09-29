@@ -113,8 +113,8 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
         tools: Option<&ToolSpec>,
     ) -> Result<WithUsage<LLMOutput>, LLMError> {
         if tools.as_ref().is_some_and(|t| !t.mcps.is_empty()) {
-            return Err(LLMError::Unsupported(
-                "OpenAIChat does not support mcp tools natively".into(),
+            return Err(LLMError::unsupported(
+                "OpenAIChat does not support mcp tools natively",
             ));
         }
         let tools = tools.map(|t| t.functions.to_vec());
@@ -140,8 +140,8 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
         tools: Option<&ToolSpec>,
     ) -> Result<LLMStream, LLMError> {
         if tools.as_ref().is_some_and(|t| !t.mcps.is_empty()) {
-            return Err(LLMError::Unsupported(
-                "GenericChat does not support mcp tools natively".into(),
+            return Err(LLMError::unsupported(
+                "GenericChat does not support mcp tools natively",
             ));
         }
         let tools = tools.map(|t| t.functions.to_vec());

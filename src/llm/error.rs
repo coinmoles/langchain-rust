@@ -2,50 +2,58 @@ use async_openai::error::OpenAIError;
 use reqwest::Error as ReqwestError;
 use serde_json::Error as SerdeJsonError;
 use thiserror::Error;
-use tokio::time::error::Elapsed;
 
 use crate::utils::parse::ParseError;
 
 #[derive(Error, Debug)]
 pub enum LLMError {
+    /// Error from the [`async_openai`].
     #[error("OpenAI error: {0}")]
     OpenAIError(#[from] OpenAIError),
 
+    /// Error from the [`reqwest`].
     #[error("Network request failed: {0:?}")]
     RequestError(#[from] ReqwestError),
 
-    #[error("Output parse error: {0}")]
+    /// Error parsing LLM output.
+    ///
+    /// Returned when the response payload is valid but its content cannot be parsed into the
+    /// expected format.
+    #[error("Failed to parse LLM output: {0}")]
     ParseError(#[from] ParseError),
 
-    #[error("JSON serialization/deserialization error: {0:?}")]
-    SerdeError(#[from] SerdeJsonError),
+    /// Error indicating that the response payload cannot be deserialized into the expected
+    /// schema. Usually indicates the provider returned an unexpected response.
+    #[error("Failed to serialize/deserialize response: {0:?}")]
+    ResponseSerdeError(SerdeJsonError),
 
-    #[error("IO error: {0}")]
-    IoError(#[from] std::io::Error),
-
-    #[error("Operation timed out")]
-    Timeout(#[from] Elapsed),
-
-    #[error("Invalid URL: {0}")]
-    InvalidUrl(String),
-
+    /// Error indicating that the LLM response does not contain the expected content.
     #[error("Content not found in response: Expected at {0}")]
     ContentNotFound(String),
 
+    /// Error from the LLM refusing to answer a prompt.
     #[error("LLM refused to answer: {0}")]
     Refused(String),
 
-    #[error("LLM returned an empty tool call")]
-    EmptyToolCall,
-
+    /// Error from calling LLMs with unsupported features.
     #[error("Unsupported feature: {0}")]
     Unsupported(String),
 
+    /// Error not covered by other variants.
     #[error("Error: {0}")]
     OtherError(String),
 }
 
 impl LLMError {
+    pub fn content_not_found(msg: impl Into<String>) -> Self {
+        LLMError::ContentNotFound(msg.into())
+    }
+
+    pub fn unsupported(msg: impl Into<String>) -> Self {
+        LLMError::Unsupported(msg.into())
+    }
+
+    /// Create a new `LLMError::OtherError` with the given message.
     pub fn other(msg: impl Into<String>) -> Self {
         LLMError::OtherError(msg.into())
     }

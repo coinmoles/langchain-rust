@@ -179,7 +179,7 @@ pub fn construct_output(output: Vec<OutputContent>) -> Result<LLMOutput, LLMErro
                 None => continue,
             },
             OutputContent::FunctionCall(call) => {
-                let tc = ToolCall::try_from(call)?;
+                let tc = ToolCall::try_from(call).map_err(LLMError::ResponseSerdeError)?;
                 tool_calls.push(tc);
             }
             _ => continue,
@@ -227,11 +227,12 @@ pub async fn generate<C: Config>(
 pub fn map_stream(original: ResponseStream) -> LLMStream {
     let new = original.map(|result| match result {
         Ok(completion) => {
-            let value_completion = serde_json::to_value(completion).map_err(LLMError::from)?;
+            let value_completion =
+                serde_json::to_value(completion).map_err(LLMError::ResponseSerdeError)?;
             let usage = value_completion.pointer("/usage");
             if usage.is_some() && !usage.unwrap().is_null() {
                 let usage = serde_json::from_value::<TokenUsage>(usage.unwrap().clone())
-                    .map_err(LLMError::from)?;
+                    .map_err(LLMError::ResponseSerdeError)?;
                 return Ok(LLMStreamChunk::new(value_completion, Some(usage), ""));
             }
             let content = value_completion
