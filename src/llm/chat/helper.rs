@@ -15,7 +15,6 @@ use async_openai::types::{
 use futures::StreamExt;
 
 use crate::llm::{ChatRequest, LLMError, LLMStream, LLMStreamChunk};
-use crate::schemas::TokenUsage;
 
 /// Adds two optional numbers, treating `None` as zero.
 fn add_option_numbers<T>(a: Option<T>, b: Option<T>) -> Option<T>
@@ -286,25 +285,20 @@ pub async fn generate<C: Config>(
 pub fn map_stream(original: ChatCompletionResponseStream) -> LLMStream {
     let new = original.map(|result| match result {
         Ok(completion) => {
-            let value_completion = serde_json::to_value(completion).map_err(LLMError::from)?;
-            let usage = value_completion.pointer("/usage");
-            if usage.is_some() && !usage.unwrap().is_null() {
-                let usage = serde_json::from_value::<TokenUsage>(usage.unwrap().clone())
-                    .map_err(LLMError::from)?;
-                return Ok(LLMStreamChunk::new(value_completion, Some(usage), ""));
+            if let Some(usage) = completion.usage.clone() {
+                let usage = usage.into();
+                let completion = serde_json::to_value(completion).map_err(LLMError::SerdeError)?;
+                return Ok(LLMStreamChunk::new(completion, Some(usage), ""));
             }
-            let content = value_completion
-                .pointer("/choices/0/delta/content")
-                .ok_or(LLMError::ContentNotFound(
-                    "/choices/0/delta/content".to_string(),
-                ))?
-                .clone();
-
-            Ok(LLMStreamChunk::new(
-                value_completion,
-                None,
-                content.as_str().unwrap_or(""),
-            ))
+            if let Some(content) = completion
+                .choices
+                .first()
+                .and_then(|c| c.delta.content.clone())
+            {
+                let completion = serde_json::to_value(completion).map_err(LLMError::SerdeError)?;
+                return Ok(LLMStreamChunk::new(completion, None, content));
+            }
+            Err(LLMError::content_not_found("/choices/0/delta/content"))
         }
         Err(e) => Err(LLMError::from(e)),
     });
