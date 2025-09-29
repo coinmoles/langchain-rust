@@ -12,36 +12,28 @@ use crate::utils::parse::{
     remove_thought,
 };
 
-const DEFAULT_TOOL_PROMPT: &str = r#"
+const DEFAULT_TOOL_PROMPT: &str = r#"<TOOL_INTEGRATION>
+- You have access to a set of tools to help you answer questions.
+- You can either use a tool or provide your final answer.
+- You may use the tools iteratively as many times as needed.
+</TOOL_INTEGRATION>
 
-<INSTRUCTIONS>
-- You have two options:
-    1. Use a tool
-    2. Give your final answer
-- You may repeat tool use cycle as many times as needed before giving your final answer
-- When not using a tool, directly give your final answer
-- ALL RESPONSES MUST BE IN JSON FORMAT
-
-Option 1 : Use a tool
-The following is the description of the tools available to you:
+<TOOL_INSTRUCTIONS>
+Available tools are described below:
 {{?tools}}
-- IF YOU DON'T HAVE TOOLS, PASS THIS OPTION
 
-<TOOL_USAGE_OUTPUT_FORMAT>
+To use a tool, return a JSON object with the following structure:
+  - "name": The name of the tool to use (must be one of: [{{?tool_names}}])
+  - "arguments": The arguments to pass to the tool (must conform to the tool's schema)
+
+Format:
 ```json
 {
-    "action": (string), The action to take; MUST BE one of [{{?tool_names}}],
-    "action_input": (object), The input to the action, JSON object. The structure object depends on the action you are taking, and is specified in the tool description above.
+    "name": (string),
+    "arguments": (JSON-serializable value)
 }
 ```
-</TOOL_USAGE_OUTPUT_FORMAT>
-
-
-Option 2 : Give your best final answer
-- Only return a final answer once all required tools have been used
-- **NEVER RETURN TOOL USE PLAN AS A FINAL ANSWER**
-
-</INSTRUCTIONS>"#;
+</TOOL_INSTRUCTIONS>"#;
 
 const ACTION_KEY: &str = "action";
 const ACTION_INPUT_KEY: &str = "action_input";
@@ -61,9 +53,10 @@ impl DefaultInstructor {
             Action {
                 #[serde(default)]
                 id: Option<String>,
-                action: String,
-                #[serde(default)]
-                action_input: Option<Value>,
+                #[serde(alias = "action")]
+                name: String,
+                #[serde(default, alias = "action_input")]
+                arguments: Option<Value>,
             },
             FinalAnswer {
                 final_answer: Value,
@@ -74,10 +67,10 @@ impl DefaultInstructor {
         let event = match helper {
             OutputHelp::Action {
                 id,
-                action,
-                action_input,
+                name,
+                arguments,
             } => {
-                let tool_call = ToolCall::new(id, action, action_input);
+                let tool_call = ToolCall::new(id, name, arguments);
                 LLMEvent::ToolCall(vec![tool_call])
             }
             OutputHelp::FinalAnswer { final_answer } => {
