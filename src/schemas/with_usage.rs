@@ -3,8 +3,8 @@ use super::TokenUsage;
 /// An output with the token usage information.
 ///
 /// # Fields
-/// - `content`: The actual output content.
-/// - `usage`: The token usage information.
+/// - [`content`](Self::content): The actual output content.
+/// - [`usage`](Self::usage): The token usage information.
 #[derive(Debug)]
 pub struct WithUsage<O> {
     /// The actual output content.

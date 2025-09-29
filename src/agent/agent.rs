@@ -30,7 +30,7 @@ pub struct Agent<'tool, I: InputCtor = DefaultChainInputCtor, O: OutputCtor = St
 }
 
 impl<'tool, I: InputCtor, O: OutputCtor> Agent<'tool, I, O> {
-    /// Constructs a new `Agent` with the given LLM chain and tools.
+    /// Constructs a new [`Agent`].
     ///
     /// It is recommended to use [`Agent::builder()`] to create an agent instead of calling the
     /// constructor directly.
@@ -41,9 +41,6 @@ impl<'tool, I: InputCtor, O: OutputCtor> Agent<'tool, I, O> {
     /// - `tools`: A vector of [`Tool`]s that the agent can use.
     /// - `toolboxes`: A vector of [`Toolbox`]es that the agent can use to dynamically provide
     ///   tools.
-    ///
-    /// # Returns
-    /// A new instance of `Agent`.
     pub fn new(
         id: String,
         llm_chain: LLMChain<AgentInputCtor<I>, LLMOutputCtor>,

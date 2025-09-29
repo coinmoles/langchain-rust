@@ -51,12 +51,12 @@ impl<I: ChainInput> AgentInput<I> {
         }
     }
 
-    /// Sets the `agent_scratchpad` value.
+    /// Sets the [`agent_scratchpad`](Self::agent_scratchpad).
     pub fn set_agent_scratchpad(&mut self, scratchpad: Vec<Message>) {
         self.agent_scratchpad = Some(scratchpad);
     }
 
-    /// Sets the `chat_history` value.
+    /// Sets the [`chat_history`](Self::chat_history).
     pub fn set_chat_history(&mut self, chat_history: Vec<Message>) {
         self.chat_history = Some(chat_history);
     }

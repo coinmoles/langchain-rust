@@ -10,8 +10,8 @@ use crate::utils::helper::normalize_tool_name;
 /// The specification of tools available to the LLM.
 ///
 /// # Fields
-/// - `functions`: A list of function tools.
-/// - `mcps`: A list of MCP tools.
+/// - [`functions`](Self::functions): A list of function tools.
+/// - [`mcps`](Self::mcps): A list of MCP tools.
 #[derive(Debug, Clone)]
 pub struct ToolSpec {
     /// A list of functions available to the LLM.
@@ -21,7 +21,7 @@ pub struct ToolSpec {
 }
 
 impl ToolSpec {
-    /// Constructs a new `ToolSpec`.
+    /// Constructs a new [`ToolSpec`].
     pub fn new(functions: Vec<FunctionSpec>, mcps: Vec<McpTool>) -> Option<Self> {
         if functions.is_empty() && mcps.is_empty() {
             return None;
@@ -29,7 +29,7 @@ impl ToolSpec {
         Some(Self { functions, mcps })
     }
 
-    /// Constructs a new `ToolSpec` from a list of function tools and MCP tools.
+    /// Constructs a new [`ToolSpec`] from a list of function tools and MCP tools.
     pub fn from_tools(functions: &[&dyn FunctionTool], mcps: Vec<McpTool>) -> Option<Self> {
         let functions = functions.iter().map(|f| f.get_spec()).collect();
         Self::new(functions, mcps)
@@ -40,7 +40,7 @@ impl ToolSpec {
         self.functions.is_empty() && self.mcps.is_empty()
     }
 
-    /// Converts the `ToolSpec` into a list of `ToolDefinition`s.
+    /// Converts the [`ToolSpec`] into a list of [`ToolDefinition`]s.
     pub fn into_tool_definitions(self) -> Vec<ToolDefinition> {
         let mut definitions: Vec<ToolDefinition> =
             self.functions.into_iter().map(Into::into).collect();
@@ -59,10 +59,11 @@ impl ToolSpec {
 /// api and [`Function`](async_openai::types::responses::Function) for the responses api.
 ///
 /// # Fields
-/// - `name`: The name of the function.
-/// - `description`: A description of the function.
-/// - `parameters`: The parameters of the function as a JSON schema.
-/// - `strict`: Whether the function should be called with strict parameter validation.
+/// - [`name`](Self::name): The name of the function.
+/// - [`description`](Self::description): A description of the function.
+/// - [`parameters`](Self::parameters): The parameters of the function as a JSON schema.
+/// - [`strict`](Self::strict): Whether the function should be called with strict parameter
+///   validation.
 #[derive(Debug, Clone)]
 pub struct FunctionSpec {
     /// The name of the function.
@@ -76,7 +77,7 @@ pub struct FunctionSpec {
 }
 
 impl FunctionSpec {
-    /// Constructs a new `FunctionSpec`.
+    /// Constructs a new [`FunctionSpec`].
     pub fn new(
         name: String,
         description: Option<String>,

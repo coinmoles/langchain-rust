@@ -147,7 +147,7 @@ impl Default for LLMOptions {
 }
 
 impl LLMOptions {
-    /// Constructs a new `CallOptions`.
+    /// Constructs a new [`LLMOptions`].
     pub fn new() -> Self {
         LLMOptions {
             stream: None,
@@ -284,7 +284,7 @@ impl LLMOptions {
         self
     }
 
-    /// Merges another `LLMOptions` into this one.
+    /// Merges another [`LLMOptions`] into this one.
     ///
     /// For each field, if the incoming option is `Some`, it will replace the existing value.
     /// Otherwise, the existing value is retained.

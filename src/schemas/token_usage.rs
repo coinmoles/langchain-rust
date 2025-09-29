@@ -14,11 +14,10 @@ pub struct TokenUsage {
     pub prompt_tokens: u32,
     pub completion_tokens: u32,
     pub total_tokens: u32,
-    // TODO: add details
 }
 
 impl TokenUsage {
-    /// Constructs a new `TokenUsage` with the given prompt and completion tokens.
+    /// Constructs a new [`TokenUsage`] with the given prompt and completion tokens.
     pub fn new(prompt_tokens: u32, completion_tokens: u32) -> Self {
         Self {
             prompt_tokens,
@@ -29,7 +28,7 @@ impl TokenUsage {
 }
 
 impl TokenUsage {
-    /// Merges two `TokenUsage` instances.
+    /// Merges two [`TokenUsage`] instances.
     pub fn merge(&self, other: &TokenUsage) -> Self {
         TokenUsage {
             prompt_tokens: self.prompt_tokens + other.prompt_tokens,

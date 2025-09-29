@@ -37,7 +37,7 @@ pub enum LLMEvent {
 }
 
 impl LLMEvent {
-    /// Converts the `LLMEvent` into a plain text representation.
+    /// Converts the [`LLMEvent`] into a plain text representation.
     pub fn into_text(self) -> Result<String, serde_json::Error> {
         let text = match self {
             LLMEvent::Text(text) => text,

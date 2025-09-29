@@ -6,9 +6,10 @@ use super::{TokenUsage, WithUsage};
 /// An output trace of a sequential chain.
 ///
 /// # Fields
-/// - `previous_steps`: The previous steps in the chain with the token usage for each step.
-/// - `final_step`: The final output and its token usage.
-/// - `total_usage`: The total token usage across all steps.
+/// - [`previous_steps`](Self::previous_steps): The previous steps in the chain with the token usage
+///   for each step.
+/// - [`final_step`](Self::final_step): The final output and its token usage.
+/// - [`total_usage`](Self::total_usage): The total token usage across all steps.
 pub struct OutputTrace<T> {
     /// The previous steps in the chain with the token usage for each step.
     pub previous_steps: Vec<WithUsage<Value>>,
@@ -19,7 +20,7 @@ pub struct OutputTrace<T> {
 }
 
 impl<T> OutputTrace<T> {
-    /// Constructs a new `OutputTrace`.
+    /// Constructs a new [`OutputTrace`].
     pub fn new(previous_steps: Vec<WithUsage<Value>>, final_step: WithUsage<T>) -> Self {
         let total_usage = TokenUsage::merge_options(
             previous_steps
@@ -35,7 +36,7 @@ impl<T> OutputTrace<T> {
         }
     }
 
-    /// Constructs a new `OutputTrace` with a single step.
+    /// Constructs a new [`OutputTrace`] with a single step.
     pub fn single(step: WithUsage<T>) -> Self {
         let total_usage = step.usage.clone();
 
@@ -46,8 +47,8 @@ impl<T> OutputTrace<T> {
         }
     }
 
-    /// Extends the current `OutputTrace` with another `OutputTrace`, merging their steps and token
-    /// usage.
+    /// Extends the current [`OutputTrace`] with another [`OutputTrace`], merging their steps and
+    /// token usage.
     pub fn extend<T2>(self, other: OutputTrace<T2>) -> OutputTrace<T2>
     where
         T: Serialize,

@@ -47,6 +47,9 @@ impl<C: Config + Default> OpenAIChat<C> {
 impl<C: Config> OpenAIChat<C> {
     /// Constructs a new [`OpenAIChat`].
     ///
+    /// It is recommended to use [`OpenAIChat::builder()`] instead of calling the constructor
+    /// directly.
+    ///
     /// ```rust
     /// use langchain_rust::llm::{OpenAIChat, OpenAIModel};
     ///

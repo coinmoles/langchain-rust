@@ -35,7 +35,7 @@ pub struct Document {
 }
 
 impl Document {
-    /// Constructs a new `Document` with the given content.
+    /// Constructs a new [`Document`].
     pub fn new(page_content: impl Into<String>) -> Self {
         Document {
             content: page_content.into(),
@@ -44,13 +44,13 @@ impl Document {
         }
     }
 
-    /// Sets the `metadata` of the document.
+    /// Sets the [`metadata`](Self::metadata) of the document.
     pub fn with_metadata(mut self, metadata: HashMap<String, Value>) -> Self {
         self.metadata = metadata;
         self
     }
 
-    /// Sets the `score` of the document.
+    /// Sets the [`score`](Self::score) of the document.
     pub fn with_score(mut self, score: f64) -> Self {
         self.score = score;
         self

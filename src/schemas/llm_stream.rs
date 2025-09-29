@@ -32,7 +32,7 @@ pub struct LLMStreamChunk {
 }
 
 impl LLMStreamChunk {
-    /// Constructs a new `LLMStreamChunk`.
+    /// Constructs a new [`LLMStreamChunk`].
     pub fn new<S: Into<String>>(value: Value, tokens: Option<TokenUsage>, content: S) -> Self {
         Self {
             value,

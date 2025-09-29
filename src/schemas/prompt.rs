@@ -10,7 +10,7 @@ pub struct Prompt {
 }
 
 impl Prompt {
-    /// Constructs a new [`Prompt`] from a vector of [`Message`]s.
+    /// Constructs a new [`Prompt`].
     pub fn new(messages: Vec<Message>) -> Self {
         Self { messages }
     }

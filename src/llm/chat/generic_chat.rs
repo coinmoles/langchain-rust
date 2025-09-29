@@ -54,7 +54,10 @@ impl<C: Config + Default> GenericChat<C> {
 }
 
 impl<C: Config> GenericChat<C> {
-    /// Constructs a new [`GenericChat`]
+    /// Constructs a new [`GenericChat`].
+    ///
+    /// It is recommended to use [`GenericChat::builder()`] instead of calling the constructor
+    /// directly.
     ///
     /// # Example
     /// ```rust

@@ -48,10 +48,12 @@ where
         }
     }
 
+    /// Returns the unique identifier of the agent.
     pub fn agent_id(&self) -> &str {
         &self.agent.id
     }
 
+    /// Returns a reference to the memory, if any.
     pub fn get_memory(&self) -> Option<Arc<RwLock<dyn Memory>>> {
         self.memory.clone()
     }

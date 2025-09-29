@@ -22,14 +22,18 @@ pub struct ResolvedTools {
 /// [`AgentExecutor`](crate::agent::AgentExecutor) run without changing the core loop:
 ///
 /// **Lifecycle (in order)**
-/// 1. [`additional_tools`] — inject extra tools to be used during this execution.
-/// 2. [`prepare_input`] — inject / normalize fields on the initial `AgentInput`.
-/// 3. [`process_plan`] — validate or rewrite every model-produced `LLMOutput`.
-/// 4. [`process_step`] — validate or rewrite every `AgentStep` before appending it to the
-///    transcript.
-/// 5. [`process_final_answer`] — validate/transform the final LLM answer before converting it to
-///    `O::Target`.
-/// 6. [`finalize`] — produce any strategy-specific artifact to return to the caller.
+/// 1. [`additional_tools`](Strategy::additional_tools) — inject extra tools to be used during this
+///    execution.
+/// 2. [`prepare_input`](Strategy::prepare_input) — inject / normalize fields on the initial
+///    [`AgentInput`].
+/// 3. [`process_plan`](Strategy::process_plan) — validate or rewrite every model-produced
+///    [`LLMOutput`].
+/// 4. [`process_step`](Strategy::process_step) — validate or rewrite every [`AgentStep`] before
+///    appending it to the transcript.
+/// 5. [`process_final_answer`](Strategy::process_final_answer) — validate/transform the final LLM
+///    answer before converting it to `O::Target`.
+/// 6. [`finalize`](Strategy::finalize) — produce any strategy-specific artifact to return to the
+///    caller.
 ///
 /// All hooks have **no-op pass-through defaults** so you only override what you need.
 #[async_trait]
@@ -45,14 +49,14 @@ pub trait Strategy: Send + Sync {
         HashMap::new()
     }
 
-    /// Prepare (augment / normalize) the initial `AgentInput` **before the first plan**.
+    /// Prepare (augment / normalize) the initial [`AgentInput`] **before the first plan**.
     ///
     /// Typical uses:
     /// - Inject extra keys.
     /// - Pre-attach system hints or metadata.
     /// - Redact/normalize fields.
     ///
-    /// Return the possibly modified `AgentInput`. Returning `Err` makes the executor
+    /// Return the possibly modified [`AgentInput`]. Returning `Err` makes the executor
     /// retry (until the fail limit) with the same context.
     async fn prepare_input<'input, I: InputCtor>(
         &mut self,
@@ -75,11 +79,11 @@ pub trait Strategy: Send + Sync {
     /// Resolve the concrete tool implementation to call for `tool_name`.
     ///
     /// It is recommended to leave the default implementation as-is, which checks (in order):
-    /// 1. If the tool is defined in [`additional_tools`].
-    /// 2. If the tool is defined in the agent’s static `tools`.
-    /// 3. If the tool is defined in any of the agent’s `toolboxes`.
+    /// 1. If the tool is defined in [`additional_tools`](Strategy::additional_tools).
+    /// 2. If the tool is defined in the agent’s static [`tools`](Agent::tools).
+    /// 3. If the tool is defined in any of the agent’s [`toolboxes`](Agent::toolboxes).
     ///
-    /// Instead, override [`additional_tools`] to inject custom tools.
+    /// Instead, override [`additional_tools`](Strategy::additional_tools) to inject custom tools.
     fn resolve_tool<'tool, I: InputCtor, O: OutputCtor>(
         &'tool mut self,
         agent: &'tool Agent<I, O>,
@@ -115,14 +119,14 @@ pub trait Strategy: Send + Sync {
         Ok(plan)
     }
 
-    /// Processes the tool call and its output **after each tool execution**.
+    /// Processes the tool call and its output ([`AgentStep`]) **after each tool execution**.
     ///
     /// Typical uses:
     /// - Reformat or wrap tool outputs (e.g., XML/JSON tagging).
     /// - Maintain auxiliary indices/maps for later retrieval (store inside `self`).
     /// - Summarize or truncate large outputs.
     ///
-    /// Return an `AgentStep` to append to the transcript. Returning `Err` makes the executor
+    /// Return an [`AgentStep`] to append to the transcript. Returning `Err` makes the executor
     /// retry (until the fail limit) with the same context.
     async fn process_step(&mut self, step: AgentStep) -> Result<AgentStep, ChainError> {
         Ok(step)

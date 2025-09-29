@@ -54,7 +54,7 @@ pub struct Message {
 }
 
 impl Message {
-    /// Construct a new message.
+    /// Construct a new [`Message`].
     pub fn new(role: Role, content: impl Into<String>) -> Self {
         Message {
             content: content.into(),

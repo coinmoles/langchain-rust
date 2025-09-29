@@ -16,7 +16,7 @@ pub struct ImageContent {
 }
 
 impl ImageContent {
-    /// Constructs a new `ImageContent` with the given url.
+    /// Constructs a new [`ImageContent`].
     pub fn new(image_url: impl Into<String>) -> Self {
         ImageContent {
             image_url: image_url.into(),

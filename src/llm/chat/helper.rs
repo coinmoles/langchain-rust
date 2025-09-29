@@ -96,7 +96,7 @@ fn merge_usage(
     }
 }
 
-/// Aggregates a `ChatChoiceStream` into a `ChatChoice`.
+/// Aggregates a [`ChatChoiceStream`] into a [`ChatChoice`].
 fn aggregate_choice(choice: &mut ChatChoice, choice_stream: ChatChoiceStream) {
     let delta = choice_stream.delta;
 
@@ -171,8 +171,8 @@ fn aggregate_choice(choice: &mut ChatChoice, choice_stream: ChatChoiceStream) {
     }
 }
 
-/// Constructs a full `CreateChatCompletionResponse` from a stream of
-/// `CreateChatCompletionStreamResponse`.
+/// Constructs a full [`CreateChatCompletionResponse`] from a stream of
+/// [`CreateChatCompletionStreamResponse`].
 pub async fn construct_chat_completion_response(
     mut stream: ChatCompletionResponseStream,
 ) -> Result<CreateChatCompletionResponse, OpenAIError> {
@@ -235,7 +235,7 @@ pub async fn construct_chat_completion_response(
     })
 }
 
-/// Selects the best `ChatChoice` from a list of choices based on finish reason and index.
+/// Selects the best [`ChatChoice`] from a list of choices based on finish reason and index.
 pub fn select_choice(choices: Vec<ChatChoice>) -> Option<ChatChoice> {
     if choices.is_empty() {
         return None;
@@ -282,7 +282,7 @@ pub async fn generate<C: Config>(
     Ok(response)
 }
 
-/// Maps a `ChatCompletionResponseStream` into an `LLMStream`.
+/// Maps a [`ChatCompletionResponseStream`] into an `LLMStream`.
 pub fn map_stream(original: ChatCompletionResponseStream) -> LLMStream {
     let new = original.map(|result| match result {
         Ok(completion) => {
