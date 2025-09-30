@@ -15,10 +15,10 @@ use crate::schemas::ToolCall;
 /// - `event`: An [`LLMEvent`] which can be either text or a tool call.
 #[derive(Debug, Clone, Ctor)]
 pub struct LLMOutput {
-    /// An optional string representing the LLM's internal thought process.
-    pub thought: Option<String>,
     /// The actual output event from the LLM, which can be either text or a tool call.
     pub event: LLMEvent,
+    /// An optional string representing the LLM's internal thought process.
+    pub thought: Option<String>,
 }
 
 /// Body of a single LLM output parsed into one of:
@@ -139,6 +139,15 @@ impl TryFrom<LLMOutput> for ChatCompletionResponseMessage {
                 tool_calls: Some(tool_calls.into_iter().map(Into::into).collect::<Vec<_>>()),
                 function_call: None,
             }),
+        }
+    }
+}
+
+impl From<LLMEvent> for LLMOutput {
+    fn from(event: LLMEvent) -> Self {
+        LLMOutput {
+            event,
+            thought: None,
         }
     }
 }

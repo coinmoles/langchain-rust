@@ -90,27 +90,20 @@ impl Instructor for Qwen3Instructor {
         let text = extract_from_tag(text, "tool_call");
         let text = extract_from_codeblock(text);
 
-        let thought = extract_thought(&output, text).map(Into::into);
         let json = parse_partial_json(text, false);
 
-        let is_malformed_event = match json.as_ref() {
-            Ok(json) => {
-                is_malformed_event(json, VALID_KEYS) || is_malformed_event(json, ALTERNATIVE_KEYS)
-            }
-            Err(_) => false,
-        };
+        let is_malformed_event = json.as_ref().is_ok_and(|json| {
+            is_malformed_event(json, VALID_KEYS) || is_malformed_event(json, ALTERNATIVE_KEYS)
+        });
 
         let event = match json.and_then(|json| self.deserialize_tool_call(json)) {
             Ok(event) => event,
-            Err(_) if !is_malformed_event => LLMEvent::Text(output),
+            Err(_) if !is_malformed_event => return Ok(LLMOutput::from(LLMEvent::Text(output))),
             Err(e) => return Err(ParseError::Deserialize(e, text.into())),
         };
-        let thought = match &event {
-            LLMEvent::Text(_) => None,
-            _ => thought,
-        };
+        let thought = extract_thought(&output, text).map(Into::into);
 
-        Ok(LLMOutput { thought, event })
+        Ok(LLMOutput { event, thought })
     }
 
     fn clone_box(&self) -> Box<dyn Instructor> {
