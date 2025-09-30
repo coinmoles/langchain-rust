@@ -4,21 +4,30 @@ use crate::chain::TextReplacements;
 use crate::schemas::{Message, Role};
 use crate::template::TemplateError;
 
+/// The message template format.
 #[derive(Debug, Clone)]
 pub enum TemplateFormat {
+    /// Python-style f-string formatting.
     FString,
+    /// Jinja2-style formatting.
     Jinja2,
 }
 
+/// A message template that can be formatted with input variables to produce a [`Message`].
 #[derive(Debug, Clone)]
 pub struct MessageTemplate {
+    /// The message role. e.g. system, ai, human, tool
     message_type: Role,
+    /// The template string with placeholders for variables.
     template: String,
+    /// The set of variable names required by the template.
     variables: HashSet<String>,
+    /// The format of the template.
     format: TemplateFormat,
 }
 
 impl MessageTemplate {
+    /// Constructs a new [`MessageTemplate`].
     pub fn new(
         message_type: Role,
         template: impl Into<String>,
@@ -33,6 +42,7 @@ impl MessageTemplate {
         }
     }
 
+    /// Constructs a new [`MessageTemplate`] from a Python-style f-string template.
     pub fn from_fstring(message_type: Role, content: impl Into<String>) -> Self {
         let content = content.into();
 
@@ -45,6 +55,7 @@ impl MessageTemplate {
         Self::new(message_type, content, variables, TemplateFormat::FString)
     }
 
+    /// Constructs a new [`MessageTemplate`] from a Jinja2-style template.
     pub fn from_jinja2(message_type: Role, content: impl Into<String>) -> Self {
         let content = content.into();
 
@@ -57,6 +68,11 @@ impl MessageTemplate {
         Self::new(message_type, content, variables, TemplateFormat::Jinja2)
     }
 
+    /// Formats the template with the provided input variables, returning a [`Message`].
+    ///
+    /// # Errors
+    /// Returns a [`TemplateError::MissingVariable`] if any required variables are missing from the
+    /// input.
     pub fn format(&self, input: &TextReplacements) -> Result<Message, TemplateError> {
         self.validate_input(input)?;
 
@@ -73,11 +89,16 @@ impl MessageTemplate {
         Ok(Message::new(self.message_type.clone(), content))
     }
 
-    /// Returns a list of required input variable names for the template.
+    /// Returns a set of variable names required by the template.
     pub fn variables(&self) -> HashSet<&str> {
         self.variables.iter().map(String::as_str).collect()
     }
 
+    /// Validates that all required variables are present in the input.
+    ///
+    /// # Errors
+    /// Returns a [`TemplateError::MissingVariable`] if any required variables are missing from the
+    /// input.
     pub fn validate_input(&self, input: &TextReplacements) -> Result<(), TemplateError> {
         let missing_variables = self
             .variables()

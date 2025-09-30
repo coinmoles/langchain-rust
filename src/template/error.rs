@@ -1,14 +1,13 @@
-use serde_json::Error as SerdeJsonError;
 use thiserror::Error;
 
+/// Errors that can occur during template processing.
 #[derive(Error, Debug)]
 pub enum TemplateError {
+    /// Error raised when required input variable is missing.
     #[error("Missing input variable: {0}")]
     MissingVariable(String),
 
-    #[error("Serialization error: {0}")]
-    SerializationError(#[from] SerdeJsonError),
-
+    /// Error not covered by other variants.
     #[error("Error: {0}")]
     OtherError(String),
 }

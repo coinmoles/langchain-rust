@@ -5,10 +5,14 @@ use crate::chain::ChainInput;
 use crate::schemas::{Message, Prompt};
 use crate::template::TemplateError;
 
+/// A concrete message, a message template, or a placeholder for dynamic insertion of messages.
 #[derive(Debug, Clone)]
 pub enum MessageOrTemplate {
+    /// A concrete message.
     Message(Message),
+    /// A message template.
     Template(MessageTemplate),
+    /// A placeholder for dynamic insertion of messages.
     Placeholder(String),
 }
 
@@ -24,6 +28,7 @@ impl From<MessageTemplate> for MessageOrTemplate {
     }
 }
 
+/// A prompt template consisting of a sequence of messages, message templates, and placeholders.
 #[derive(Debug, Clone)]
 pub struct PromptTemplate {
     pub(crate) messages: Vec<MessageOrTemplate>,

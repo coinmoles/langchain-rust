@@ -1,3 +1,5 @@
+//! Module for message templates that can be used to generate messages with dynamic content.
+
 mod error;
 pub use error::*;
 
