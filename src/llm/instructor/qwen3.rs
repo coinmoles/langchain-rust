@@ -102,8 +102,12 @@ impl Instructor for Qwen3Instructor {
 
         let event = match json.and_then(|json| self.deserialize_tool_call(json)) {
             Ok(event) => event,
-            Err(_) if !is_malformed_event => LLMEvent::Text(text.into()),
+            Err(_) if !is_malformed_event => LLMEvent::Text(output),
             Err(e) => return Err(ParseError::Deserialize(e, text.into())),
+        };
+        let thought = match &event {
+            LLMEvent::Text(_) => None,
+            _ => thought,
         };
 
         Ok(LLMOutput { thought, event })
