@@ -116,44 +116,80 @@ impl MessageTemplate {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use rstest::rstest;
 
     use super::*;
 
-    #[test]
-    fn test_fstring_template() {
-        let template = MessageTemplate::from_fstring(Role::Ai, "Hello {name}, how are you?");
-
-        let input = HashMap::from([("name", "Alice".into())]);
-
-        let message = template.format(&input).unwrap();
-        assert_eq!(message.content, "Hello Alice, how are you?");
+    #[rstest]
+    #[case(
+        "Hello {name}, how are you?",
+        TextReplacements::from([("name", "Alice".into())]),
+        "Hello Alice, how are you?"
+    )]
+    fn test_template_fstring(
+        #[case] template: &str,
+        #[case] input: TextReplacements,
+        #[case] expected: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let template = MessageTemplate::from_fstring(Role::Ai, template);
+        let message = template.format(&input)?;
+        assert_eq!(message.content, expected);
+        Ok(())
     }
 
-    #[test]
-    fn test_jinja2_template() {
-        let template =
-            MessageTemplate::from_jinja2(Role::Ai, "Hello {{name}}, how are you?");
+    #[rstest]
+    #[case::simple(
+        "Hello {{name}}, how are you?",
+        TextReplacements::from([("name", "Alice".into())]),
+        "Hello Alice, how are you?"
+    )]
+    #[case::multiple(
+        "Hello {{name}}, your order {{order_id}} is confirmed.",
+        TextReplacements::from([("name", "Alice".into()), ("order_id", "12345".into())]),
+        "Hello Alice, your order 12345 is confirmed."
+    )]
+    #[case::duplicate(
+        "Your order {{id}} is confirmed. Order {{id}} will arrive soon.",
+        TextReplacements::from([("id", "12345".into())]),
+        "Your order 12345 is confirmed. Order 12345 will arrive soon."
+    )]
+    #[case::empty(
+        "Braces with no variable: {{ }}",
+        TextReplacements::new(),
+        "Braces with no variable: {{ }}"
+    )]
+    #[case::weird(
+        "Edge {{name}}}} test",
+        TextReplacements::from([("name", "Charlie".into())]),
+        "Edge Charlie}} test"
+    )]
 
-        let input_variables = HashMap::from([("name", "Alice".into())]);
-
-        let message = template.format(&input_variables).unwrap();
-        assert_eq!(message.content, "Hello Alice, how are you?");
+    fn test_template_jinja2(
+        #[case] template: &str,
+        #[case] input: TextReplacements,
+        #[case] expected: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let template = MessageTemplate::from_jinja2(Role::Ai, template);
+        let message = template.format(&input)?;
+        assert_eq!(message.content, expected);
+        Ok(())
     }
 
-    #[test]
-    fn test_jinja2_template_duplicate() {
-        let template = MessageTemplate::from_jinja2(
-            Role::Ai,
-            "Hello {{name}}, how are you? Nice to meet you {{name}}!",
-        );
+    #[rstest]
+    #[case(
+        "Hello {{name}}",
+        TextReplacements::new() // missing "name"
+    )]
+    #[case(
+        "Hello {{first}} {{last}}",
+        TextReplacements::from([("first", "Alice".into())]) // missing "last"
+    )]
+    fn test_template_jinja2_missing_vars(#[case] template: &str, #[case] input: TextReplacements) {
+        let template = MessageTemplate::from_jinja2(Role::Ai, template);
+        let result = template.format(&input);
 
-        let input_variables = HashMap::from([("name", "Alice".into())]);
-
-        let message = template.format(&input_variables).unwrap();
-        assert_eq!(
-            message.content,
-            "Hello Alice, how are you? Nice to meet you Alice!"
-        );
+        let Err(TemplateError::MissingVariable(_)) = result else {
+            panic!("Expected TemplateError::MissingVariable");
+        };
     }
 }
