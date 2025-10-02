@@ -61,10 +61,9 @@ fn deser_struct(
 
 fn field_initializers(
     field_specs: &[ChainOutputFieldSpec<'_>],
-    crate_path: &syn::Path,
     serde_json_path: &syn::Path,
     rename_all: &Option<RenameAll>,
-    use_input: bool,
+    err: proc_macro2::TokenStream,
 ) -> impl Iterator<Item = proc_macro2::TokenStream> {
     field_specs.iter().map(move |f| {
         let ident = f.field.ident.as_ref().unwrap();
@@ -83,13 +82,8 @@ fn field_initializers(
             }
             ChainOutputSource::Response => {
                 let ty = &f.field.ty;
-                let err = if use_input {
-                    quote! { (input, #crate_path::__private::ParseError::Deserialize(e, text)) }
-                } else {
-                    quote! { #crate_path::__private::ParseError::Deserialize(e, text) }
-                };
                 quote! {
-                    #ident: match #serde_json_path::from_str::<#ty>(&original) {
+                    #ident: match #serde_json_path::from_value::<#ty>(value) {
                         Ok(value) => value,
                         Err(e) => return Err(#err),
                     }
@@ -218,40 +212,55 @@ pub fn derive_chain_output(
         }
     };
 
-    let deserialized = field_specs
+    let err = if use_input {
+        quote! { (input, #crate_path::__private::ParseError::Deserialize(e, original)) }
+    } else {
+        quote! { #crate_path::__private::ParseError::Deserialize(e, original) }
+    };
+
+    let parse_json = field_specs
         .iter()
-        .any(|f| f.output_source == ChainOutputSource::ResponseJson)
+        .any(|f| {
+            f.output_source == ChainOutputSource::Response
+                || f.output_source == ChainOutputSource::ResponseJson
+        })
         .then(|| {
-            let deser_struct = deser_struct(&field_specs, &serde_path, &rename_all);
-            let err = if use_input {
-                quote! { (input, #crate_path::__private::ParseError::Deserialize(e, original)) }
-            } else {
-                quote! { #crate_path::__private::ParseError::Deserialize(e, original) }
-            };
             quote! {
-                #deser_struct
-                
                 let json_text = #crate_path::__private::extract_json(&original);
                 let value = match #crate_path::__private::parse_partial_json(json_text, false) {
                     Ok(value) => value,
                     Err(e) => return Err(#err),
                 };
-                let deserialized = match #serde_json_path::from_value::<InputDeserialize>(value) {
+            }
+        });
+
+    let value_required = field_specs.iter().any(|f| {
+        f.output_source == ChainOutputSource::Response
+            && !is_string_type(&f.field.ty)
+            && !is_cow_str_type(&f.field.ty)
+    });
+
+    let deserialized = field_specs
+        .iter()
+        .any(|f| f.output_source == ChainOutputSource::ResponseJson)
+        .then(|| {
+            let deser_struct = deser_struct(&field_specs, &serde_path, &rename_all);
+            let maybe_clone = value_required.then(|| quote! { .clone()});
+            quote! {
+                #deser_struct
+
+                let deserialized = match #serde_json_path::from_value::<InputDeserialize>(value #maybe_clone) {
                     Ok(deserialized) => deserialized,
                     Err(e) => return Err(#err),
                 };
             }
         });
-    let field_initializers = field_initializers(
-        &field_specs,
-        &crate_path,
-        &serde_json_path,
-        &rename_all,
-        use_input,
-    );
+
+    let field_initializers = field_initializers(&field_specs, &serde_json_path, &rename_all, err);
 
     let fn_body = quote! {
         let original: String = text.into();
+        #parse_json
         #deserialized
         Ok(Self {
             #(#field_initializers),*
