@@ -140,7 +140,7 @@ impl Instructor for DefaultInstructor {
         {
             Ok(evt) => evt,
             Err(_) if !is_malformed_event => return Ok(LLMOutput::from(LLMEvent::Text(output))),
-            Err(e) => return Err(ParseError::Deserialize(e, text.into())),
+            Err(e) => return Err(ParseError::Deserialize(e, output)),
         };
         let thought = extract_thought(&output, text).map(Into::into);
 
