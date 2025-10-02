@@ -229,6 +229,11 @@ mod tests {
 
     #[rstest]
     #[case::simple(r#"Goodbye, world!"#, None, "Goodbye, world!")]
+    #[case::simple_with_json(
+        "The possible options were: [A, B, C, D], and I think A is the best.",
+        None,
+        "The possible options were: [A, B, C, D], and I think A is the best."
+    )]
     #[case::json(
         indoc! {r#"
             ```json
