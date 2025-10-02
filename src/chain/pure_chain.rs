@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 
 use crate::chain::{Chain, ChainError, ChainOutput, Ctor, InputCtor};
-use crate::utils::parse::{ParseError, parse_partial_json};
 use crate::schemas::WithUsage;
+use crate::utils::parse::{ParseError, parse_partial_json};
 
 pub struct PureOutput<O: DeserializeOwned + Send + Sync + 'static>(pub O);
 

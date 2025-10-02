@@ -56,9 +56,7 @@ where
         let llm = self.llm.ok_or(BuilderError::MissingField("llm"))?;
         let prompt = match self.prompt {
             Some(prompt) => prompt,
-            None => {
-                MessageTemplate::from_fstring(Role::System, DEFAULT_STUFF_QA_TEMPLATE).into()
-            }
+            None => MessageTemplate::from_fstring(Role::System, DEFAULT_STUFF_QA_TEMPLATE).into(),
         };
 
         let llm_chain = {

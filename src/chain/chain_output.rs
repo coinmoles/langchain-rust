@@ -1,17 +1,14 @@
 pub use macros::ChainOutput;
 
-use crate::utils::parse::ParseError;
 use crate::schemas::ToolCall;
+use crate::utils::parse::ParseError;
 
 pub trait ChainOutput<I>: Sized + Send + Sync {
     fn from_text(_text: impl Into<String>) -> Result<Self, ParseError> {
         Err(ParseError::InputRequired)
     }
 
-    fn from_text_and_input(
-        input: I,
-        text: impl Into<String>,
-    ) -> Result<Self, (I, ParseError)> {
+    fn from_text_and_input(input: I, text: impl Into<String>) -> Result<Self, (I, ParseError)> {
         match Self::from_text(text) {
             Err(ParseError::InputRequired) => unimplemented!(),
             other => other.map_err(|e| (input, e)),

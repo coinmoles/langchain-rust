@@ -2,9 +2,9 @@ use thiserror::Error;
 
 use crate::agent::AgentError;
 use crate::llm::LLMError;
-use crate::utils::parse::ParseError;
 use crate::template::TemplateError;
 use crate::tools::{McpError, ToolError};
+use crate::utils::parse::ParseError;
 
 #[derive(Error, Debug)]
 pub enum ChainError {
