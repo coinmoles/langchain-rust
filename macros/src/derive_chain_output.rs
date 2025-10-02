@@ -230,7 +230,9 @@ pub fn derive_chain_output(
             };
             quote! {
                 #deser_struct
-                let value = match #crate_path::__private::parse_partial_json(&original, false) {
+                
+                let json_text = #crate_path::__private::extract_json(&original);
+                let value = match #crate_path::__private::parse_partial_json(json_text, false) {
                     Ok(value) => value,
                     Err(e) => return Err(#err),
                 };
@@ -249,8 +251,7 @@ pub fn derive_chain_output(
     );
 
     let fn_body = quote! {
-        let text: String = text.into();
-        let original: String = #crate_path::__private::extract_json(&text).into();
+        let original: String = text.into();
         #deserialized
         Ok(Self {
             #(#field_initializers),*
