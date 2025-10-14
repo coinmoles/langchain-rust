@@ -96,20 +96,23 @@ pub struct LLMOptions {
 
     /// The maximum number of tokens to generate in the completion.
     ///
-    /// Corresponds to
-    /// [`ChatCompletionRequest::max_completion_tokens`](crate::llm::ChatRequest::max_completion_tokens)
-    /// / [`ChatCompletionRequest::max_tokens`](crate::llm::ChatRequest::max_tokens)
-    /// (depending on [`use_max_tokens`](Self::use_max_tokens))
+    /// OpenAI API deprecated `max_tokens` in favor of `max_completion_tokens`, but other providers
+    /// still use `max_tokens`.
+    ///
+    /// This value is ignored if [`max_completion_tokens`](Self::max_completion_tokens) is set.
+    ///
+    /// Corresponds to [`ChatCompletionRequest::max_tokens`](crate::llm::ChatRequest::max_tokens)
     /// or [`ResponsesRequest::max_output_tokens`](crate::llm::ResponsesRequest::max_output_tokens).
     pub max_tokens: Option<u32>,
 
-    /// Whether to use `max_tokens` instead of `max_completion_tokens` in the request payload.
+    /// The maximum number of tokens to generate in the completion.
     ///
-    /// OpenAI API deprecated `max_tokens` in favor of `max_completion_tokens`, but some other
-    /// providers still use `max_tokens`. In such cases, set this to `true`.
+    /// This field takes precedence over [`max_tokens`](Self::max_tokens).
     ///
-    /// Irrelevant for the responses API.
-    pub use_max_tokens: bool,
+    /// Corresponds to
+    /// [`ChatCompletionRequest::max_completion_tokens`](crate::llm::ChatRequest::max_completion_tokens)
+    /// or [`ResponsesRequest::max_output_tokens`](crate::llm::ResponsesRequest::max_output_tokens).
+    pub max_completion_tokens: Option<u32>,
 
     /// Up to 4 sequences where the API will stop generating further tokens. The returned text will
     /// not contain the stop sequence.
@@ -162,11 +165,11 @@ impl LLMOptions {
             presence_penalty: None,
             repetition_penalty: None,
             max_tokens: None,
+            max_completion_tokens: None,
             stop_words: None,
             response_format: None,
             system_is_assistant: None,
             drop_thought: None,
-            use_max_tokens: false,
         }
     }
 
@@ -210,9 +213,9 @@ impl LLMOptions {
         self
     }
 
-    /// Sets the [`use_max_tokens`](Self::use_max_tokens).
-    pub fn with_use_max_tokens(mut self, use_max_tokens: bool) -> Self {
-        self.use_max_tokens = use_max_tokens;
+    /// Sets the [`max_completion_tokens`](Self::max_completion_tokens).
+    pub fn with_max_completion_tokens(mut self, max_completion_tokens: u32) -> Self {
+        self.max_completion_tokens = Some(max_completion_tokens);
         self
     }
 
