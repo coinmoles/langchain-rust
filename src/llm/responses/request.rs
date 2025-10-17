@@ -184,9 +184,10 @@ impl ResponsesRequest {
             presence_penalty: options.presence_penalty,
             max_output_tokens: options.max_tokens,
             stop: options.stop_words,
-            text: options
-                .response_format
-                .map(|rf| TextConfig { format: rf.into() }),
+            text: options.response_format.map(|rf| TextConfig {
+                format: rf.into(),
+                verbosity: None,
+            }),
             ..self
         }
     }
