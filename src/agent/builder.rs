@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::agent::Agent;
-use crate::chain::{InputCtor, LLMChain, OutputCtor};
+use crate::chain::{InputCtor, OutputCtor};
 use crate::llm::LLM;
 use crate::prompt_template;
 use crate::schemas::Role;
@@ -88,15 +88,6 @@ impl<'a, 'b, 'tool, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, 'tool, I, 
         let id = self.id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         let system_prompt = self.system_prompt.unwrap_or(DEFAULT_SYSTEM_PROMPT);
         let initial_prompt = self.initial_prompt.unwrap_or(DEFAULT_INITIAL_PROMPT);
-        let toolboxes = self.toolboxes.unwrap_or_default();
-
-        let tools = self
-            .tools
-            .unwrap_or_default()
-            .into_iter()
-            .chain(toolboxes.iter().map(|tb| ListTools::new(tb).into()))
-            .map(|tool| (normalize_tool_name(&tool.name()), tool))
-            .collect::<HashMap<_, _>>();
 
         let prompt = prompt_template![
             MessageTemplate::from_jinja2(Role::System, system_prompt),
@@ -105,13 +96,17 @@ impl<'a, 'b, 'tool, I: InputCtor, O: OutputCtor> AgentBuilder<'a, 'b, 'tool, I, 
             MessageOrTemplate::Placeholder("agent_scratchpad".into()),
             MessageOrTemplate::Placeholder("ultimatum".into())
         ];
-        let llm_chain = LLMChain::builder()
-            .prompt(prompt)
-            .llm(llm)
-            .build()
-            .unwrap_or_else(|_| unreachable!("All necessary fields are provided"));
 
-        Agent::new(id, llm_chain, tools, toolboxes)
+        let toolboxes = self.toolboxes.unwrap_or_default();
+        let tools = self
+            .tools
+            .unwrap_or_default()
+            .into_iter()
+            .chain(toolboxes.iter().map(|tb| ListTools::new(tb).into()))
+            .map(|tool| (normalize_tool_name(&tool.name()), tool))
+            .collect::<HashMap<_, _>>();
+
+        Agent::new(id, prompt, llm.into(), tools, toolboxes)
     }
 }
 

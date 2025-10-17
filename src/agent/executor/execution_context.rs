@@ -148,7 +148,7 @@ where
                 Tool::Mcp(mcp) => Either::Right(mcp.clone()),
             });
 
-        let (mcp_functions, spec) = if self.executor.agent.llm_chain.capabilities().native_mcp {
+        let (mcp_functions, spec) = if self.executor.agent.llm.capabilities().native_mcp {
             (None, ToolSpec::from_tools(&functions, mcps))
         } else {
             let mcp_functions = McpTool::into_function_tools(mcps).await?;
@@ -179,11 +179,12 @@ where
             self.tool_spec.as_ref()
         };
 
+        let prompt = self.executor.agent.prompt.format(&self.input)?;
         let plan = self
             .executor
             .agent
-            .llm_chain
-            .call_llm(&self.input, tool_spec)
+            .llm
+            .generate(prompt, tool_spec)
             .await
             .inspect_err(|e| failure!(self, "Failed to plan next step: {e}"))?;
 

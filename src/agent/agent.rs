@@ -2,12 +2,11 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::sync::Arc;
 
-use crate::agent::{AgentBuilder, AgentExecutor, AgentInput, AgentInputCtor};
-use crate::chain::{
-    ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, LLMChain, OutputCtor, StringCtor,
-};
-use crate::schemas::{LLMOutputCtor, Prompt};
-use crate::template::TemplateError;
+use crate::agent::{AgentBuilder, AgentExecutor, AgentInput};
+use crate::chain::{ChainOutput, DefaultChainInputCtor, InputCtor, OutputCtor, StringCtor};
+use crate::llm::LLM;
+use crate::schemas::Prompt;
+use crate::template::{PromptTemplate, TemplateError};
 use crate::tools::{Tool, Toolbox};
 
 /// An LLM agent that iteratively plan / execute tool actions until producing a valid final answer.
@@ -20,13 +19,15 @@ use crate::tools::{Tool, Toolbox};
 pub struct Agent<'tool, I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor> {
     /// A unique identifier for the agent. Used for logging.
     pub(super) id: String,
-    /// The inner [`LLMChain`] used for prompt construction and LLM invocation.
-    pub(super) llm_chain: LLMChain<AgentInputCtor<I>, LLMOutputCtor>,
+    /// The prompt template for the agent.
+    pub(super) prompt: PromptTemplate,
+    /// The LLM used by the agent.
+    pub(super) llm: Box<dyn LLM>,
     /// A map of registered tool names to their implementations.
     pub(super) tools: HashMap<String, Tool<'tool>>,
     /// A list of toolboxes used to dynamically provide tools at runtime.
     pub(super) toolboxes: Vec<Arc<dyn Toolbox>>,
-    pub(super) _phantom: std::marker::PhantomData<O>,
+    pub(super) _phantom: std::marker::PhantomData<(I, O)>,
 }
 
 impl<'tool, I: InputCtor, O: OutputCtor> Agent<'tool, I, O> {
@@ -37,19 +38,22 @@ impl<'tool, I: InputCtor, O: OutputCtor> Agent<'tool, I, O> {
     ///
     /// # Arguments
     /// - `id`: A unique identifier for the agent.
-    /// - `llm_chain`: The [`LLMChain`] to use for prompt construction and LLM invocation.
+    /// - `prompt`: The prompt template for the agent.
+    /// - `llm`: The LLM used by the agent.
     /// - `tools`: A vector of [`Tool`]s that the agent can use.
     /// - `toolboxes`: A vector of [`Toolbox`]es that the agent can use to dynamically provide
     ///   tools.
     pub fn new(
         id: String,
-        llm_chain: LLMChain<AgentInputCtor<I>, LLMOutputCtor>,
+        prompt: PromptTemplate,
+        llm: Box<dyn LLM>,
         tools: HashMap<String, Tool<'tool>>,
         toolboxes: Vec<Arc<dyn Toolbox>>,
     ) -> Self {
         Self {
             id,
-            llm_chain,
+            prompt,
+            llm,
             tools,
             toolboxes,
             _phantom: std::marker::PhantomData,
@@ -111,6 +115,7 @@ impl<'tool, I: InputCtor, O: OutputCtor> Agent<'tool, I, O> {
 
     /// Returns the prompt used by the agent.
     pub fn get_prompt(&self, input: &AgentInput<I::Target<'_>>) -> Result<Prompt, TemplateError> {
-        self.llm_chain.get_prompt(input)
+        let prompt = self.prompt.format(input)?;
+        Ok(prompt)
     }
 }
