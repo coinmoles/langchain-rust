@@ -63,7 +63,7 @@ pub struct LLMOptions {
     ///
     /// Not part of the OpenAI chat completions API or the responses API, but used by some other
     /// providers.
-    pub top_k: Option<usize>,
+    pub top_k: Option<u32>,
 
     /// Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing
     /// frequency in the text so far, decreasing the model's likelihood to repeat the same line
@@ -229,7 +229,7 @@ impl LLMOptions {
     ///
     /// Not part of the OpenAI chat completions API or the responses API, but used by some other
     /// providers.
-    pub fn with_top_k(mut self, top_k: usize) -> Self {
+    pub fn with_top_k(mut self, top_k: u32) -> Self {
         self.top_k = Some(top_k);
         self
     }

@@ -92,7 +92,7 @@ pub struct ChatRequest<'a, M> {
     ///
     /// Not part of the OpenAI chat completions API, but used by some other providers.
     #[serde(skip_serializing_if = "Option::is_none")]
-    top_k: Option<usize>,
+    top_k: Option<u32>,
 
     /// Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing
     /// frequency in the text so far, decreasing the model's likelihood to repeat the same line

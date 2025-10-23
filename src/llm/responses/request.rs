@@ -79,7 +79,7 @@ pub struct ResponsesRequest {
     ///
     /// Not part of the OpenAI responses API, but used by some other providers.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub top_k: Option<usize>,
+    pub top_k: Option<u32>,
 
     /// Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing
     /// frequency in the text so far, decreasing the model's likelihood to repeat the same line
