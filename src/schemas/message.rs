@@ -15,6 +15,7 @@ use async_openai::types::{
 use serde_json::json;
 
 use super::{Role, ToolCall};
+use crate::llm::LLMOptions;
 use crate::schemas::ImageContent;
 use crate::utils::helper::capitalize_first;
 
@@ -127,6 +128,18 @@ impl Message {
     /// Sets a list of images for the message.
     pub fn with_images<T: Into<ImageContent>>(mut self, images: Vec<T>) -> Self {
         self.images = Some(images.into_iter().map(|i| i.into()).collect());
+        self
+    }
+
+    pub fn process_with_options(mut self, options: &LLMOptions) -> Self {
+        if options.system_is_assistant.unwrap_or(false) && self.role == Role::System {
+            self.role = Role::Ai;
+        }
+        if options.drop_thought.unwrap_or(true)
+            && self.tool_calls.as_deref().is_some_and(|t| !t.is_empty())
+        {
+            self.content = "".into();
+        }
         self
     }
 }

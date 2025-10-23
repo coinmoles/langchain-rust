@@ -113,18 +113,11 @@ impl<C: Config> GenericChat<C> {
                     *first_system = false;
                 }
 
-                // Change system message to ai message if configured.
-                if self.options.system_is_assistant.unwrap_or(false) && message.role == Role::System
-                {
-                    message.role = Role::Ai;
-                }
+                let mut message = message.process_with_options(&self.options);
 
                 // Convert tool call/result messages to normal ai/human messages
                 if let Some(tool_calls) = message.tool_calls {
-                    if self.options.drop_thought.unwrap_or(true) && !tool_calls.is_empty() {
-                        // Drop the thought part.
-                        message.content = String::new()
-                    } else {
+                    if !message.content.is_empty() {
                         writeln!(message.content).expect("`Write` to `String` never fails");
                     }
 

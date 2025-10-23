@@ -14,9 +14,7 @@ use crate::agent::AgentError;
 use crate::llm::chat::helper::{generate, map_stream, select_choice};
 use crate::llm::options::LLMOptions;
 use crate::llm::{ChatRequest, LLM, LLMError, LlmSession, OpenAIModel, OpenAiChatSession};
-use crate::schemas::{
-    IntoWithUsage, LLMOutput, LLMStream, Message, Prompt, Role, ToolSpec, WithUsage,
-};
+use crate::schemas::{IntoWithUsage, LLMOutput, LLMStream, Message, Prompt, ToolSpec, WithUsage};
 
 /// A wrapper for OpenAI chat models.
 ///
@@ -85,17 +83,8 @@ impl<C: Config> OpenAIChat<C> {
         prompt
             .to_messages()
             .into_iter()
-            .map(|mut message| {
-                if self.options.system_is_assistant.unwrap_or(false) && message.role == Role::System
-                {
-                    message.role = Role::Ai;
-                }
-                if self.options.drop_thought.unwrap_or(true)
-                    && message.tool_calls.as_deref().is_some_and(|t| !t.is_empty())
-                {
-                    message.content = "".into();
-                }
-                ChatCompletionRequestMessage::from(message)
+            .map(|message| {
+                ChatCompletionRequestMessage::from(message.process_with_options(&self.options))
             })
             .collect()
     }
