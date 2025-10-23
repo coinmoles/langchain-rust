@@ -30,11 +30,20 @@ impl McpTool {
         Ok(tool)
     }
 
+    pub fn group_tools_by_uri(predicates: Vec<McpTool>) -> HashMap<String, Vec<String>> {
+        let mut m: HashMap<String, Vec<String>> = HashMap::new();
+        for p in predicates {
+            let uri = p.uri.expose_secret().to_string();
+            m.entry(uri).or_default().push(p.name);
+        }
+        m
+    }
+
     pub async fn into_function_tools(
         predicates: Vec<Self>,
     ) -> Result<HashMap<String, Box<dyn FunctionTool>>, McpError> {
         // Group tools by URI to minimize the number of connections
-        let grouped = group_tools_by_uri(predicates);
+        let grouped = McpTool::group_tools_by_uri(predicates);
         let merged = stream::iter(grouped.into_iter())
             .map(|(uri, names)| fetch_tools(uri, Some(names)))
             .buffer_unordered(8)
@@ -45,7 +54,7 @@ impl McpTool {
     }
 
     pub fn into_definitions(predicates: Vec<Self>) -> Vec<Mcp> {
-        let grouped = group_tools_by_uri(predicates);
+        let grouped = McpTool::group_tools_by_uri(predicates);
         grouped
             .into_iter()
             .map(|(uri, names)| {
@@ -59,14 +68,4 @@ impl McpTool {
             })
             .collect::<Vec<_>>()
     }
-}
-
-/// Helper function to group mcp tools by their URI.
-fn group_tools_by_uri(predicates: Vec<McpTool>) -> HashMap<String, Vec<String>> {
-    let mut m: HashMap<String, Vec<String>> = HashMap::new();
-    for p in predicates {
-        let uri = p.uri.expose_secret().to_string();
-        m.entry(uri).or_default().push(p.name);
-    }
-    m
 }
