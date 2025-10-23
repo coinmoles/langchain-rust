@@ -1,20 +1,24 @@
+use std::borrow::Cow;
+
 use async_openai::types::{
-    ChatCompletionRequestMessage, ChatCompletionStreamOptions, ChatCompletionTool,
-    ChatCompletionToolChoiceOption, ReasoningEffort, ResponseFormat,
+    ChatCompletionStreamOptions, ChatCompletionTool, ChatCompletionToolChoiceOption,
+    ReasoningEffort, ResponseFormat,
 };
 use serde::Serialize;
 
-use crate::llm::LLMError;
 use crate::llm::options::LLMOptions;
-use crate::schemas::{FunctionSpec, Message};
 
 /// Request payload sent to an OpenAPI-compatible API.
 #[derive(Serialize, Debug)]
-pub struct ChatRequest {
+pub struct ChatRequest<'a, M> {
     /// A list of messages comprising the conversation so far.
     ///
+    /// Generic to accept both
+    /// [`ChatCompletionRequestMessage`](async_openai::types::ChatCompletionRequestMessage) and
+    /// [`ChatHistory`](crate::llm::ChatHistory)
+    ///
     /// See [`messages`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-messages).
-    messages: Vec<ChatCompletionRequestMessage>,
+    messages: M,
 
     /// Model ID used to generate the response, like `gpt-4o` or `o3`.
     ///
@@ -26,7 +30,7 @@ pub struct ChatRequest {
     ///
     /// See [`stream`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-stream).
     #[serde(skip_serializing_if = "Option::is_none")]
-    stream: Option<bool>,
+    pub(super) stream: Option<bool>,
 
     /// Options for streaming response. When `stream` is set to true, the option is automatically
     /// configured to `{ "include_usage": true }`
@@ -39,7 +43,7 @@ pub struct ChatRequest {
     ///
     /// See [`tools`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-tools)
     #[serde(skip_serializing_if = "Option::is_none")]
-    tools: Option<Vec<ChatCompletionTool>>,
+    tools: Option<Cow<'a, [ChatCompletionTool]>>,
 
     /// Controls which (if any) tool is called by the model.
     ///
@@ -141,22 +145,19 @@ pub struct ChatRequest {
     response_format: Option<ResponseFormat>,
 }
 
-impl ChatRequest {
+impl<'a, M> ChatRequest<'a, M> {
     /// Constructs a new [`ChatRequest`].
     pub fn new(
         model: impl Into<String>,
-        messages: Vec<Message>,
-        tools: Option<Vec<FunctionSpec>>,
-    ) -> Result<ChatRequest, LLMError> {
-        let messages = messages.into_iter().map(Into::into).collect::<Vec<_>>();
-        let tools = tools.map(|t| t.into_iter().map(Into::into).collect());
-
-        Ok(ChatRequest {
+        messages: M,
+        function_specs: Option<Cow<'a, [ChatCompletionTool]>>,
+    ) -> Self {
+        ChatRequest {
             messages,
             model: model.into(),
             stream: None,
             stream_options: None,
-            tools,
+            tools: function_specs,
             tool_choice: None,
             parallel_tool_calls: None,
             n: None,
@@ -171,11 +172,11 @@ impl ChatRequest {
             max_completion_tokens: None,
             stop: None,
             response_format: None,
-        })
+        }
     }
 
-    /// Adds options to the request.
-    pub fn with_options(self, options: LLMOptions) -> Self {
+    /// Applies the given [`LLMOptions`] to the request.
+    pub fn with_options(self, options: &LLMOptions) -> Self {
         let stream_options =
             options
                 .stream
@@ -191,12 +192,12 @@ impl ChatRequest {
         };
 
         ChatRequest {
-            tool_choice: options.tool_choice.map(Into::into),
+            tool_choice: options.tool_choice.clone().map(Into::into),
             parallel_tool_calls: options.parallel_tool_calls,
             stream: options.stream,
             stream_options,
             n: options.n,
-            reasoning_effort: options.reasoning_effort,
+            reasoning_effort: options.reasoning_effort.clone(),
             temperature: options.temperature,
             top_p: options.top_p,
             top_k: options.top_k,
@@ -205,8 +206,8 @@ impl ChatRequest {
             repetition_penalty: options.repetition_penalty,
             max_tokens,
             max_completion_tokens: options.max_completion_tokens,
-            stop: options.stop_words,
-            response_format: options.response_format.map(Into::into),
+            stop: options.stop_words.clone(),
+            response_format: options.response_format.clone().map(Into::into),
             ..self
         }
     }

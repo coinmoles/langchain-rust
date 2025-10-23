@@ -8,8 +8,8 @@ use crate::utils::parse::ParseError;
 #[derive(Error, Debug)]
 pub enum LLMError {
     /// Error from the [`async_openai`].
-    #[error("OpenAI error: {0}")]
-    OpenAIError(#[from] OpenAIError),
+    #[error("OpenAI error: {0:?}")]
+    OpenAIError(Box<OpenAIError>),
 
     /// Error from the [`reqwest`].
     #[error("Network request failed: {0:?}")]
@@ -35,26 +35,25 @@ pub enum LLMError {
     #[error("LLM refused to answer: {0}")]
     Refused(String),
 
-    /// Error from calling LLMs with unsupported features.
-    #[error("Unsupported feature: {0}")]
-    Unsupported(String),
-
     /// Error not covered by other variants.
     #[error("Error: {0}")]
     OtherError(String),
 }
 
 impl LLMError {
+    /// Constructs a new `LLMError::ContentNotFound` with the given message.
     pub fn content_not_found(msg: impl Into<String>) -> Self {
         LLMError::ContentNotFound(msg.into())
-    }
-
-    pub fn unsupported(msg: impl Into<String>) -> Self {
-        LLMError::Unsupported(msg.into())
     }
 
     /// Create a new `LLMError::OtherError` with the given message.
     pub fn other(msg: impl Into<String>) -> Self {
         LLMError::OtherError(msg.into())
+    }
+}
+
+impl From<OpenAIError> for LLMError {
+    fn from(value: OpenAIError) -> Self {
+        LLMError::OpenAIError(Box::new(value))
     }
 }

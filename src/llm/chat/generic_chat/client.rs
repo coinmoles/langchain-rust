@@ -2,15 +2,18 @@ use std::fmt::Write;
 
 use async_openai::Client as OpenAIClient;
 use async_openai::config::{Config, OpenAIConfig};
-use async_openai::types::CreateChatCompletionStreamResponse;
+use async_openai::types::{
+    ChatCompletionRequestMessage, CreateChatCompletionResponse, CreateChatCompletionStreamResponse,
+};
 use async_trait::async_trait;
+use serde::Serialize;
 
-use super::helper::select_choice;
-use super::request::ChatRequest;
-use crate::llm::chat::helper::{generate, map_stream};
+use crate::agent::AgentError;
+use crate::llm::chat::helper::{generate, map_stream, select_choice};
 use crate::llm::options::LLMOptions;
 use crate::llm::{
-    DefaultInstructor, GenericChatBuilder, Instructor, LLM, LLMError, LlmCapabilities, OpenAIModel,
+    ChatRequest, DefaultInstructor, GenericChatBuilder, GenericChatSession, Instructor, LLM,
+    LLMError, LlmSession, OpenAIModel,
 };
 use crate::schemas::{
     FunctionSpec, IntoWithUsage, LLMOutput, LLMStream, Message, Prompt, Role, ToolSpec, WithUsage,
@@ -31,9 +34,9 @@ pub struct GenericChat<C: Config = OpenAIConfig> {
     /// The model id.
     model: String,
     /// The instructor used to create tool use instruction and parse tool calls.
-    instructor: Box<dyn Instructor>,
+    pub(super) instructor: Box<dyn Instructor>,
     /// The call options for the LLM.
-    options: LLMOptions,
+    pub(super) options: LLMOptions,
 }
 
 impl<C: Config + Default> GenericChat<C> {
@@ -71,15 +74,12 @@ impl<C: Config> GenericChat<C> {
     /// );
     /// ```
     #[must_use]
-    pub fn new<S>(
+    pub fn new(
         client: OpenAIClient<C>,
-        model: S,
+        model: impl Into<String>,
         instructor: Box<dyn Instructor>,
         options: LLMOptions,
-    ) -> Self
-    where
-        S: Into<String>,
-    {
+    ) -> Self {
         Self {
             client,
             model: model.into(),
@@ -95,7 +95,11 @@ impl<C: Config> GenericChat<C> {
     /// - Converting system messages to ai messages if configured.
     /// - Converting tool call/result messages to normal ai/human messages.
     /// - Dropping the thought part of tool call messages if configured.
-    fn process_prompt(&self, prompt: Prompt, tools: Option<&[FunctionSpec]>) -> Vec<Message> {
+    fn process_prompt(
+        &self,
+        prompt: Prompt,
+        tools: Option<&[FunctionSpec]>,
+    ) -> Vec<ChatCompletionRequestMessage> {
         prompt
             .to_messages()
             .into_iter()
@@ -135,9 +139,94 @@ impl<C: Config> GenericChat<C> {
                 if message.role == Role::Tool {
                     message.role = Role::Human;
                 }
-                Some(message)
+
+                Some(ChatCompletionRequestMessage::from(message))
             })
             .collect::<Vec<_>>()
+    }
+
+    /// Builds a chat completion request with the configured call options.
+    pub(super) fn build_request<M: Serialize>(&self, messages: M) -> ChatRequest<'_, M> {
+        ChatRequest::new(&self.model, messages, None).with_options(&self.options)
+    }
+
+    /// Sends a chat completion request to the server.
+    pub(super) async fn send_request<M: Serialize>(
+        &self,
+        request: ChatRequest<'_, M>,
+    ) -> Result<CreateChatCompletionResponse, LLMError> {
+        let response = generate(&self.client, request).await?;
+        log::trace!("Received response: {response:?}");
+        Ok(response)
+    }
+
+    /// Parses the response from the server using the instructor.
+    pub(super) fn parse_response(&self, content: String) -> Result<LLMOutput, LLMError> {
+        let output = self.instructor.parse_tool_use(content)?;
+        Ok(output)
+    }
+}
+
+#[async_trait]
+impl<C: Config + Send + Sync + 'static> LLM for GenericChat<C> {
+    async fn generate(
+        &self,
+        prompt: Prompt,
+        tools: Option<&ToolSpec>,
+    ) -> Result<WithUsage<LLMOutput>, LLMError> {
+        if tools.is_some_and(|t| !t.mcps.is_empty()) {
+            log::warn!("`GenericChat` does not support mcp tools natively, they will be ignored");
+        }
+
+        let function_specs = tools.map(|t| t.functions.as_slice());
+        let messages = self.process_prompt(prompt, function_specs);
+
+        let request = self.build_request(messages);
+        let response = self.send_request(request).await?;
+
+        let choice = select_choice(response.choices)?;
+        if let Some(refusal) = choice.message.refusal {
+            return Err(LLMError::Refused(refusal));
+        }
+        let output = self.parse_response(choice.message.content.unwrap_or_default())?;
+        let usage = response.usage.map(Into::into);
+
+        Ok(output.with_usage(usage))
+    }
+
+    async fn stream(
+        &self,
+        prompt: Prompt,
+        tools: Option<&ToolSpec>,
+    ) -> Result<LLMStream, LLMError> {
+        if tools.as_ref().is_some_and(|t| !t.mcps.is_empty()) {
+            log::warn!("`OpenAIChat` does not support mcp tools natively, they will be ignored");
+        }
+
+        let tools = tools.map(|t| t.functions.as_slice());
+        let messages = self.process_prompt(prompt, tools);
+
+        let request = self.build_request(messages);
+        let original_stream = self
+            .client
+            .chat()
+            .create_stream_byot::<_, CreateChatCompletionStreamResponse>(request)
+            .await?;
+        let new_stream = map_stream(original_stream);
+        Ok(new_stream)
+    }
+
+    async fn begin_session<'a>(
+        &'a self,
+        prompt: Vec<Message>,
+        tool_spec: Option<ToolSpec>,
+    ) -> Result<Box<dyn LlmSession + 'a>, AgentError> {
+        let session = GenericChatSession::new(self, prompt, tool_spec).await?;
+        Ok(Box::new(session))
+    }
+
+    fn with_options(&mut self, options: LLMOptions) {
+        self.options.merge_options(options)
     }
 }
 
@@ -160,70 +249,5 @@ impl<C: Config + Clone> Clone for GenericChat<C> {
             instructor: self.instructor.clone_box(),
             options: self.options.clone(),
         }
-    }
-}
-
-#[async_trait]
-impl<C: Config + Send + Sync + 'static> LLM for GenericChat<C> {
-    fn capabilities(&self) -> LlmCapabilities {
-        LlmCapabilities { native_mcp: false }
-    }
-
-    async fn generate(
-        &self,
-        prompt: Prompt,
-        tools: Option<&ToolSpec>,
-    ) -> Result<WithUsage<LLMOutput>, LLMError> {
-        if tools.is_some_and(|t| !t.mcps.is_empty()) {
-            return Err(LLMError::unsupported(
-                "GenericChat does not support mcp tools natively",
-            ));
-        }
-        let tools = tools.map(|t| t.functions.as_slice());
-
-        let messages = self.process_prompt(prompt, tools);
-        let options = self.options.clone();
-        let stream = self.options.stream.unwrap_or(false);
-        let request = ChatRequest::new(&self.model, messages, None)?.with_options(options);
-        let response = generate(&self.client, request, stream).await?;
-
-        let choice: async_openai::types::ChatChoice = select_choice(response.choices)
-            .ok_or(LLMError::ContentNotFound("No choices".into()))?;
-
-        let result = self
-            .instructor
-            .parse_tool_use(choice.message.content.unwrap_or_default())?;
-        let usage = response.usage.map(Into::into);
-
-        Ok(result.with_usage(usage))
-    }
-
-    async fn stream(
-        &self,
-        prompt: Prompt,
-        tools: Option<&ToolSpec>,
-    ) -> Result<LLMStream, LLMError> {
-        if tools.as_ref().is_some_and(|t| !t.mcps.is_empty()) {
-            return Err(LLMError::unsupported(
-                "GenericChat does not support mcp tools natively",
-            ));
-        }
-        let tools = tools.map(|t| t.functions.as_slice());
-
-        let messages = self.process_prompt(prompt, tools);
-        let options = self.options.clone();
-        let request = ChatRequest::new(&self.model, messages, None)?.with_options(options);
-
-        let original_stream = self
-            .client
-            .chat()
-            .create_stream_byot::<_, CreateChatCompletionStreamResponse>(request)
-            .await?;
-        let new_stream = map_stream(original_stream);
-        Ok(new_stream)
-    }
-
-    fn with_options(&mut self, options: LLMOptions) {
-        self.options.merge_options(options)
     }
 }

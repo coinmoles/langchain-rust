@@ -13,6 +13,7 @@ impl ResponseFormat {
     /// The model will output plain text.
     pub const TEXT: Self = ResponseFormat(TextResponseFormat::Text);
 
+    /// The model will output a valid JSON object.
     pub const JSON_OBJECT: Self = ResponseFormat(TextResponseFormat::JsonObject);
 
     /// The model will output plain text.

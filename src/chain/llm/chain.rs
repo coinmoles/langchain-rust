@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 use super::LLMChainBuilder;
 use crate::chain::{Chain, ChainError, ChainOutput, GetPrompt, InputCtor, OutputCtor, StringCtor};
-use crate::llm::{LLM, LlmCapabilities};
+use crate::llm::LLM;
 use crate::output_parser::OutputParser;
 use crate::schemas::{IntoWithUsage, LLMEvent, LLMStream, Prompt, ToolSpec, WithUsage};
 use crate::template::{PromptTemplate, TemplateError};
@@ -25,10 +25,6 @@ where
 {
     pub fn builder() -> LLMChainBuilder<I, O> {
         LLMChainBuilder::new()
-    }
-
-    pub fn capabilities(&self) -> LlmCapabilities {
-        self.llm.capabilities()
     }
 
     pub async fn call_llm(

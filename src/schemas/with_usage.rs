@@ -1,4 +1,4 @@
-use super::TokenUsage;
+use crate::schemas::TokenUsage;
 
 /// An output with the token usage information.
 ///

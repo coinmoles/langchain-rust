@@ -116,9 +116,9 @@ impl Display for ToolCall {
         write!(
             f,
             indoc! {r#"
-            {{ 
-                "action": "{}", 
-                "action_input": {} 
+            {{
+                "name": "{}",
+                "arguments": {}
             }}"#},
             self.name,
             add_indent(

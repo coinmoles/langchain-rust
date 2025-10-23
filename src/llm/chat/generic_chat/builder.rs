@@ -67,7 +67,7 @@ impl<C: Config> GenericChatBuilder<C> {
         self
     }
 
-    /// Sets the call options for the LLM.
+    /// Configures the call options to be used in subsequent requests.
     pub fn with_options(mut self, options: LLMOptions) -> Self {
         self.options = options;
         self

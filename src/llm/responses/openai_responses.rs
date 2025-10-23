@@ -5,7 +5,7 @@ use async_trait::async_trait;
 
 use crate::llm::options::LLMOptions;
 use crate::llm::responses::helper::{construct_output, generate, map_stream};
-use crate::llm::{LLM, LLMError, LlmCapabilities, OpenAIModel, ResponsesRequest};
+use crate::llm::{LLM, LLMError, OpenAIModel, ResponsesRequest};
 use crate::schemas::{
     IntoWithUsage, LLMOutput, LLMStream, Message, Prompt, Role, ToolSpec, WithUsage,
 };
@@ -52,10 +52,6 @@ impl Default for OpenAIResponses<OpenAIConfig> {
 
 #[async_trait]
 impl<C: Config + Send + Sync + 'static> LLM for OpenAIResponses<C> {
-    fn capabilities(&self) -> LlmCapabilities {
-        LlmCapabilities { native_mcp: false }
-    }
-
     async fn generate(
         &self,
         prompt: Prompt,

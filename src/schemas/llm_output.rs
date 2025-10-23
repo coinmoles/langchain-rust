@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::chain::ChainOutput;
 use crate::llm::LLMError;
-use crate::schemas::ToolCall;
+use crate::schemas::{Message, ToolCall};
 
 /// Single LLM output with thought and body.
 ///
@@ -34,6 +34,23 @@ pub enum LLMEvent {
     Text(String),
     /// Tool call(s).
     ToolCall(Vec<ToolCall>),
+}
+
+impl LLMOutput {
+    /// Constructs a new [`LLMOutput`]
+    pub fn new(event: LLMEvent, thought: Option<String>) -> Self {
+        Self { event, thought }
+    }
+
+    /// Converts the [`LLMEvent`] into a [`Message`].
+    pub fn into_message(self) -> Message {
+        match self.event {
+            LLMEvent::Text(text) => Message::new_ai_message(text),
+            LLMEvent::ToolCall(tool_calls) => {
+                Message::new_tool_call_message(self.thought, tool_calls)
+            }
+        }
+    }
 }
 
 impl LLMEvent {
@@ -92,6 +109,7 @@ impl TryFrom<ChatCompletionResponseMessage> for LLMOutput {
                 event: LLMEvent::ToolCall(tool_calls),
             });
         }
+        // `function_call` is deprecated, but still included here for completeness.
         #[allow(deprecated)]
         if let Some(function_call) = value.function_call {
             let function_call =
@@ -121,6 +139,7 @@ impl TryFrom<LLMOutput> for ChatCompletionResponseMessage {
     type Error = serde_json::Error;
 
     fn try_from(value: LLMOutput) -> Result<Self, Self::Error> {
+        // `function_call` is deprecated, but still included here for completeness.
         #[allow(deprecated)]
         match value.event {
             LLMEvent::Text(text) => Ok(ChatCompletionResponseMessage {

@@ -4,19 +4,22 @@ use std::fmt::Display;
 use itertools::{Either, Itertools};
 use tracing::instrument;
 
-use crate::agent::{
-    AgentAction, AgentError, AgentExecutor, AgentInput, AgentStep, DefaultStrategy,
-    ExecutionOutput, Strategy,
-};
+use crate::agent::{AgentError, AgentExecutor, DefaultStrategy, ExecutionOutput, Strategy};
 use crate::chain::{ChainError, ChainOutput, InputCtor, OutputCtor};
+use crate::llm::LlmSession;
 use crate::schemas::{LLMEvent, LLMOutput, Message, Role, TokenUsage, ToolCall, ToolSpec};
-use crate::tools::{FunctionTool, McpTool, Tool};
+use crate::tools::{FunctionTool, Tool};
 use crate::utils::helper::normalize_tool_name;
 
 macro_rules! failure {
-    ($ctx:expr, $($arg:tt)*) => {{
+    ($ctx:expr, $e:expr, $($args:tt)*) => {{
         $ctx.consecutive_fails += 1;
-        log::warn!("{} ({} consecutive fails)", ::core::format_args!($($arg)*), $ctx.consecutive_fails);
+        log::warn!("{}: {} ({} consecutive fails)", ::core::format_args!($($args)*), $e, $ctx.consecutive_fails);
+        Err($e.into())
+    }};
+    ($ctx:expr, $($args:tt)*) => {{
+        $ctx.consecutive_fails += 1;
+        log::warn!("{} ({} consecutive fails)", ::core::format_args!($($args)*), $ctx.consecutive_fails);
     }};
 }
 
@@ -25,7 +28,7 @@ enum FinalizeFailure<Ctx> {
     Abort(ChainError),
 }
 
-/// Runtime context that owns all mutable state during an [`AgentExecutor`] run.
+/// Runtime context that owns mutable states during an [`AgentExecutor`] run.
 pub struct ExecutionContext<'exec, 'tool, 'input, I, O, S = DefaultStrategy>
 where
     I: InputCtor,
@@ -38,23 +41,17 @@ where
     /// The execution strategy for the execution.
     strategy: S,
     /// The input provided to this execution.
-    pub input: AgentInput<I::Target<'input>>,
-    /// The sequence of tool calls performed so far.
-    pub steps: Vec<AgentStep>,
+    input: I::Target<'input>,
     /// Counts of how many times each tool has been invoked.
-    pub use_counts: HashMap<String, usize>,
+    use_counts: HashMap<String, usize>,
     /// The current number of consecutive failures.
-    pub consecutive_fails: usize,
+    consecutive_fails: usize,
+    /// The current number of steps.
+    step_count: usize,
     /// Total token usage.
-    pub total_usage: Option<TokenUsage>,
-    /// Ephemeral tools
-    pub mcp_functions: Option<HashMap<String, Box<dyn FunctionTool>>>,
-    /// Tool spec for the run
-    pub tool_spec: Option<ToolSpec>,
-    /// Initial messages from the prompt, not including any messages from memory.
+    total_usage: Option<TokenUsage>,
+    /// Initial messages sent to the LLM.
     initial_messages: Vec<Message>,
-    /// Set to true when final answer is forced due to max iterations reached.
-    final_answer_forced: bool,
     _phantom: std::marker::PhantomData<O>,
 }
 
@@ -76,39 +73,39 @@ where
         Self {
             executor,
             strategy,
-            input: AgentInput::new(input),
-            steps: Vec::new(),
+            input,
             use_counts: HashMap::new(),
-            initial_messages: Vec::new(),
             consecutive_fails: 0,
+            step_count: 0,
             total_usage: None,
-            mcp_functions: None,
-            tool_spec: None,
-            final_answer_forced: false,
+            initial_messages: Vec::new(),
             _phantom: std::marker::PhantomData,
         }
     }
 
-    /// Begin the execution.
+    /// Begins the execution.
     #[instrument(name = "agent", level = "info", skip(self), fields(id = self.executor.agent.id()))]
     pub async fn start(mut self) -> Result<ExecutionOutput<'input, O, S>, ChainError> {
-        self.input = self.strategy.prepare_input::<I>(self.input).await?;
-        self.save_initial_messages()?;
-        self.log_initial_messages()?;
-        self.strategy
-            .scan_initial_messages(&self.initial_messages)
+        let messages = self.prepare_messages().await?;
+        let spec = self.prepare_tools()?;
+        let mut session = self
+            .executor
+            .agent
+            .llm
+            .begin_session(messages, spec)
             .await?;
-        self.load_memory().await?;
-        self.prepare_tools().await?;
+        if let Some(memory) = &self.executor.memory {
+            let memory = memory.read().await;
+            session.load_memory(&*memory).await?;
+        }
 
         while !self.fail_limit_reached() {
-            let Ok(plan) = self.plan_step().await else {
+            let Ok(output) = self.advance_session(session.as_mut()).await else {
                 continue;
             };
-
-            match plan.event {
+            match output.event {
                 LLMEvent::ToolCall(tool_calls) => {
-                    self.handle_tool_calls(plan.thought, tool_calls).await
+                    self.handle_tool_calls(session.as_mut(), tool_calls).await
                 }
                 LLMEvent::Text(final_answer) => match self.finalize(final_answer).await {
                     Ok(ok) => return Ok(ok),
@@ -116,27 +113,23 @@ where
                     Err(FinalizeFailure::Retry(new_context)) => self = new_context,
                 },
             }
+            self.step_count += 1;
         }
         Err(AgentError::TooManyConsecutiveFails(self.consecutive_fails).into())
     }
 
-    fn save_initial_messages(&mut self) -> Result<(), ChainError> {
-        self.initial_messages = self.executor.agent.get_prompt(&self.input)?.to_messages();
-        Ok(())
+    async fn prepare_messages(&mut self) -> Result<Vec<Message>, ChainError> {
+        let input = &self.input;
+        let messages = self.executor.agent.prompt.format(input)?.to_messages();
+        let messages = self.strategy.process_initial_messages(messages).await?;
+
+        self.initial_messages = messages.clone();
+        log_messages(&messages);
+
+        Ok(messages)
     }
 
-    fn log_initial_messages(&self) -> Result<(), ChainError> {
-        if !log::log_enabled!(log::Level::Debug) {
-            return Ok(());
-        }
-
-        for message in &self.initial_messages {
-            log::debug!("{message}");
-        }
-        Ok(())
-    }
-
-    async fn prepare_tools(&mut self) -> Result<(), ChainError> {
+    fn prepare_tools(&self) -> Result<Option<ToolSpec>, ChainError> {
         let (functions, mcps): (Vec<_>, Vec<_>) = self
             .executor
             .agent
@@ -147,87 +140,55 @@ where
                 Tool::Function(func) => Either::Left(func.as_ref()),
                 Tool::Mcp(mcp) => Either::Right(mcp.clone()),
             });
+        let spec = ToolSpec::from_tools(&functions, mcps);
+        Ok(spec)
+    }
 
-        let (mcp_functions, spec) = if self.executor.agent.llm.capabilities().native_mcp {
-            (None, ToolSpec::from_tools(&functions, mcps))
-        } else {
-            let mcp_functions = McpTool::into_function_tools(mcps).await?;
-            let all_functions = functions
-                .into_iter()
-                .chain(mcp_functions.values().map(|tool| tool.as_ref()))
-                .collect::<Vec<_>>();
-            let spec = ToolSpec::from_tools(&all_functions, Vec::new());
-            (Some(mcp_functions), spec)
+    async fn advance_session(
+        &mut self,
+        session: &mut dyn LlmSession,
+    ) -> Result<LLMOutput, ChainError> {
+        let output = match session.advance().await {
+            Ok(output) => output,
+            Err(e) => return failure!(self, e, "Failed to advance session"),
         };
-
-        self.mcp_functions = mcp_functions;
-        self.tool_spec = spec;
-        Ok(())
+        self.add_usage(output.usage);
+        self.strategy.process_plan(output.content).await
     }
 
-    pub async fn load_memory(&mut self) -> Result<(), ChainError> {
-        if let Some(memory) = self.executor.memory.as_ref() {
-            self.input.set_chat_history(memory.read().await.messages());
-        }
-        Ok(())
-    }
-
-    async fn plan_step(&mut self) -> Result<LLMOutput, ChainError> {
-        let tool_spec = if self.final_answer_forced {
-            None
-        } else {
-            self.tool_spec.as_ref()
-        };
-
-        let prompt = self.executor.agent.prompt.format(&self.input)?;
-        let plan = self
-            .executor
-            .agent
-            .llm
-            .generate(prompt, tool_spec)
-            .await
-            .inspect_err(|e| failure!(self, "Failed to plan next step: {e}"))?;
-
-        self.add_usage(plan.usage);
-        let plan = self.strategy.process_plan(plan.content).await?;
-        Ok(plan)
-    }
-
-    async fn handle_tool_calls(&mut self, thought: Option<String>, tool_calls: Vec<ToolCall>) {
+    async fn handle_tool_calls(&mut self, session: &mut dyn LlmSession, tool_calls: Vec<ToolCall>) {
         if self.max_iterations_reached() {
-            self.force_final_answer();
+            self.force_final_answer(session);
             return;
         }
 
-        let mut actions = Vec::with_capacity(tool_calls.len());
         for call in tool_calls {
             log::debug!("\nTool call:\n{call}");
 
             let tool_name = normalize_tool_name(&call.name);
             let Some(tool) = self.get_tool_with_use_count_check(&tool_name) else {
-                return;
+                return failure!(self, "Tool '{tool_name}' not found");
             };
 
-            let result = match tool.call(call.arguments.clone()).await {
-                Ok(result) => result,
-                Err(e) => return failure!(self, "Tool '{tool_name}' error: {e}"),
+            let output = match tool.call(call.arguments.clone()).await {
+                Ok(output) => {
+                    log::debug!("\nTool {} result:\n{}", &call.name, output.data);
+                    output
+                }
+                Err(e) => {
+                    log::warn!("Tool {} error: {}", &call.name, e);
+                    session.add_tool_result(&call.id, &call.name, Err(e));
+                    continue;
+                }
             };
-            log::debug!("\nTool {} result:\n{}", &call.name, result.data);
 
-            let action = AgentAction::new(call, result.data, result.summary);
-            actions.push(action);
+            let output = match self.strategy.process_tool_output(&call.id, output).await {
+                Ok(output) => output,
+                Err(e) => return failure!(self, "Failed to process agent step: {e}"),
+            };
+            session.add_tool_result(&call.id, &call.name, Ok(output));
         }
-        let step = AgentStep::new(thought, actions);
-        let step = match self.strategy.process_step(step).await {
-            Ok(step) => step,
-            Err(e) => return failure!(self, "Failed to process agent step: {e}"),
-        };
 
-        self.steps.push(step.clone());
-        self.input
-            .agent_scratchpad
-            .get_or_insert_default()
-            .extend(step.into_messages());
         self.consecutive_fails = 0;
     }
 
@@ -239,14 +200,13 @@ where
             failure!(self, "Failed to construct final answer");
             return Err(FinalizeFailure::Retry(self));
         };
-
         log::debug!("\nAgent finished with result:\n{final_answer}");
 
-        let answer = match O::Target::from_text_and_input(self.input.inner, final_answer.clone()) {
+        let answer = match O::Target::from_text_and_input(self.input, final_answer.clone()) {
             Ok(answer) => answer,
             Err((returned_input, e)) => {
                 // If the final answer cannot be constructed, `self.input.inner` is set again.
-                self.input.inner = returned_input;
+                self.input = returned_input;
                 failure!(self, "Failed to construct output from final answer: {e}");
                 return Err(FinalizeFailure::Retry(self));
             }
@@ -256,7 +216,6 @@ where
             let messages = self
                 .initial_messages
                 .into_iter()
-                .chain(self.input.agent_scratchpad.unwrap_or_default())
                 .chain([Message::new_ai_message(final_answer)])
                 .filter(|m| m.role != Role::System)
                 .collect();
@@ -275,15 +234,7 @@ where
     fn get_tool_with_use_count_check(&mut self, tool_name: &str) -> Option<&dyn FunctionTool> {
         let name = normalize_tool_name(tool_name);
 
-        let tool = if let Some(tool) = self
-            .mcp_functions
-            .as_ref()
-            .and_then(|funcs| funcs.get(&name))
-        {
-            tool.as_ref()
-        } else if let Some(tool) = self.strategy.resolve_tool(&self.executor.agent, &name) {
-            tool
-        } else {
+        let Some(tool) = self.strategy.resolve_tool(&self.executor.agent, &name) else {
             failure!(self, "Failed to fetch tool '{tool_name}'");
             return None;
         };
@@ -303,7 +254,7 @@ where
         self.executor
             .options
             .max_iterations
-            .is_some_and(|max_iterations| self.steps.len() >= max_iterations)
+            .is_some_and(|max_iterations| self.step_count >= max_iterations)
     }
 
     fn fail_limit_reached(&self) -> bool {
@@ -317,9 +268,17 @@ where
         self.total_usage = TokenUsage::merge_options([&self.total_usage, &usage]);
     }
 
-    fn force_final_answer(&mut self) {
+    fn force_final_answer(&self, session: &mut dyn LlmSession) {
         log::warn!("Forcing final answer due to max iterations reached");
-        self.final_answer_forced = true;
-        self.input.enable_ultimatum();
+        session.force_final_answer()
+    }
+}
+
+fn log_messages(messages: &[Message]) {
+    if !log::log_enabled!(log::Level::Debug) {
+        return;
+    }
+    for message in messages {
+        log::debug!("\n{message}");
     }
 }

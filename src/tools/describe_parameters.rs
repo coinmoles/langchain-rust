@@ -71,6 +71,10 @@ fn describe_schema(
         return Err("Schema is not an object or a boolean".into());
     };
 
+    if obj.is_empty() {
+        return Ok("{} // an empty object".into());
+    }
+
     if let Some(Value::String(reference)) = obj.get("$ref") {
         return resolve_reference(reference, required, definitions, depth);
     }
@@ -272,7 +276,7 @@ mod tests {
             indoc! {"
                 array // The list of numbers
                 [
-                    items: integer 
+                    items: integer
                 ]"}
         );
     }

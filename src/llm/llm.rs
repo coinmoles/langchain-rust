@@ -1,40 +1,51 @@
 use async_trait::async_trait;
 
+use crate::agent::AgentError;
 use crate::llm::options::LLMOptions;
-use crate::llm::{LLMError, LlmCapabilities};
-use crate::schemas::{LLMOutput, LLMStream, Prompt, ToolSpec, WithUsage};
+use crate::llm::{DefaultSession, LLMError, LlmSession};
+use crate::schemas::{LLMOutput, LLMStream, Message, Prompt, ToolSpec, WithUsage};
 
-/// Trait for LLM wrappers.
+/// A common interface for interacting with LLM backends.
 ///
-/// This trait defines a common interface for interacting with LLM backends.
-/// The methods defined here accepts crate-specific schema types.
-/// The implementors should convert these into the format required by the API.
+/// The methods in this trait accepts types defined in this crate. The implementors should convert
+/// these into the format required by the API.
 #[async_trait]
 pub trait LLM: Sync + Send {
-    /// Returns the capabilities of the LLM.
-    fn capabilities(&self) -> LlmCapabilities;
-
-    /// Generates a response from the LLM based on the provided prompt.
+    /// Generates a response from the LLM with the provided prompt.
     async fn generate(
         &self,
         prompt: Prompt,
         tools: Option<&ToolSpec>,
     ) -> Result<WithUsage<LLMOutput>, LLMError>;
 
-    /// Generate a response from the LLM with a single human message.
+    /// Generates a response from the LLM with a single human message.
     async fn invoke(&self, msg: &str) -> Result<String, LLMError> {
         let prompt = Prompt::single(msg);
         let result = self.generate(prompt, None).await?.content.to_string();
         Ok(result)
     }
 
-    /// Generates a response from the LLM based on the provided prompt in a stream.
+    /// Generates a response from the LLM with the provided prompt in a server-sent event stream.
     async fn stream(&self, prompt: Prompt, tools: Option<&ToolSpec>)
     -> Result<LLMStream, LLMError>;
 
-    /// Configure the call options for the LLM.
+    /// Begins a new session with the agent LLM.
     ///
-    /// This includes parameters like temperature, max tokens, etc.
+    /// The types defined in this crate may not be sufficient to represent a prolonged interaction
+    /// with an agentic LLM, as some providers (like Claude) use a unique api.
+    ///
+    /// By default, [`DefaultSession`] is used, which does not preserve any model-specific fields.
+    /// Implement a model-specific [`LlmSession`] to store the interaction in model-specific types
+    /// to do so.
+    async fn begin_session<'a>(
+        &'a self,
+        prompt: Vec<Message>,
+        tools: Option<ToolSpec>,
+    ) -> Result<Box<dyn LlmSession + 'a>, AgentError> {
+        Ok(Box::new(DefaultSession::new(self, prompt, tools)))
+    }
+
+    /// Configures the call options to be used in subsequent requests.
     fn with_options(&mut self, options: LLMOptions);
 }
 

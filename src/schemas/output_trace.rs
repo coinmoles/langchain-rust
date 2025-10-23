@@ -1,7 +1,7 @@
 use serde::Serialize;
 use serde_json::Value;
 
-use super::{TokenUsage, WithUsage};
+use crate::schemas::{TokenUsage, WithUsage};
 
 /// An output trace of a sequential chain.
 ///

@@ -1,7 +1,7 @@
 use std::fmt::{self, Display};
 
 /// Helper enum for OpenAI model names.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum OpenAIModel {
     /// `"gpt-3.5-turbo"`
     Gpt35,

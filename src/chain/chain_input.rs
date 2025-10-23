@@ -30,6 +30,12 @@ impl ChainInput for HashMap<String, String> {
     }
 }
 
+impl ChainInput for HashMap<&str, String> {
+    fn text_replacements(&self) -> TextReplacements<'_> {
+        self.iter().map(|(&k, v)| (k, v.as_str().into())).collect()
+    }
+}
+
 impl ChainInput for HashMap<&str, &str> {
     fn text_replacements(&self) -> TextReplacements<'_> {
         self.iter().map(|(&k, &v)| (k, v.into())).collect()

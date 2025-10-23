@@ -2,8 +2,10 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::sync::Arc;
 
-use crate::agent::{AgentBuilder, AgentExecutor, AgentInput};
-use crate::chain::{ChainOutput, DefaultChainInputCtor, InputCtor, OutputCtor, StringCtor};
+use crate::agent::{AgentBuilder, AgentExecutor};
+use crate::chain::{
+    ChainOutput, DefaultChainInputCtor, GetPrompt, InputCtor, OutputCtor, StringCtor,
+};
 use crate::llm::LLM;
 use crate::schemas::Prompt;
 use crate::template::{PromptTemplate, TemplateError};
@@ -35,14 +37,6 @@ impl<'tool, I: InputCtor, O: OutputCtor> Agent<'tool, I, O> {
     ///
     /// It is recommended to use [`Agent::builder()`] to create an agent instead of calling the
     /// constructor directly.
-    ///
-    /// # Arguments
-    /// - `id`: A unique identifier for the agent.
-    /// - `prompt`: The prompt template for the agent.
-    /// - `llm`: The LLM used by the agent.
-    /// - `tools`: A vector of [`Tool`]s that the agent can use.
-    /// - `toolboxes`: A vector of [`Toolbox`]es that the agent can use to dynamically provide
-    ///   tools.
     pub fn new(
         id: String,
         prompt: PromptTemplate,
@@ -112,10 +106,10 @@ impl<'tool, I: InputCtor, O: OutputCtor> Agent<'tool, I, O> {
     pub fn id(&self) -> &str {
         self.id.as_str()
     }
+}
 
-    /// Returns the prompt used by the agent.
-    pub fn get_prompt(&self, input: &AgentInput<I::Target<'_>>) -> Result<Prompt, TemplateError> {
-        let prompt = self.prompt.format(input)?;
-        Ok(prompt)
+impl<I: InputCtor, O: OutputCtor> GetPrompt<I::Target<'_>> for Agent<'_, I, O> {
+    fn get_prompt(&self, input: I::Target<'_>) -> Result<Prompt, TemplateError> {
+        self.prompt.format(&input)
     }
 }

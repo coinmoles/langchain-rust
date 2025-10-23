@@ -15,6 +15,9 @@ pub enum ToolError {
 
     #[error("Tool not found: {0}")]
     ToolNotFound(String),
+
+    #[error("All tool executions failed for a step")]
+    AllToolsFailed,
 }
 
 impl ToolError {

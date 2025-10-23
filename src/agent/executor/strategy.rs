@@ -2,40 +2,28 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 
-use crate::agent::{Agent, AgentInput, AgentStep};
+use crate::agent::Agent;
 use crate::chain::{ChainError, InputCtor, OutputCtor};
-use crate::schemas::{LLMOutput, Message, ToolSpec};
-use crate::tools::{FunctionTool, Tool};
-
-/// The tools resolved for the current execution.
-pub struct ResolvedTools {
-    /// The mapping from the tool name to their implementation. Whether it be local function tools
-    /// or MCP tools that are treated as function tools.
-    pub mcp_functions: Option<HashMap<String, Box<dyn FunctionTool>>>,
-    /// The tool specification to be sent to the LLM.
-    pub spec: Option<ToolSpec>,
-}
+use crate::schemas::{LLMOutput, Message};
+use crate::tools::{FunctionTool, Tool, ToolOutput};
 
 /// A pluggable policy that customizes **how an agent run is executed**.
 ///
-/// `Strategy` lets you intercept and (optionally) mutate every major phase of an
+/// `Strategy` lets you intercept and mutate every major phase of an
 /// [`AgentExecutor`](crate::agent::AgentExecutor) run without changing the core loop:
 ///
-/// **Lifecycle (in order)**
-/// 1. [`additional_tools`](Strategy::additional_tools) — inject extra tools to be used during this
+/// # Methods:
+/// 1. [`additional_tools`](Strategy::additional_tools) — inject extra tools to be used during the
 ///    execution.
-/// 2. [`prepare_input`](Strategy::prepare_input) — inject / normalize fields on the initial
-///    [`AgentInput`].
-/// 3. [`process_plan`](Strategy::process_plan) — validate or rewrite every model-produced
+/// 2. [`process_initial_messages`](Strategy::process_initial_messages) — inspect, validate, or
+///    rewrite the initial messages.
+/// 3. [`process_plan`](Strategy::process_plan) — inspect, validate, or rewrite the model-produced
 ///    [`LLMOutput`].
-/// 4. [`process_step`](Strategy::process_step) — validate or rewrite every [`AgentStep`] before
-///    appending it to the transcript.
-/// 5. [`process_final_answer`](Strategy::process_final_answer) — validate/transform the final LLM
-///    answer before converting it to `O::Target`.
-/// 6. [`finalize`](Strategy::finalize) — produce any strategy-specific artifact to return to the
-///    caller.
-///
-/// All hooks have **no-op pass-through defaults** so you only override what you need.
+/// 4. [`process_tool_output`](Strategy::process_tool_output) — inspect, validate, or rewrite the
+///    [`ToolOutput`].
+/// 5. [`process_final_answer`](Strategy::process_final_answer) — inspect, validate, or rewrite the
+///    final model answer.
+/// 6. [`finalize`](Strategy::finalize) — produce a final output specific to the strategy.
 #[async_trait]
 pub trait Strategy: Send + Sync {
     /// Type produced by [`finalize`]. Often used to return strategy-specific
@@ -44,36 +32,19 @@ pub trait Strategy: Send + Sync {
 
     /// Additional tools to be used during this execution.
     ///
-    /// The tools returned here will override the tools defined in the agent.
+    /// The tools returned by this function will override the tools defined in the agent.
     fn additional_tools(&self) -> HashMap<&str, &Tool<'_>> {
         HashMap::new()
     }
 
-    /// Prepare (augment / normalize) the initial [`AgentInput`] **before the first plan**.
+    /// Inspect, validate, or rewrite the initial messages.
     ///
-    /// Typical uses:
-    /// - Inject extra keys.
-    /// - Pre-attach system hints or metadata.
-    /// - Redact/normalize fields.
-    ///
-    /// Return the possibly modified [`AgentInput`]. Returning `Err` makes the executor
-    /// retry (until the fail limit) with the same context.
-    async fn prepare_input<'input, I: InputCtor>(
+    /// Return the modified messages. Returning `Err` makes the execution fail immediately.
+    async fn process_initial_messages(
         &mut self,
-        input: AgentInput<I::Target<'input>>,
-    ) -> Result<AgentInput<I::Target<'input>>, ChainError> {
-        Ok(input)
-    }
-
-    /// Scan the initial messages from memory before starting the execution.
-    ///
-    /// Typical uses:
-    /// - Analyze the initial messages to set up context or state.
-    ///
-    /// Return `Ok(())` if successful. Returning `Err` makes the executor
-    /// retry (until the fail limit) with the same context.
-    async fn scan_initial_messages(&mut self, _messages: &[Message]) -> Result<(), ChainError> {
-        Ok(())
+        messages: Vec<Message>,
+    ) -> Result<Vec<Message>, ChainError> {
+        Ok(messages)
     }
 
     /// Resolve the concrete tool implementation to call for `tool_name`.
@@ -107,49 +78,38 @@ pub trait Strategy: Send + Sync {
         }
     }
 
-    /// Inspect, validate, or rewrite the model-produced [`LLMOutput`] **each loop**.
+    /// Inspect, validate, or rewrite the model-produced [`LLMOutput`].
     ///
-    /// Typical uses:
-    /// - Reject unsafe plans.
-    /// - Add bookkeeping data to `usage`.
-    ///
-    /// Return the (possibly) modified plan. Returning `Err` makes the executor
-    /// retry (until the fail limit) with the same context.
+    /// Return the modified plan. Returning `Err` makes the executor retry by making a new request
+    /// to the model.
     async fn process_plan(&mut self, plan: LLMOutput) -> Result<LLMOutput, ChainError> {
         Ok(plan)
     }
 
-    /// Processes the tool call and its output ([`AgentStep`]) **after each tool execution**.
+    /// Inspect, validate, or rewrite the [`ToolOutput`].
     ///
-    /// Typical uses:
-    /// - Reformat or wrap tool outputs (e.g., XML/JSON tagging).
-    /// - Maintain auxiliary indices/maps for later retrieval (store inside `self`).
-    /// - Summarize or truncate large outputs.
-    ///
-    /// Return an [`AgentStep`] to append to the transcript. Returning `Err` makes the executor
-    /// retry (until the fail limit) with the same context.
-    async fn process_step(&mut self, step: AgentStep) -> Result<AgentStep, ChainError> {
-        Ok(step)
+    /// Return the modified tool output. Returning `Err` makes the executor omit the corresponding
+    /// tool call.
+    async fn process_tool_output(
+        &mut self,
+        _call_id: &str,
+        output: ToolOutput,
+    ) -> Result<ToolOutput, ChainError> {
+        Ok(output)
     }
 
-    /// Validate / transform the final model answer **before** it is converted into `O::Target`.
+    /// Inspect, validate, or rewrite the final model answer.
     ///
-    /// Typical uses:
-    /// - Guardrails (structure, safety, hallucination checks).
-    /// - Post-processing (e.g., fix malformed JSON, inject references).
-    ///
-    /// Return the (possibly) modified final answer string. Returning `Err` makes the executor
-    /// retry (until the fail limit) with the same context.
+    /// Return the modified final answer. Returning `Err` makes the executor retry by making a new
+    /// request to the model.
     async fn process_final_answer(&mut self, final_answer: String) -> Result<String, ChainError> {
         Ok(final_answer)
     }
 
-    /// Final hook called **once the run successfully completes**.
+    /// Produce a final output specific to the strategy.
     ///
-    /// Use this to emit any accumulated per-run artifact (indexes, telemetry, logs, …).
-    ///
-    /// Returning `Err` aborts the run **after** the model produced a valid answer, so only do
-    /// this if you strictly need to guarantee the auxiliary artifact; otherwise prefer logging.
+    /// Returning `Err` makes the execution fail immediately. Avoid doing so unless it is strictly
+    /// necessary.
     async fn finalize(self) -> Result<Self::Output, ChainError>;
 }
 
@@ -181,17 +141,6 @@ where
         }
     }
 
-    async fn prepare_input<'input, I: InputCtor>(
-        &mut self,
-        input: AgentInput<I::Target<'input>>,
-    ) -> Result<AgentInput<I::Target<'input>>, ChainError> {
-        if let Some(strategy) = self {
-            strategy.prepare_input::<'_, '_, '_, I>(input).await
-        } else {
-            Ok(input)
-        }
-    }
-
     async fn process_plan(&mut self, plan: LLMOutput) -> Result<LLMOutput, ChainError> {
         if let Some(strategy) = self {
             strategy.process_plan(plan).await
@@ -200,11 +149,15 @@ where
         }
     }
 
-    async fn process_step(&mut self, step: AgentStep) -> Result<AgentStep, ChainError> {
+    async fn process_tool_output(
+        &mut self,
+        call_id: &str,
+        output: ToolOutput,
+    ) -> Result<ToolOutput, ChainError> {
         if let Some(strategy) = self {
-            strategy.process_step(step).await
+            strategy.process_tool_output(call_id, output).await
         } else {
-            Ok(step)
+            Ok(output)
         }
     }
 
@@ -241,22 +194,19 @@ where
             .chain(self.1.additional_tools())
             .collect()
     }
-    async fn prepare_input<'input, I: InputCtor>(
-        &mut self,
-        input: AgentInput<I::Target<'input>>,
-    ) -> Result<AgentInput<I::Target<'input>>, ChainError> {
-        let input = self.0.prepare_input::<'_, '_, '_, I>(input).await?;
-        self.1.prepare_input::<'_, '_, '_, I>(input).await
-    }
 
     async fn process_plan(&mut self, plan: LLMOutput) -> Result<LLMOutput, ChainError> {
         let plan = self.0.process_plan(plan).await?;
         self.1.process_plan(plan).await
     }
 
-    async fn process_step(&mut self, step: AgentStep) -> Result<AgentStep, ChainError> {
-        let step = self.0.process_step(step).await?;
-        self.1.process_step(step).await
+    async fn process_tool_output(
+        &mut self,
+        call_id: &str,
+        output: ToolOutput,
+    ) -> Result<ToolOutput, ChainError> {
+        let output = self.0.process_tool_output(call_id, output).await?;
+        self.1.process_tool_output(call_id, output).await
     }
 
     async fn process_final_answer(&mut self, final_answer: String) -> Result<String, ChainError> {
@@ -289,25 +239,20 @@ where
             .collect()
     }
 
-    async fn prepare_input<'input, I: InputCtor>(
-        &mut self,
-        input: AgentInput<I::Target<'input>>,
-    ) -> Result<AgentInput<I::Target<'input>>, ChainError> {
-        let input = self.0.prepare_input::<'_, '_, '_, I>(input).await?;
-        let input = self.1.prepare_input::<'_, '_, '_, I>(input).await?;
-        self.2.prepare_input::<'_, '_, '_, I>(input).await
-    }
-
     async fn process_plan(&mut self, plan: LLMOutput) -> Result<LLMOutput, ChainError> {
         let plan = self.0.process_plan(plan).await?;
         let plan = self.1.process_plan(plan).await?;
         self.2.process_plan(plan).await
     }
 
-    async fn process_step(&mut self, step: AgentStep) -> Result<AgentStep, ChainError> {
-        let step = self.0.process_step(step).await?;
-        let step = self.1.process_step(step).await?;
-        self.2.process_step(step).await
+    async fn process_tool_output(
+        &mut self,
+        call_id: &str,
+        output: ToolOutput,
+    ) -> Result<ToolOutput, ChainError> {
+        let output = self.0.process_tool_output(call_id, output).await?;
+        let output = self.1.process_tool_output(call_id, output).await?;
+        self.2.process_tool_output(call_id, output).await
     }
 
     async fn process_final_answer(&mut self, final_answer: String) -> Result<String, ChainError> {

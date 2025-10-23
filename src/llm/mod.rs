@@ -4,6 +4,9 @@
 mod llm;
 pub use llm::*;
 
+mod llm_session;
+pub use llm_session::*;
+
 mod chat;
 pub use chat::*;
 
@@ -13,14 +16,17 @@ pub use responses::*;
 mod instructor;
 pub use instructor::*;
 
-mod capabilities;
-pub use capabilities::*;
+mod default_session;
+pub use default_session::*;
 
 mod models;
 pub use models::*;
 
 mod options;
 pub use options::*;
+
+mod step_buffer;
+pub use step_buffer::*;
 
 mod error;
 pub use error::*;

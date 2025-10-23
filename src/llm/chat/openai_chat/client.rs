@@ -1,14 +1,19 @@
+use std::borrow::Cow;
+
 use async_openai::Client as OpenAIClient;
 use async_openai::config::{Config, OpenAIConfig};
-use async_openai::types::CreateChatCompletionStreamResponse;
+use async_openai::types::{
+    ChatCompletionRequestMessage, ChatCompletionTool, CreateChatCompletionResponse,
+    CreateChatCompletionStreamResponse,
+};
 use async_trait::async_trait;
+use serde::Serialize;
 
 use super::OpenAIChatBuilder;
-use super::helper::select_choice;
-use super::request::ChatRequest;
-use crate::llm::chat::helper::{generate, map_stream};
+use crate::agent::AgentError;
+use crate::llm::chat::helper::{generate, map_stream, select_choice};
 use crate::llm::options::LLMOptions;
-use crate::llm::{LLM, LLMError, LlmCapabilities, OpenAIModel};
+use crate::llm::{ChatRequest, LLM, LLMError, LlmSession, OpenAIModel, OpenAiChatSession};
 use crate::schemas::{
     IntoWithUsage, LLMOutput, LLMStream, Message, Prompt, Role, ToolSpec, WithUsage,
 };
@@ -24,7 +29,7 @@ pub struct OpenAIChat<C: Config = OpenAIConfig> {
     /// The model id.
     model: String,
     /// The call options for the LLM.
-    options: LLMOptions,
+    pub(super) options: LLMOptions,
 }
 
 impl<C: Config + Default> OpenAIChat<C> {
@@ -76,7 +81,7 @@ impl<C: Config> OpenAIChat<C> {
     /// The processing includes:
     /// - Converting system messages to ai messages if configured.
     /// - Dropping the content of messages with tool calls if configured.
-    fn process_prompt(&self, prompt: Prompt) -> Vec<Message> {
+    fn process_prompt(&self, prompt: Prompt) -> Vec<ChatCompletionRequestMessage> {
         prompt
             .to_messages()
             .into_iter()
@@ -90,9 +95,94 @@ impl<C: Config> OpenAIChat<C> {
                 {
                     message.content = "".into();
                 }
-                message
+                ChatCompletionRequestMessage::from(message)
             })
             .collect()
+    }
+
+    /// Builds a chat completion request with the configured call options.
+    pub(super) fn build_request<'a, M: Serialize>(
+        &self,
+        messages: M,
+        function_specs: Option<Cow<'a, [ChatCompletionTool]>>,
+    ) -> ChatRequest<'a, M> {
+        ChatRequest::new(&self.model, messages, function_specs).with_options(&self.options)
+    }
+
+    /// Sends a chat completion request to the server.
+    pub(super) async fn send_request<M: Serialize>(
+        &self,
+        request: ChatRequest<'_, M>,
+    ) -> Result<CreateChatCompletionResponse, LLMError> {
+        let response = generate(&self.client, request).await?;
+        log::trace!("Received response: {response:?}");
+        Ok(response)
+    }
+}
+
+#[async_trait]
+impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
+    async fn generate(
+        &self,
+        prompt: Prompt,
+        tools: Option<&ToolSpec>,
+    ) -> Result<WithUsage<LLMOutput>, LLMError> {
+        if tools.as_ref().is_some_and(|t| !t.mcps.is_empty()) {
+            log::warn!("`OpenAIChat` does not support mcp tools natively, they will be ignored");
+        }
+
+        let function_specs =
+            tools.map(|t| t.functions.clone().into_iter().map(|f| f.into()).collect());
+        let messages = self.process_prompt(prompt);
+
+        let request = self.build_request(messages, function_specs);
+        let response = self.send_request(request).await?;
+
+        let choice: async_openai::types::ChatChoice = select_choice(response.choices)?;
+        if let Some(refusal) = choice.message.refusal {
+            return Err(LLMError::Refused(refusal));
+        }
+        let output: LLMOutput = choice.message.try_into()?;
+        let usage = response.usage.map(Into::into);
+
+        Ok(output.with_usage(usage))
+    }
+
+    async fn stream(
+        &self,
+        prompt: Prompt,
+        tools: Option<&ToolSpec>,
+    ) -> Result<LLMStream, LLMError> {
+        if tools.as_ref().is_some_and(|t| !t.mcps.is_empty()) {
+            log::warn!("`OpenAIChat` does not support mcp tools natively, they will be ignored");
+        }
+
+        let function_specs =
+            tools.map(|t| t.functions.clone().into_iter().map(|f| f.into()).collect());
+        let messages = self.process_prompt(prompt);
+
+        let request = self.build_request(messages, function_specs);
+
+        let original_stream = self
+            .client
+            .chat()
+            .create_stream_byot::<_, CreateChatCompletionStreamResponse>(request)
+            .await?;
+        let new_stream = map_stream(original_stream);
+        Ok(new_stream)
+    }
+
+    async fn begin_session<'a>(
+        &'a self,
+        prompt: Vec<Message>,
+        tool_spec: Option<ToolSpec>,
+    ) -> Result<Box<dyn LlmSession + 'a>, AgentError> {
+        let session = OpenAiChatSession::new(self, prompt, tool_spec).await?;
+        Ok(Box::new(session))
+    }
+
+    fn with_options(&mut self, options: LLMOptions) {
+        self.options.merge_options(options)
     }
 }
 
@@ -106,69 +196,6 @@ impl Default for OpenAIChat<OpenAIConfig> {
     }
 }
 
-#[async_trait]
-impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
-    fn capabilities(&self) -> LlmCapabilities {
-        LlmCapabilities { native_mcp: false }
-    }
-
-    async fn generate(
-        &self,
-        prompt: Prompt,
-        tools: Option<&ToolSpec>,
-    ) -> Result<WithUsage<LLMOutput>, LLMError> {
-        if tools.as_ref().is_some_and(|t| !t.mcps.is_empty()) {
-            return Err(LLMError::unsupported(
-                "OpenAIChat does not support mcp tools natively",
-            ));
-        }
-        let tools = tools.map(|t| t.functions.to_vec());
-
-        let messages = self.process_prompt(prompt);
-        let options = self.options.clone();
-        let stream = self.options.stream.unwrap_or(false);
-        let request = ChatRequest::new(&self.model, messages, tools)?.with_options(options);
-        let response = generate(&self.client, request, stream).await?;
-
-        let choice: async_openai::types::ChatChoice = select_choice(response.choices)
-            .ok_or(LLMError::ContentNotFound("No choices".into()))?;
-
-        let output: LLMOutput = choice.message.try_into()?;
-        let usage = response.usage.map(Into::into);
-
-        Ok(output.with_usage(usage))
-    }
-
-    async fn stream(
-        &self,
-        prompt: Prompt,
-        tools: Option<&ToolSpec>,
-    ) -> Result<LLMStream, LLMError> {
-        if tools.as_ref().is_some_and(|t| !t.mcps.is_empty()) {
-            return Err(LLMError::unsupported(
-                "GenericChat does not support mcp tools natively",
-            ));
-        }
-        let tools = tools.map(|t| t.functions.to_vec());
-
-        let messages = self.process_prompt(prompt);
-        let options = self.options.clone();
-        let request = ChatRequest::new(&self.model, messages, tools)?.with_options(options);
-
-        let original_stream = self
-            .client
-            .chat()
-            .create_stream_byot::<_, CreateChatCompletionStreamResponse>(request)
-            .await?;
-        let new_stream = map_stream(original_stream);
-        Ok(new_stream)
-    }
-
-    fn with_options(&mut self, options: LLMOptions) {
-        self.options.merge_options(options)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
@@ -178,7 +205,7 @@ mod tests {
     use tokio::test;
 
     use super::*;
-    use crate::schemas::{ImageContent, Prompt};
+    use crate::schemas::{ImageContent, Message, Prompt};
 
     #[test]
     #[ignore]

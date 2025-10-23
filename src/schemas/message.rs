@@ -16,6 +16,7 @@ use serde_json::json;
 
 use super::{Role, ToolCall};
 use crate::schemas::ImageContent;
+use crate::utils::helper::capitalize_first;
 
 /// A single message of an LLM interaction.
 ///
@@ -132,23 +133,36 @@ impl Message {
 
 impl fmt::Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(tool_calls) = &self.tool_calls {
-            writeln!(f, "Tool call:",)?;
-            for (i, tool_call) in tool_calls.iter().enumerate() {
-                if i > 0 {
-                    writeln!(f)?;
-                }
-                write!(f, "{tool_call}")?;
-            }
-            Ok(())
-        } else if let Some(images) = &self.images {
-            write!(f, "{}: {}\nImages: {:?}", self.role, self.content, images)
-        } else if !self.content.is_empty() {
-            write!(f, "{}: {}", self.role, self.content)
-        } else {
-            log::warn!("Message without content nor tool calls found, possibly an error");
-            Ok(())
+        let role = capitalize_first(&self.role.to_string());
+        write!(f, "{role} message:")?;
+
+        let mut is_empty = true;
+
+        if !self.content.is_empty() {
+            is_empty = false;
+            write!(f, "\n{}", self.content)?;
         }
+
+        if let Some(calls) = &self.tool_calls
+            && !calls.is_empty()
+        {
+            is_empty = false;
+            writeln!(f, "tool calls:",)?;
+            for call in calls {
+                write!(f, "\n{call}")?;
+            }
+        }
+
+        if let Some(images) = &self.images {
+            is_empty = false;
+            write!(f, "\nimages: {images:?}")?
+        }
+
+        if is_empty {
+            write!(f, "\n(Empty message)")?;
+        }
+
+        Ok(())
     }
 }
 
