@@ -43,10 +43,10 @@ use crate::utils::helper::capitalize_first;
 /// ```
 #[derive(Debug, Clone)]
 pub struct Message {
-    /// The unique identifier for the message. May be missing depending on the LLM provider.
-    pub id: Option<String>,
     /// The message role. e.g. system, ai, human, tool
     pub role: Role,
+    /// The tool call id for a tool result message.
+    pub id: Option<String>,
     /// The content of the message.
     pub content: String,
     /// Tool calls associated with the message.
