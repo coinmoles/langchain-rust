@@ -36,8 +36,8 @@ pub enum LLMError {
     Refused(String),
 
     /// Error not covered by other variants.
-    #[error("Error: {0}")]
-    OtherError(String),
+    #[error("{0}")]
+    Other(String),
 }
 
 impl LLMError {
@@ -48,7 +48,7 @@ impl LLMError {
 
     /// Create a new `LLMError::OtherError` with the given message.
     pub fn other(msg: impl Into<String>) -> Self {
-        LLMError::OtherError(msg.into())
+        LLMError::Other(msg.into())
     }
 }
 

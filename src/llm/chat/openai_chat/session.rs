@@ -150,7 +150,7 @@ impl<'a, C: Config + Send + Sync + 'static> OpenAiChatSession<'a, C> {
         } else if let Some(text) = content {
             return Ok(LLMOutput::new(LLMEvent::Text(text), None).with_usage(usage));
         } else {
-            return Err(LLMError::OtherError(
+            return Err(LLMError::Other(
                 "Cannot convert LLM generation result to LLMOutput".into(),
             )
             .into());
