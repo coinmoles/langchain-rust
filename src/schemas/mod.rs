@@ -1,3 +1,5 @@
+pub use async_openai::types::ReasoningEffort;
+
 mod role;
 pub use role::*;
 

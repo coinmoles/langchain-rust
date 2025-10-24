@@ -1,6 +1,4 @@
-use async_openai::types::ReasoningEffort;
-
-use crate::schemas::{ResponseFormat, ToolChoice};
+use crate::schemas::{ReasoningEffort, ResponseFormat, ToolChoice};
 
 /// Options for LLM calls.
 #[derive(Clone, Debug)]
