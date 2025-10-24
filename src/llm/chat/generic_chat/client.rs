@@ -10,10 +10,11 @@ use serde::Serialize;
 
 use crate::agent::AgentError;
 use crate::llm::chat::helper::{generate, map_stream, select_choice};
+use crate::llm::chat::request::ChatRequest;
 use crate::llm::options::LLMOptions;
 use crate::llm::{
-    ChatRequest, DefaultInstructor, GenericChatBuilder, GenericChatSession, Instructor, LLM,
-    LLMError, LlmSession, OpenAIModel,
+    DefaultInstructor, GenericChatBuilder, GenericChatSession, Instructor, LLM, LLMError,
+    LlmSession, OpenAIModel,
 };
 use crate::schemas::{
     FunctionSpec, IntoWithUsage, LLMOutput, LLMStream, Message, Prompt, Role, ToolSpec, WithUsage,

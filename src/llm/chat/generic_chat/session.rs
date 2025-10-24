@@ -8,11 +8,13 @@ use async_openai::types::{
 use async_trait::async_trait;
 
 use crate::agent::AgentError;
+use crate::llm::chat::chat_history::ChatHistory;
 use crate::llm::chat::helper::{
     McpHandleResult, add_force_final_answer_message, append_system, handle_mcp_calls,
     resolve_mcp_tools, select_choice, system_message, user_message,
 };
-use crate::llm::{ChatHistory, ChatRequest, GenericChat, LLMError, LlmSession, StepBuffer};
+use crate::llm::chat::request::ChatRequest;
+use crate::llm::{GenericChat, LLMError, LlmSession, StepBuffer};
 use crate::memory::Memory;
 use crate::schemas::{
     IntoWithUsage, LLMEvent, LLMOutput, Message, Role, TokenUsage, ToolCall, ToolSpec, WithUsage,

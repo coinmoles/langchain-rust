@@ -11,11 +11,13 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 use crate::agent::AgentError;
+use crate::llm::chat::chat_history::ChatHistory;
 use crate::llm::chat::helper::{
     McpHandleResult, add_force_final_answer_message, handle_mcp_calls, resolve_mcp_tools,
     select_choice, system_message, tool_message,
 };
-use crate::llm::{ChatHistory, ChatRequest, LLMError, LlmSession, OpenAIChat, StepBuffer};
+use crate::llm::chat::request::ChatRequest;
+use crate::llm::{LLMError, LlmSession, OpenAIChat, StepBuffer};
 use crate::memory::Memory;
 use crate::schemas::{
     IntoWithUsage, LLMEvent, LLMOutput, Message, Role, TokenUsage, ToolCall, ToolSpec, WithUsage,

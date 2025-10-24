@@ -22,7 +22,8 @@ use futures::StreamExt;
 use itertools::{Either, Itertools};
 use serde::Serialize;
 
-use crate::llm::{ChatRequest, LLMError};
+use crate::llm::LLMError;
+use crate::llm::chat::request::ChatRequest;
 use crate::schemas::{FunctionSpec, LLMStream, LLMStreamChunk, ToolCall, ToolSpec};
 use crate::tools::{FunctionTool, McpTool, ToolData, ToolError, ToolOutput};
 use crate::utils::helper::{FORCE_FINAL_ANSWER, add_option_numbers};

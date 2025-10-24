@@ -12,8 +12,9 @@ use serde::Serialize;
 use super::OpenAIChatBuilder;
 use crate::agent::AgentError;
 use crate::llm::chat::helper::{generate, map_stream, select_choice};
+use crate::llm::chat::request::ChatRequest;
 use crate::llm::options::LLMOptions;
-use crate::llm::{ChatRequest, LLM, LLMError, LlmSession, OpenAIModel, OpenAiChatSession};
+use crate::llm::{LLM, LLMError, LlmSession, OpenAIModel, OpenAiChatSession};
 use crate::schemas::{IntoWithUsage, LLMOutput, LLMStream, Message, Prompt, ToolSpec, WithUsage};
 
 /// A wrapper for OpenAI chat models.
