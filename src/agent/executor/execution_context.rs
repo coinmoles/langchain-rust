@@ -103,6 +103,9 @@ where
             let Ok(output) = self.advance_session(session.as_mut()).await else {
                 continue;
             };
+            if let Some(thought) = output.thought {
+                log::debug!("\nLLM thought:\n{thought}");
+            }
             match output.event {
                 LLMEvent::ToolCall(tool_calls) => {
                     self.handle_tool_calls(session.as_mut(), tool_calls).await
