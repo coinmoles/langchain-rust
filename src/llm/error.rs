@@ -27,8 +27,8 @@ pub enum LLMError {
     #[error("Failed to serialize/deserialize response: {0:?}")]
     ResponseSerdeError(SerdeJsonError),
 
-    #[error("Invalid header value for the header `{0}`: {1:?}")]
-    InvalidHeader(String, String),
+    #[error("Invalid value for the header `{0}`: {1:?}")]
+    InvalidHeader(&'static str, String),
 
     /// Error indicating that the LLM response does not contain the expected content.
     #[error("Content not found in response: Expected at {0}")]
@@ -44,8 +44,8 @@ pub enum LLMError {
 }
 
 impl LLMError {
-    pub fn invalid_header(header: impl Into<String>, value: impl Into<String>) -> Self {
-        LLMError::InvalidHeader(header.into(), value.into())
+    pub fn invalid_header(header: &'static str, value: impl Into<String>) -> Self {
+        LLMError::InvalidHeader(header, value.into())
     }
 
     /// Constructs a new `LLMError::ContentNotFound` with the given message.
