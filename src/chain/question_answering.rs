@@ -7,7 +7,7 @@ use indoc::indoc;
 use super::{ChainError, LLMChain};
 use crate::chain::{Chain, ChainInput, Ctor, InputCtor, StringCtor, TextReplacements};
 use crate::llm::LLM;
-use crate::schemas::{Document, LLMStream, Message, Role, WithUsage};
+use crate::schemas::{Document, Message, Role, WithUsage};
 use crate::template::MessageTemplate;
 
 #[derive(Clone, ChainInput, Ctor)]
@@ -83,10 +83,6 @@ impl CondenseQuestionGeneratorChain<CondenseQuestionPromptCtor> {
 impl<I: InputCtor> Chain<I, StringCtor> for CondenseQuestionGeneratorChain<I> {
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<String>, ChainError> {
         self.chain.call(input).await
-    }
-
-    async fn stream(&self, input: I::Target<'_>) -> Result<LLMStream, ChainError> {
-        self.chain.stream(input).await
     }
 }
 

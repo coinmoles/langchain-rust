@@ -13,7 +13,7 @@ use crate::chain::{
     StuffQACtor,
 };
 use crate::llm::LLM;
-use crate::schemas::{LLMStream, Prompt, Role, WithUsage};
+use crate::schemas::{Prompt, Role, WithUsage};
 use crate::template::{MessageTemplate, TemplateError};
 
 pub struct StuffDocument<I = StuffQACtor, O = StringCtor>
@@ -110,10 +110,6 @@ where
 {
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
         self.llm_chain.call(input).await
-    }
-
-    async fn stream(&self, input: I::Target<'_>) -> Result<LLMStream, ChainError> {
-        self.llm_chain.stream(input).await
     }
 }
 

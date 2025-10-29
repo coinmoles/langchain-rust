@@ -24,7 +24,7 @@ use serde::Serialize;
 
 use crate::llm::LLMError;
 use crate::llm::chat::request::ChatRequest;
-use crate::schemas::{FunctionSpec, LLMStream, LLMStreamChunk, ToolCall, ToolSpec};
+use crate::schemas::{FunctionSpec, ToolCall, ToolSpec};
 use crate::tools::{FunctionTool, McpTool, ToolData, ToolError, ToolOutput};
 use crate::utils::helper::{FORCE_FINAL_ANSWER, add_option_numbers};
 
@@ -295,32 +295,6 @@ pub async fn generate<C: Config, M: Serialize>(
     };
 
     Ok(response)
-}
-
-/// Maps a [`ChatCompletionResponseStream`] into an `LLMStream`.
-pub fn map_stream(original: ChatCompletionResponseStream) -> LLMStream {
-    let new = original.map(|result| match result {
-        Ok(completion) => {
-            if let Some(usage) = completion.usage.clone() {
-                let usage = usage.into();
-                let completion =
-                    serde_json::to_value(completion).map_err(LLMError::ResponseSerdeError)?;
-                return Ok(LLMStreamChunk::new(completion, Some(usage), ""));
-            }
-            if let Some(content) = completion
-                .choices
-                .first()
-                .and_then(|c| c.delta.content.clone())
-            {
-                let completion =
-                    serde_json::to_value(completion).map_err(LLMError::ResponseSerdeError)?;
-                return Ok(LLMStreamChunk::new(completion, None, content));
-            }
-            Err(LLMError::content_not_found("/choices/0/delta/content"))
-        }
-        Err(e) => Err(LLMError::from(e)),
-    });
-    Box::pin(new)
 }
 
 /// Initialize the mcp tools for a session.

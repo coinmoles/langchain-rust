@@ -1,14 +1,11 @@
 use async_openai::Client as OpenAIClient;
 use async_openai::config::{Config, OpenAIConfig};
-use async_openai::types::responses::ResponseEvent;
 use async_trait::async_trait;
 
 use crate::llm::options::LLMOptions;
-use crate::llm::responses::helper::{construct_output, generate, map_stream};
+use crate::llm::responses::helper::{construct_output, generate};
 use crate::llm::{LLM, LLMError, OpenAIModel, ResponsesRequest};
-use crate::schemas::{
-    IntoWithUsage, LLMOutput, LLMStream, Message, Prompt, Role, ToolSpec, WithUsage,
-};
+use crate::schemas::{IntoWithUsage, LLMOutput, Message, Prompt, Role, ToolSpec, WithUsage};
 
 #[derive(Clone)]
 pub struct OpenAIResponses<C: Config> {
@@ -66,25 +63,6 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIResponses<C> {
         let result = construct_output(response.output)?;
         let usage = response.usage.map(Into::into);
         Ok(result.with_usage(usage))
-    }
-
-    async fn stream(
-        &self,
-        prompt: Prompt,
-        tools: Option<&ToolSpec>,
-    ) -> Result<LLMStream, LLMError> {
-        let messages = self.process_prompt(prompt);
-        let options = self.options.clone();
-        let request =
-            ResponsesRequest::new(&self.model, messages, tools.cloned())?.with_options(options);
-
-        let stream = self
-            .client
-            .responses()
-            .create_stream_byot::<_, ResponseEvent>(request)
-            .await?;
-        let new_stream = map_stream(stream);
-        Ok(new_stream)
     }
 
     fn with_options(&mut self, options: LLMOptions) {

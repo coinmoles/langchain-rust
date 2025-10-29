@@ -5,7 +5,7 @@ use super::{
     SqlChainLLMChainInput, SqlChainLLMChainInputCtor,
 };
 use crate::chain::{Chain, ChainError, LLMChain, StringCtor};
-use crate::schemas::{IntoWithUsage, LLMStream, TokenUsage, WithUsage};
+use crate::schemas::{IntoWithUsage, TokenUsage, WithUsage};
 use crate::tools::SQLDatabase;
 
 pub struct SQLDatabaseChain {
@@ -129,11 +129,5 @@ impl Chain<SqlChainInputCtor, StringCtor> for SQLDatabaseChain {
         let output = if strs.len() > 1 { strs[1] } else { strs[0] };
         let output = output.trim().to_string();
         Ok(output.with_usage(total_usage))
-    }
-
-    async fn stream(&self, input: SqlChainInput<'_>) -> Result<LLMStream, ChainError> {
-        let (llm_inputs, _) = self.call_builder_chains(&input).await?;
-
-        self.llm_chain.stream(llm_inputs).await
     }
 }

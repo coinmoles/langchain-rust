@@ -1,10 +1,8 @@
 use std::fmt::Display;
 use std::sync::Arc;
 
-use async_stream::stream;
 use async_trait::async_trait;
-use futures_util::{StreamExt, pin_mut};
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 
 use super::{ConversationalChainBuilder, ConversationalChainInput, ConversationalChainInputCtor};
 use crate::chain::{
@@ -12,9 +10,7 @@ use crate::chain::{
     OutputCtor, StringCtor,
 };
 use crate::memory::Memory;
-use crate::schemas::{
-    IntoWithUsage, LLMEvent, LLMOutputCtor, LLMStream, Message, Prompt, WithUsage,
-};
+use crate::schemas::{IntoWithUsage, LLMEvent, LLMOutputCtor, Message, Prompt, WithUsage};
 use crate::template::TemplateError;
 
 pub struct ConversationalChain<I: InputCtor = DefaultChainInputCtor, O: OutputCtor = StringCtor>
@@ -74,47 +70,6 @@ where
         };
 
         Ok(content.with_usage(result.usage))
-    }
-
-    async fn stream(&self, input: I::Target<'_>) -> Result<LLMStream, ChainError> {
-        let human_message = Message::new_human_message(input.to_string());
-
-        let history = {
-            let memory = self.memory.read().await;
-            memory.to_string()
-        };
-        let input = ConversationalChainInput::new(input).with_history(history);
-
-        let complete_ai_message = Arc::new(Mutex::new(String::new()));
-        let complete_ai_message_clone = complete_ai_message.clone();
-
-        let memory = self.memory.clone();
-
-        let stream = self.llm_chain.stream(input).await?;
-
-        let output_stream = stream! {
-            pin_mut!(stream);
-            while let Some(result) = stream.next().await {
-                match result {
-                    Ok(data) => {
-                        let mut complete_ai_message_clone =
-                            complete_ai_message_clone.lock().await;
-                        complete_ai_message_clone.push_str(&data.content);
-
-                        yield Ok(data);
-                    },
-                    Err(e) => {
-                        yield Err(e);
-                    }
-                }
-            }
-
-            let mut memory = memory.write().await;
-            memory.add_message(human_message);
-            memory.add_ai_message(complete_ai_message.lock().await.to_string());
-        };
-
-        Ok(Box::pin(output_stream))
     }
 }
 

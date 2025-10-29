@@ -1,11 +1,10 @@
 use async_openai::Client as OpenAiClient;
 use async_openai::config::Config;
 use async_openai::error::OpenAIError;
-use async_openai::types::responses::{Content, OutputContent, Response, ResponseStream};
-use futures::StreamExt;
+use async_openai::types::responses::{Content, OutputContent, Response};
 
 use crate::llm::{LLMError, ResponsesRequest};
-use crate::schemas::{LLMEvent, LLMOutput, LLMStream, LLMStreamChunk, TokenUsage, ToolCall};
+use crate::schemas::{LLMEvent, LLMOutput, ToolCall};
 
 // fn add_option_numbers<T>(a: Option<T>, b: Option<T>) -> Option<T>
 // where
@@ -222,33 +221,4 @@ pub async fn generate<C: Config>(
 
     let response = client.chat().create_byot::<_, Response>(request).await?;
     Ok(response)
-}
-
-pub fn map_stream(original: ResponseStream) -> LLMStream {
-    let new = original.map(|result| match result {
-        Ok(completion) => {
-            let value_completion =
-                serde_json::to_value(completion).map_err(LLMError::ResponseSerdeError)?;
-            let usage = value_completion.pointer("/usage");
-            if usage.is_some() && !usage.unwrap().is_null() {
-                let usage = serde_json::from_value::<TokenUsage>(usage.unwrap().clone())
-                    .map_err(LLMError::ResponseSerdeError)?;
-                return Ok(LLMStreamChunk::new(value_completion, Some(usage), ""));
-            }
-            let content = value_completion
-                .pointer("/choices/0/delta/content")
-                .ok_or(LLMError::ContentNotFound(
-                    "/choices/0/delta/content".to_string(),
-                ))?
-                .clone();
-
-            Ok(LLMStreamChunk::new(
-                value_completion,
-                None,
-                content.as_str().unwrap_or(""),
-            ))
-        }
-        Err(e) => Err(LLMError::from(e)),
-    });
-    Box::pin(new)
 }

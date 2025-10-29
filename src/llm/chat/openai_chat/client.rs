@@ -4,18 +4,17 @@ use async_openai::Client as OpenAIClient;
 use async_openai::config::{Config, OpenAIConfig};
 use async_openai::types::{
     ChatCompletionRequestMessage, ChatCompletionTool, CreateChatCompletionResponse,
-    CreateChatCompletionStreamResponse,
 };
 use async_trait::async_trait;
 use serde::Serialize;
 
 use super::OpenAIChatBuilder;
 use crate::agent::AgentError;
-use crate::llm::chat::helper::{generate, map_stream, select_choice};
+use crate::llm::chat::helper::{generate, select_choice};
 use crate::llm::chat::request::ChatRequest;
 use crate::llm::options::LLMOptions;
 use crate::llm::{LLM, LLMError, LlmSession, OpenAIModel, OpenAiChatSession};
-use crate::schemas::{IntoWithUsage, LLMOutput, LLMStream, Message, Prompt, ToolSpec, WithUsage};
+use crate::schemas::{IntoWithUsage, LLMOutput, Message, Prompt, ToolSpec, WithUsage};
 
 /// A wrapper for OpenAI chat models.
 ///
@@ -136,30 +135,6 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
         let usage = response.usage.map(Into::into);
 
         Ok(output.with_usage(usage))
-    }
-
-    async fn stream(
-        &self,
-        prompt: Prompt,
-        tools: Option<&ToolSpec>,
-    ) -> Result<LLMStream, LLMError> {
-        if tools.as_ref().is_some_and(|t| !t.mcps.is_empty()) {
-            log::warn!("`OpenAIChat` does not support mcp tools natively, they will be ignored");
-        }
-
-        let function_specs =
-            tools.map(|t| t.functions.clone().into_iter().map(|f| f.into()).collect());
-        let messages = self.process_prompt(prompt);
-
-        let request = self.build_request(messages, function_specs);
-
-        let original_stream = self
-            .client
-            .chat()
-            .create_stream_byot::<_, CreateChatCompletionStreamResponse>(request)
-            .await?;
-        let new_stream = map_stream(original_stream);
-        Ok(new_stream)
     }
 
     async fn begin_session<'a>(

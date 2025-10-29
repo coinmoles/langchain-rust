@@ -1,7 +1,4 @@
-use std::io::{Write, stdout};
-
 use async_openai::config::OpenAIConfig;
-use futures_util::StreamExt;
 use langchain_rust::chain::{Chain, ConversationalChain, DefaultChainInput, DefaultChainInputCtor};
 use langchain_rust::llm::{OpenAIChat, OpenAIModel};
 use langchain_rust::memory::SimpleMemory;
@@ -36,27 +33,14 @@ async fn main() {
         .expect("Error building ConversationalChain");
 
     let input = DefaultChainInput::new("I'm from Peru");
-
-    let mut stream = chain.stream(input).await.unwrap();
-    while let Some(result) = stream.next().await {
-        match result {
-            Ok(data) => {
-                //If you just want to print to stdout, you can use data.to_stdout().unwrap();
-                print!("{}", data.content);
-                stdout().flush().unwrap();
-            }
-            Err(e) => {
-                println!("Error: {e:?}");
-            }
-        }
+    match chain.call(input).await {
+        Ok(result) => println!("{}", result.content),
+        Err(e) => println!("Error: {e:?}"),
     }
 
     let input = DefaultChainInput::new("Which are the typical dish");
     match chain.call(input).await {
-        Ok(result) => {
-            println!("\n");
-            println!("Result: {}", result.content);
-        }
+        Ok(result) => println!("Result: {}", result.content),
         Err(e) => panic!("Error invoking LLMChain: {e:?}"),
     }
 }

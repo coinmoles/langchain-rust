@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use crate::agent::AgentError;
 use crate::llm::options::LLMOptions;
 use crate::llm::{DefaultSession, LLMError, LlmSession};
-use crate::schemas::{LLMOutput, LLMStream, Message, Prompt, ToolSpec, WithUsage};
+use crate::schemas::{LLMOutput, Message, Prompt, ToolSpec, WithUsage};
 
 /// A common interface for interacting with LLM backends.
 ///
@@ -24,10 +24,6 @@ pub trait LLM: Sync + Send {
         let result = self.generate(prompt, None).await?.content.to_string();
         Ok(result)
     }
-
-    /// Generates a response from the LLM with the provided prompt in a server-sent event stream.
-    async fn stream(&self, prompt: Prompt, tools: Option<&ToolSpec>)
-    -> Result<LLMStream, LLMError>;
 
     /// Begins a new session with the agent LLM.
     ///

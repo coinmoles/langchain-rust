@@ -1,12 +1,10 @@
-use std::borrow::Borrow;
-
 use async_trait::async_trait;
 
 use super::LLMChainBuilder;
 use crate::chain::{Chain, ChainError, ChainOutput, GetPrompt, InputCtor, OutputCtor, StringCtor};
 use crate::llm::LLM;
 use crate::output_parser::OutputParser;
-use crate::schemas::{IntoWithUsage, LLMEvent, LLMStream, Prompt, ToolSpec, WithUsage};
+use crate::schemas::{IntoWithUsage, LLMEvent, Prompt, ToolSpec, WithUsage};
 use crate::template::{PromptTemplate, TemplateError};
 
 pub struct LLMChain<I: InputCtor, O: OutputCtor = StringCtor>
@@ -49,16 +47,6 @@ where
 
         Ok(content.with_usage(usage))
     }
-
-    pub async fn stream_llm(
-        &self,
-        input: &I::Target<'_>,
-        tools: Option<&ToolSpec>,
-    ) -> Result<LLMStream, ChainError> {
-        let prompt = self.prompt.format(input.borrow())?;
-        let stream = self.llm.stream(prompt, tools).await?;
-        Ok(stream)
-    }
 }
 
 #[async_trait]
@@ -83,10 +71,6 @@ where
         };
 
         Ok(content.with_usage(usage))
-    }
-
-    async fn stream(&self, input: I::Target<'_>) -> Result<LLMStream, ChainError> {
-        self.stream_llm(&input, None).await
     }
 }
 
