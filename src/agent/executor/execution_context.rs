@@ -7,7 +7,7 @@ use tracing::instrument;
 use crate::agent::{AgentError, AgentExecutor, DefaultStrategy, ExecutionOutput, Strategy};
 use crate::chain::{ChainError, ChainOutput, InputCtor, OutputCtor};
 use crate::llm::LlmSession;
-use crate::schemas::{LLMEvent, LLMOutput, Message, Role, TokenUsage, ToolCall, ToolSpec};
+use crate::schemas::{LLMEvent, Message, Role, TokenUsage, ToolCall, ToolSpec};
 use crate::tools::{FunctionTool, Tool};
 use crate::utils::helper::normalize_tool_name;
 
@@ -100,20 +100,17 @@ where
         }
 
         while !self.fail_limit_reached() {
-            let Ok(output) = self.advance_session(session.as_mut()).await else {
+            let Ok(event) = self.advance_session(session.as_mut()).await else {
                 continue;
             };
-            if let Some(thought) = output.thought {
-                log::debug!("\nLLM thought:\n{thought}");
-            }
-            match output.event {
+            match event {
                 LLMEvent::ToolCall(tool_calls) => {
                     self.handle_tool_calls(session.as_mut(), tool_calls).await
                 }
                 LLMEvent::Text(final_answer) => match self.finalize(final_answer).await {
                     Ok(ok) => return Ok(ok),
                     Err(FinalizeFailure::Abort(e)) => return Err(e),
-                    Err(FinalizeFailure::Retry(new_context)) => self = new_context,
+                    Err(FinalizeFailure::Retry(ctx)) => self = ctx,
                 },
             }
             self.step_count += 1;
@@ -127,7 +124,11 @@ where
         let messages = self.strategy.process_initial_messages(messages).await?;
 
         self.initial_messages = messages.clone();
-        log_messages(&messages);
+        if log::log_enabled!(log::Level::Debug) {
+            for message in &messages {
+                log::debug!("\n{message}");
+            }
+        }
 
         Ok(messages)
     }
@@ -150,13 +151,19 @@ where
     async fn advance_session(
         &mut self,
         session: &mut dyn LlmSession,
-    ) -> Result<LLMOutput, ChainError> {
+    ) -> Result<LLMEvent, ChainError> {
         let output = match session.advance().await {
             Ok(output) => output,
             Err(e) => return failure!(self, e, "Failed to advance session"),
         };
         self.add_usage(output.usage);
-        self.strategy.process_plan(output.content).await
+
+        let output = self.strategy.process_plan(output.content).await?;
+        if let Some(thought) = output.thought {
+            log::debug!("\nLLM thought:\n{thought}");
+        };
+
+        Ok(output.event)
     }
 
     async fn handle_tool_calls(&mut self, session: &mut dyn LlmSession, tool_calls: Vec<ToolCall>) {
@@ -274,14 +281,5 @@ where
     fn force_final_answer(&self, session: &mut dyn LlmSession) {
         log::warn!("Forcing final answer due to max iterations reached");
         session.force_final_answer()
-    }
-}
-
-fn log_messages(messages: &[Message]) {
-    if !log::log_enabled!(log::Level::Debug) {
-        return;
-    }
-    for message in messages {
-        log::debug!("\n{message}");
     }
 }
