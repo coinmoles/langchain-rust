@@ -1,8 +1,7 @@
 use crate::schemas::{Message, ToolCall};
 
-/// Trait for long-term memory.
+/// Long-term memory to store and retrieve messages.
 ///
-/// This trait defines the interface for a memory system that can store and retrieve messages.
 /// The memory objects are most notably used by [`AgentExecutor`](crate::agent::AgentExecutor) to
 /// store chat history across executions.
 pub trait Memory: Send + Sync {
