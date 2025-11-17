@@ -13,10 +13,7 @@ use crate::template::TemplateError;
 
 /// A runtime executor for driving multi-step agent execution with memory, planning, and tool use.
 ///
-/// This struct coordinates the full reasoning loop of an [`Agent`](crate::agent::Agent), handling
-/// prompt generation, scratchpad construction, tool resolution, and optional memory integration. It
-/// provides a high-level interface for running agents in a predictable, type-safe, and optionally
-/// stateful manner.
+/// This struct coordinates the full reasoning loop of an [`Agent`](crate::agent::Agent).
 ///
 /// # Type Parameters
 /// - `I`: A [constructor](crate::chain::Ctor) for the agent’s input type.
@@ -97,7 +94,8 @@ where
         ExecutionContext::new(self, input, DefaultStrategy)
     }
 
-    /// Constructs a new [`ExecutionContext`] with the provided input and custom strategy.
+    /// Constructs a new [`ExecutionContext`] with the provided input and custom
+    /// [strategy](Strategy).
     ///
     /// The [`ExecutionContext::start`] method can then be called to begin the execution.
     pub fn execution_with_strategy<'exec, 'input, S: Strategy>(
