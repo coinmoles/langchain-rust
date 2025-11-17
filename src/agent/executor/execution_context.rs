@@ -11,6 +11,7 @@ use crate::schemas::{LLMEvent, Message, Role, TokenUsage, ToolCall, ToolSpec};
 use crate::tools::{FunctionTool, Tool};
 use crate::utils::helper::normalize_tool_name;
 
+/// Helper macro to log the error and increment the consecutive error count.
 macro_rules! failure {
     ($ctx:expr, $e:expr, $($args:tt)*) => {{
         $ctx.consecutive_fails += 1;
@@ -23,6 +24,7 @@ macro_rules! failure {
     }};
 }
 
+/// Helper enum to return the context on recoverable finalize failures.
 enum FinalizeFailure<Ctx> {
     Retry(Ctx),
     Abort(ChainError),
