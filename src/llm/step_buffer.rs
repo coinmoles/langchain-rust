@@ -10,7 +10,7 @@ use crate::tools::{ToolData, ToolError, ToolOutput};
 /// When a model generates multiple tool calls for a single step, it can be beneficial to exclude
 /// failed tool calls from the chat history entirely. Instead of inserting the tool calls to chat
 /// history and modifying them once the tool call fails, this struct can be used to preserve and
-/// delay inserting the them after they are completed.
+/// delay inserting the calls after they are completed.
 #[derive(Default)]
 #[repr(transparent)]
 pub struct StepBuffer<C: CallId>(Option<BufferedStep<C>>);
