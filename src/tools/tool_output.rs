@@ -50,6 +50,14 @@ where
 }
 
 impl ToolData {
+    pub fn from_vec(items: Vec<String>) -> Self {
+        if items.len() == 1 {
+            Self::Text(items.into_iter().next().expect("Length 1 checked"))
+        } else {
+            Self::List(items)
+        }
+    }
+
     pub fn into_vec(self) -> Vec<String> {
         match self {
             ToolData::Text(text) => vec![text],
