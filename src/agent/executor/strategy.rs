@@ -141,6 +141,17 @@ where
         }
     }
 
+    async fn process_initial_messages(
+        &mut self,
+        messages: Vec<Message>,
+    ) -> Result<Vec<Message>, ChainError> {
+        if let Some(strategy) = self {
+            strategy.process_initial_messages(messages).await
+        } else {
+            Ok(messages)
+        }
+    }
+
     async fn process_plan(&mut self, plan: LLMOutput) -> Result<LLMOutput, ChainError> {
         if let Some(strategy) = self {
             strategy.process_plan(plan).await
@@ -195,6 +206,14 @@ where
             .collect()
     }
 
+    async fn process_initial_messages(
+        &mut self,
+        messages: Vec<Message>,
+    ) -> Result<Vec<Message>, ChainError> {
+        let messages = self.0.process_initial_messages(messages).await?;
+        self.1.process_initial_messages(messages).await
+    }
+
     async fn process_plan(&mut self, plan: LLMOutput) -> Result<LLMOutput, ChainError> {
         let plan = self.0.process_plan(plan).await?;
         self.1.process_plan(plan).await
@@ -237,6 +256,15 @@ where
             .chain(self.1.additional_tools())
             .chain(self.2.additional_tools())
             .collect()
+    }
+
+    async fn process_initial_messages(
+        &mut self,
+        messages: Vec<Message>,
+    ) -> Result<Vec<Message>, ChainError> {
+        let messages = self.0.process_initial_messages(messages).await?;
+        let messages = self.1.process_initial_messages(messages).await?;
+        self.2.process_initial_messages(messages).await
     }
 
     async fn process_plan(&mut self, plan: LLMOutput) -> Result<LLMOutput, ChainError> {
