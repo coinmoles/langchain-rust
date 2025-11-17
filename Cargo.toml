@@ -71,7 +71,6 @@ tiktoken-rs = "0.7.0"
 rmcp = { version = "=0.6.4", features = [
     "client",
     "reqwest",
-    "tower",
     "transport-streamable-http-client-reqwest",
 ] }
 
