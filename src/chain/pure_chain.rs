@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 
+use crate::__private::extract_json;
 use crate::chain::{Chain, ChainError, ChainOutput, Ctor, InputCtor};
 use crate::schemas::WithUsage;
 use crate::utils::parse::{ParseError, parse_partial_json};
@@ -20,7 +21,8 @@ impl<O: DeserializeOwned + Send + Sync + 'static> PureOutput<O> {
 impl<T, O: DeserializeOwned + Send + Sync> ChainOutput<T> for PureOutput<O> {
     fn from_text(output: impl Into<String>) -> Result<Self, ParseError> {
         let original: String = output.into();
-        let value = match parse_partial_json(&original, false) {
+        let json = extract_json(&original);
+        let value = match parse_partial_json(json, false) {
             Ok(value) => value,
             Err(e) => return Err(ParseError::Deserialize(e, original)),
         };
