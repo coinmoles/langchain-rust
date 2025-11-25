@@ -16,22 +16,17 @@ pub fn remove_thought(text: &str) -> &str {
 /// Returns the trimmed text inside a Markdown code block. If no code block is found, returns the
 /// input unchanged.
 pub fn extract_from_codeblock(text: &str) -> &str {
-    let re_single_start = Regex::new(r"^\s*```[\w+-]*").unwrap();
-    let re_single_end = Regex::new(r"```\s*$").unwrap();
+    let re_single = Regex::new(r"(?m)^\s*```[A-Za-z0-9_+.-]*").unwrap();
 
-    let start = re_single_start
+    let start = re_single
         .find_iter(text)
         .next()
         .map(|m| m.end())
         .unwrap_or(0);
 
-    let end = re_single_end
-        .find_iter(text)
-        .last()
-        .map(|m| m.start())
-        .unwrap_or(text.len());
-
-    text[start..end].trim()
+    let out = text.get(start..).unwrap_or(text);
+    let out = if out.is_empty() { text } else { out };
+    out.trim_end_matches("```").trim_end()
 }
 
 /// Returns the trimmed content inside the specified XML-like tag. If no tag is found, returns the
@@ -62,6 +57,7 @@ pub fn extract_json(text: &str) -> &str {
     if text.is_empty() {
         return "";
     }
+    let text = extract_from_codeblock(text);
 
     let start = match (text.find('{'), text.find('[')) {
         (Some(pos1), Some(pos2)) => pos1.min(pos2),
@@ -109,6 +105,19 @@ mod tests {
 
     #[rstest]
     #[case(indoc! {r#"
+        ```json
+        {
+            "key": "value"
+        }
+        ```"#
+    }, indoc! {r#"
+        {
+            "key": "value"
+        }"#
+    })]
+    #[case(indoc! {r#"
+        Pikachu
+
         ```json
         {
             "key": "value"
@@ -172,7 +181,7 @@ mod tests {
     )]
     #[case(
         indoc! {r#"
-            <tool_call> 
+            <tool_call>
             {
                 "name": "test_tool",
                 "arguments": {
@@ -200,7 +209,7 @@ mod tests {
     #[case(
         indoc! {r#"
             So I decided to call this because of that:
-            
+
             {
                 "name": "test_tool",
                 "arguments": {
@@ -220,7 +229,7 @@ mod tests {
     #[case(
         indoc! {r#"
             Here are some of the cities in East Asia:
-            
+
             [
                 {
                     "country": "South Korea",
