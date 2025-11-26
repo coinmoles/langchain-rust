@@ -51,8 +51,10 @@ pub trait LLM: Sync + Send {
         &'a self,
         prompt: Vec<Message>,
         tools: Option<ToolSpec>,
+        options: LLMOptions,
     ) -> Result<Box<dyn LlmSession + 'a>, AgentError> {
-        Ok(Box::new(DefaultSession::new(self, prompt, tools)))
+        let session = DefaultSession::new(self, prompt, tools, options);
+        Ok(Box::new(session))
     }
 
     /// Configures the call options to be used in subsequent requests.

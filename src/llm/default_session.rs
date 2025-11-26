@@ -25,16 +25,25 @@ pub struct DefaultSession<'a, L: LLM + ?Sized> {
 
     /// The [buffer](StepBuffer) for the current step.
     step_buffer: StepBuffer<ToolCall>,
+
+    /// The call options to use for the session.
+    options: LLMOptions,
 }
 
 impl<'a, L: LLM + ?Sized> DefaultSession<'a, L> {
     /// Constructs a new [`DefaultSession`].
-    pub fn new(llm: &'a L, prompt: Vec<Message>, tool_spec: Option<ToolSpec>) -> Self {
+    pub fn new(
+        llm: &'a L,
+        prompt: Vec<Message>,
+        tool_spec: Option<ToolSpec>,
+        options: LLMOptions,
+    ) -> Self {
         Self {
             llm,
             messages: prompt,
             tool_spec,
             step_buffer: StepBuffer::new(),
+            options,
         }
     }
 
@@ -63,7 +72,7 @@ impl<L: LLM + ?Sized> LlmSession for DefaultSession<'_, L> {
         Ok(())
     }
 
-    async fn advance(&mut self, options: LLMOptions) -> Result<WithUsage<LLMOutput>, AgentError> {
+    async fn advance(&mut self) -> Result<WithUsage<LLMOutput>, AgentError> {
         self.flush_step_buffer()?;
 
         let response = self
@@ -71,7 +80,7 @@ impl<L: LLM + ?Sized> LlmSession for DefaultSession<'_, L> {
             .generate(
                 Prompt::new(self.messages.clone()),
                 self.tool_spec.as_ref(),
-                options,
+                self.options.clone(),
             )
             .await?;
         if let LLMEvent::ToolCall(calls) = &response.content.event {

@@ -88,14 +88,7 @@ where
     /// Begins the execution.
     #[instrument(name = "agent", level = "info", skip(self), fields(id = self.executor.agent.id()))]
     pub async fn start(mut self) -> Result<ExecutionOutput<'input, O, S>, ChainError> {
-        let messages = self.prepare_messages().await?;
-        let spec = self.prepare_tools()?;
-        let mut session = self
-            .executor
-            .agent
-            .llm
-            .begin_session(messages, spec)
-            .await?;
+        let mut session = self.begin_session().await?;
         if let Some(memory) = &self.executor.memory {
             let memory = memory.read().await;
             session.load_memory(&*memory).await?;
@@ -135,6 +128,19 @@ where
         Ok(messages)
     }
 
+    async fn begin_session(&mut self) -> Result<Box<dyn LlmSession + 'exec>, ChainError> {
+        let messages = self.prepare_messages().await?;
+        let spec = self.prepare_tools()?;
+        let options = self.strategy.call_options().await;
+        let session = self
+            .executor
+            .agent
+            .llm
+            .begin_session(messages, spec, options)
+            .await?;
+        Ok(session)
+    }
+
     fn prepare_tools(&self) -> Result<Option<ToolSpec>, ChainError> {
         let (functions, mcps): (Vec<_>, Vec<_>) = self
             .executor
@@ -154,8 +160,7 @@ where
         &mut self,
         session: &mut dyn LlmSession,
     ) -> Result<LLMEvent, ChainError> {
-        let options = self.strategy.call_options().await;
-        let output = match session.advance(options).await {
+        let output = match session.advance().await {
             Ok(output) => output,
             Err(e) => return failure!(self, e, "Failed to advance session"),
         };

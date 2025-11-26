@@ -196,8 +196,9 @@ impl<C: Config + Send + Sync + 'static> LLM for GenericChat<C> {
         &'a self,
         prompt: Vec<Message>,
         tool_spec: Option<ToolSpec>,
+        options: LLMOptions,
     ) -> Result<Box<dyn LlmSession + 'a>, AgentError> {
-        let session = GenericChatSession::new(self, prompt, tool_spec).await?;
+        let session = GenericChatSession::new(self, prompt, tool_spec, options).await?;
         Ok(Box::new(session))
     }
 

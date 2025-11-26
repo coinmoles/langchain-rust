@@ -146,8 +146,9 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
         &'a self,
         prompt: Vec<Message>,
         tool_spec: Option<ToolSpec>,
+        options: LLMOptions,
     ) -> Result<Box<dyn LlmSession + 'a>, AgentError> {
-        let session = OpenAiChatSession::new(self, prompt, tool_spec).await?;
+        let session = OpenAiChatSession::new(self, prompt, tool_spec, options).await?;
         Ok(Box::new(session))
     }
 

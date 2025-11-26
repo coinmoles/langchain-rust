@@ -46,6 +46,9 @@ pub struct OpenAiChatSession<'a, C: Config> {
 
     /// Whether final answer is forced.
     force_final_answer: bool,
+
+    /// The call options to use for the session.
+    options: LLMOptions,
 }
 
 impl<'a, C: Config + Send + Sync + 'static> OpenAiChatSession<'a, C> {
@@ -54,6 +57,7 @@ impl<'a, C: Config + Send + Sync + 'static> OpenAiChatSession<'a, C> {
         llm: &'a OpenAIChat<C>,
         prompt: Vec<Message>,
         tool_spec: Option<ToolSpec>,
+        options: LLMOptions,
     ) -> Result<Self, AgentError> {
         let (system, messages): (Vec<_>, Vec<_>) =
             prompt.into_iter().partition(|msg| msg.role == Role::System);
@@ -76,6 +80,7 @@ impl<'a, C: Config + Send + Sync + 'static> OpenAiChatSession<'a, C> {
             mcp_functions,
             step_buffer: StepBuffer::new(),
             force_final_answer: false,
+            options,
         };
         Ok(session)
     }
@@ -129,13 +134,10 @@ impl<'a, C: Config + Send + Sync + 'static> OpenAiChatSession<'a, C> {
     ///
     /// Calls to mcp tools are handled internally, and only calls to local tools are included in the
     /// output.
-    async fn advance_once(
-        &mut self,
-        options: LLMOptions,
-    ) -> Result<WithUsage<LLMOutput>, AgentError> {
+    async fn advance_once(&mut self) -> Result<WithUsage<LLMOutput>, AgentError> {
         self.flush_step_buffer()?;
 
-        let request = self.build_request(options);
+        let request = self.build_request(self.options.clone());
         let response = self.llm.send_request(request).await?;
 
         let choice = select_choice(response.choices)?;
@@ -198,12 +200,12 @@ impl<C: Config + Send + Sync + 'static> LlmSession for OpenAiChatSession<'_, C> 
         Ok(())
     }
 
-    async fn advance(&mut self, options: LLMOptions) -> Result<WithUsage<LLMOutput>, AgentError> {
+    async fn advance(&mut self) -> Result<WithUsage<LLMOutput>, AgentError> {
         let mut usage = None;
 
         let content = loop {
             // `advance_once` only returns tool calls to non-mcp functions.
-            let output = self.advance_once(options.clone()).await?;
+            let output = self.advance_once().await?;
             usage = TokenUsage::merge_options([&usage, &output.usage]);
 
             // If all tool calls are calls to tools from mcp tools, advance without returning.
