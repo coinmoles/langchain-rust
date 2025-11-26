@@ -16,8 +16,8 @@ pub struct GenericChatBuilder<C: Config> {
     model: String,
     /// The [`Instructor`] used to create tool use instruction and parse tool calls.
     instructor: Box<dyn Instructor>,
-    /// The call options for the LLM.
-    options: LLMOptions,
+    /// The default call options for the LLM.
+    default_options: LLMOptions,
 }
 
 impl<C: Config + Default> GenericChatBuilder<C> {
@@ -30,7 +30,7 @@ impl<C: Config + Default> GenericChatBuilder<C> {
             api_config: C::default(),
             model: OpenAIModel::Gpt4oMini.to_string(),
             instructor: Box::new(DefaultInstructor),
-            options: LLMOptions::default(),
+            default_options: LLMOptions::default(),
             http_client: None,
         }
     }
@@ -68,8 +68,8 @@ impl<C: Config> GenericChatBuilder<C> {
     }
 
     /// Configures the call options to be used in subsequent requests.
-    pub fn with_options(mut self, options: LLMOptions) -> Self {
-        self.options = options;
+    pub fn with_default_options(mut self, options: LLMOptions) -> Self {
+        self.default_options = options;
         self
     }
 
@@ -77,7 +77,7 @@ impl<C: Config> GenericChatBuilder<C> {
     pub fn build(self) -> GenericChat<C> {
         let http_client = self.http_client.unwrap_or_default();
         let client = OpenAIClient::build(http_client, self.api_config, Default::default());
-        GenericChat::new(client, self.model, self.instructor, self.options)
+        GenericChat::new(client, self.model, self.instructor, self.default_options)
     }
 }
 

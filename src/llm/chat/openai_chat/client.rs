@@ -186,7 +186,7 @@ mod tests {
         // Setup the OpenAI client with the necessary options
         let llm: OpenAIChat<OpenAIConfig> = OpenAIChat::builder()
             .with_model(OpenAIModel::Gpt35.to_string()) // You can change the model as needed
-            .with_options(options)
+            .with_default_options(options)
             .build();
 
         // Define a set of messages to send to the generate function
@@ -214,7 +214,7 @@ mod tests {
         // Setup the OpenAI client with the necessary options
         let llm: OpenAIChat<OpenAIConfig> = OpenAIChat::builder()
             .with_model(OpenAIModel::Gpt35.to_string()) // You can change the model as needed
-            .with_options(options)
+            .with_default_options(options)
             .build();
 
         // Define a set of messages to send to the generate function

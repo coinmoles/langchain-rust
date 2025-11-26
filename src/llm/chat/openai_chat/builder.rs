@@ -13,8 +13,8 @@ pub struct OpenAIChatBuilder<C: Config> {
     api_config: C,
     /// The model id.
     model: String,
-    /// The call options for the LLM.
-    options: LLMOptions,
+    /// The default call options for the LLM.
+    default_options: LLMOptions,
 }
 
 impl<C: Config + Default> OpenAIChatBuilder<C> {
@@ -26,7 +26,7 @@ impl<C: Config + Default> OpenAIChatBuilder<C> {
         OpenAIChatBuilder {
             api_config: C::default(),
             model: "gpt-3.5-turbo".to_string(),
-            options: LLMOptions::default(),
+            default_options: LLMOptions::default(),
             http_client: None,
         }
     }
@@ -56,9 +56,9 @@ impl<C: Config> OpenAIChatBuilder<C> {
         self
     }
 
-    /// Configures the call options to be used in subsequent requests.
-    pub fn with_options(mut self, options: LLMOptions) -> Self {
-        self.options = options;
+    /// Configures the default call options.
+    pub fn with_default_options(mut self, options: LLMOptions) -> Self {
+        self.default_options = options;
         self
     }
 
@@ -73,7 +73,7 @@ impl<C: Config> OpenAIChatBuilder<C> {
             client
         };
 
-        OpenAIChat::new(client, self.model, self.options)
+        OpenAIChat::new(client, self.model, self.default_options)
     }
 }
 
