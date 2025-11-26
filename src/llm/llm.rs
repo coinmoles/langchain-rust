@@ -16,12 +16,26 @@ pub trait LLM: Sync + Send {
         &self,
         prompt: Prompt,
         tools: Option<&ToolSpec>,
+        options: LLMOptions,
     ) -> Result<WithUsage<LLMOutput>, LLMError>;
+
+    /// Generates a response from the LLM with the provided prompt using the default option.
+    async fn generate_default(
+        &self,
+        prompt: Prompt,
+        tools: Option<&ToolSpec>,
+    ) -> Result<WithUsage<LLMOutput>, LLMError> {
+        self.generate(prompt, tools, LLMOptions::default()).await
+    }
 
     /// Generates a response from the LLM with a single human message.
     async fn invoke(&self, msg: &str) -> Result<String, LLMError> {
         let prompt = Prompt::single(msg);
-        let result = self.generate(prompt, None).await?.content.to_string();
+        let result = self
+            .generate_default(prompt, None)
+            .await?
+            .content
+            .to_string();
         Ok(result)
     }
 
@@ -42,7 +56,7 @@ pub trait LLM: Sync + Send {
     }
 
     /// Configures the call options to be used in subsequent requests.
-    fn with_options(&mut self, options: LLMOptions);
+    fn with_default_options(&mut self, options: LLMOptions);
 }
 
 impl<L> From<L> for Box<dyn LLM>

@@ -1,5 +1,5 @@
-mod openai_responses;
-pub use openai_responses::*;
+mod client;
+pub use client::*;
 
 mod request;
 pub use request::*;

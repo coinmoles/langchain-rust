@@ -176,7 +176,7 @@ impl<'a, M> ChatRequest<'a, M> {
     }
 
     /// Applies the given [`LLMOptions`] to the request.
-    pub fn with_options(self, options: &LLMOptions) -> Self {
+    pub fn with_options(self, options: LLMOptions) -> Self {
         let stream_options =
             options
                 .stream
@@ -192,12 +192,12 @@ impl<'a, M> ChatRequest<'a, M> {
         };
 
         ChatRequest {
-            tool_choice: options.tool_choice.clone().map(Into::into),
+            tool_choice: options.tool_choice.map(Into::into),
             parallel_tool_calls: options.parallel_tool_calls,
             stream: options.stream,
             stream_options,
             n: options.n,
-            reasoning_effort: options.reasoning_effort.clone(),
+            reasoning_effort: options.reasoning_effort,
             temperature: options.temperature,
             top_p: options.top_p,
             top_k: options.top_k,
@@ -206,8 +206,8 @@ impl<'a, M> ChatRequest<'a, M> {
             repetition_penalty: options.repetition_penalty,
             max_tokens,
             max_completion_tokens: options.max_completion_tokens,
-            stop: options.stop_words.clone(),
-            response_format: options.response_format.clone().map(Into::into),
+            stop: options.stop_words,
+            response_format: options.response_format.map(Into::into),
             ..self
         }
     }

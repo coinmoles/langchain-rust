@@ -34,8 +34,8 @@ pub struct GenericChat<C: Config = OpenAIConfig> {
     model: String,
     /// The instructor used to create tool use instruction and parse tool calls.
     pub(super) instructor: Box<dyn Instructor>,
-    /// The call options for the LLM.
-    pub(super) options: LLMOptions,
+    /// The default call options for the LLM.
+    pub(super) default_options: LLMOptions,
 }
 
 impl<C: Config + Default> GenericChat<C> {
@@ -77,13 +77,13 @@ impl<C: Config> GenericChat<C> {
         client: OpenAIClient<C>,
         model: impl Into<String>,
         instructor: Box<dyn Instructor>,
-        options: LLMOptions,
+        default_options: LLMOptions,
     ) -> Self {
         Self {
             client,
             model: model.into(),
             instructor,
-            options,
+            default_options,
         }
     }
 
@@ -112,7 +112,7 @@ impl<C: Config> GenericChat<C> {
                     *first_system = false;
                 }
 
-                let mut message = message.process_with_options(&self.options);
+                let mut message = message.process_with_options(&self.default_options);
 
                 // Convert tool call/result messages to normal ai/human messages
                 if let Some(tool_calls) = message.tool_calls {
@@ -138,8 +138,13 @@ impl<C: Config> GenericChat<C> {
     }
 
     /// Builds a chat completion request with the configured call options.
-    pub(super) fn build_request<M: Serialize>(&self, messages: M) -> ChatRequest<'_, M> {
-        ChatRequest::new(&self.model, messages, None).with_options(&self.options)
+    pub(super) fn build_request<M: Serialize>(
+        &self,
+        messages: M,
+        options: LLMOptions,
+    ) -> ChatRequest<'_, M> {
+        let options = self.default_options.clone().merge(options);
+        ChatRequest::new(&self.model, messages, None).with_options(options)
     }
 
     /// Sends a chat completion request to the server.
@@ -165,6 +170,7 @@ impl<C: Config + Send + Sync + 'static> LLM for GenericChat<C> {
         &self,
         prompt: Prompt,
         tools: Option<&ToolSpec>,
+        options: LLMOptions,
     ) -> Result<WithUsage<LLMOutput>, LLMError> {
         if tools.is_some_and(|t| !t.mcps.is_empty()) {
             log::warn!("`GenericChat` does not support mcp tools natively, they will be ignored");
@@ -173,7 +179,7 @@ impl<C: Config + Send + Sync + 'static> LLM for GenericChat<C> {
         let function_specs = tools.map(|t| t.functions.as_slice());
         let messages = self.process_prompt(prompt, function_specs);
 
-        let request = self.build_request(messages);
+        let request = self.build_request(messages, options);
         let response = self.send_request(request).await?;
 
         let choice = select_choice(response.choices)?;
@@ -195,8 +201,8 @@ impl<C: Config + Send + Sync + 'static> LLM for GenericChat<C> {
         Ok(Box::new(session))
     }
 
-    fn with_options(&mut self, options: LLMOptions) {
-        self.options.merge_options(options)
+    fn with_default_options(&mut self, options: LLMOptions) {
+        self.default_options.merge_inplace(options)
     }
 }
 
@@ -217,7 +223,7 @@ impl<C: Config + Clone> Clone for GenericChat<C> {
             client: self.client.clone(),
             model: self.model.clone(),
             instructor: self.instructor.clone_box(),
-            options: self.options.clone(),
+            default_options: self.default_options.clone(),
         }
     }
 }

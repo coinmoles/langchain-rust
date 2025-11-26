@@ -4,6 +4,7 @@ use async_trait::async_trait;
 
 use crate::agent::Agent;
 use crate::chain::{ChainError, InputCtor, OutputCtor};
+use crate::llm::LLMOptions;
 use crate::schemas::{LLMOutput, Message};
 use crate::tools::{FunctionTool, Tool, ToolOutput};
 
@@ -15,15 +16,16 @@ use crate::tools::{FunctionTool, Tool, ToolOutput};
 /// # Methods:
 /// 1. [`additional_tools`](Strategy::additional_tools) — inject extra tools to be used during the
 ///    execution.
-/// 2. [`process_initial_messages`](Strategy::process_initial_messages) — inspect, validate, or
+/// 2. [`call_options`](Strategy::call_options) — dynamically adjust the call options for the LLM.
+/// 3. [`process_initial_messages`](Strategy::process_initial_messages) — inspect, validate, or
 ///    rewrite the initial messages.
-/// 3. [`process_plan`](Strategy::process_plan) — inspect, validate, or rewrite the model-produced
+/// 4. [`process_plan`](Strategy::process_plan) — inspect, validate, or rewrite the model-produced
 ///    [`LLMOutput`].
-/// 4. [`process_tool_output`](Strategy::process_tool_output) — inspect, validate, or rewrite the
+/// 5. [`process_tool_output`](Strategy::process_tool_output) — inspect, validate, or rewrite the
 ///    [`ToolOutput`].
-/// 5. [`process_final_answer`](Strategy::process_final_answer) — inspect, validate, or rewrite the
+/// 6. [`process_final_answer`](Strategy::process_final_answer) — inspect, validate, or rewrite the
 ///    final model answer.
-/// 6. [`finalize`](Strategy::finalize) — produce a final output specific to the strategy.
+/// 7. [`finalize`](Strategy::finalize) — produce a final output specific to the strategy.
 #[async_trait]
 pub trait Strategy: Send + Sync {
     /// Type produced by [`finalize`]. Often used to return strategy-specific
@@ -35,6 +37,11 @@ pub trait Strategy: Send + Sync {
     /// The tools returned by this function will override the tools defined in the agent.
     fn additional_tools(&self) -> HashMap<&str, &Tool<'_>> {
         HashMap::new()
+    }
+
+    /// The call options for the LLM.
+    async fn call_options(&mut self) -> LLMOptions {
+        LLMOptions::default()
     }
 
     /// Inspect, validate, or rewrite the initial messages.

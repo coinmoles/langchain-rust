@@ -31,7 +31,7 @@ where
         tools: Option<&ToolSpec>,
     ) -> Result<WithUsage<O::Target<'static>>, ChainError> {
         let prompt = self.prompt.format(input)?;
-        let WithUsage { content, usage } = self.llm.generate(prompt, tools).await?;
+        let WithUsage { content, usage } = self.llm.generate_default(prompt, tools).await?;
 
         log::trace!("\nLLM output:\n{content}");
         if let Some(usage) = &usage {
@@ -56,7 +56,7 @@ where
 {
     async fn call<'a>(&self, input: I::Target<'a>) -> Result<WithUsage<O::Target<'a>>, ChainError> {
         let prompt = self.prompt.format(&input)?;
-        let WithUsage { content, usage } = self.llm.generate(prompt, None).await?;
+        let WithUsage { content, usage } = self.llm.generate_default(prompt, None).await?;
 
         log::trace!("\nLLM output:\n{content}");
         if let Some(usage) = &usage {

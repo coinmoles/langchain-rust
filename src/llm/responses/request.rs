@@ -3,7 +3,6 @@ use async_openai::types::responses::{
 };
 use serde::Serialize;
 
-use crate::llm::LLMError;
 use crate::llm::options::LLMOptions;
 use crate::schemas::{Message, ToolSpec};
 
@@ -138,7 +137,7 @@ impl ResponsesRequest {
         model: impl Into<String>,
         messages: Vec<Message>,
         tools: Option<ToolSpec>,
-    ) -> Result<ResponsesRequest, LLMError> {
+    ) -> ResponsesRequest {
         let msgs = messages
             .into_iter()
             .flat_map(Vec::<InputItem>::from)
@@ -146,7 +145,7 @@ impl ResponsesRequest {
         let input = Input::Items(msgs);
         let tools = tools.map(ToolSpec::into_tool_definitions);
 
-        Ok(ResponsesRequest {
+        ResponsesRequest {
             input,
             model: model.into(),
             stream: None,
@@ -164,7 +163,7 @@ impl ResponsesRequest {
             max_output_tokens: None,
             stop: None,
             text: None,
-        })
+        }
     }
 
     /// Adds options to the request.

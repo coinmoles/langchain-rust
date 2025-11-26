@@ -14,7 +14,7 @@ use crate::llm::chat::helper::{
     resolve_mcp_tools, select_choice, system_message, user_message,
 };
 use crate::llm::chat::request::ChatRequest;
-use crate::llm::{GenericChat, LLMError, LlmSession, StepBuffer};
+use crate::llm::{GenericChat, LLMError, LLMOptions, LlmSession, StepBuffer};
 use crate::memory::Memory;
 use crate::schemas::{
     IntoWithUsage, LLMEvent, LLMOutput, Message, Role, TokenUsage, ToolCall, ToolSpec, WithUsage,
@@ -81,20 +81,25 @@ impl<'a, C: Config + Send + Sync + 'static> GenericChatSession<'a, C> {
     }
 
     /// Builds a chat completion request with the configured call options.
-    fn build_request(&self) -> ChatRequest<'_, ChatHistory<'_>> {
+    fn build_request(&self, options: LLMOptions) -> ChatRequest<'_, ChatHistory<'_>> {
         let system = if self.force_final_answer {
             &self.system_without_tools
         } else {
             &self.system
         };
 
-        let chat_history = if self.llm.options.system_is_assistant.unwrap_or_default() {
+        let chat_history = if self
+            .llm
+            .default_options
+            .system_is_assistant
+            .unwrap_or_default()
+        {
             ChatHistory::as_assistant(system, &self.messages)
         } else {
             ChatHistory::new(system, &self.messages)
         };
 
-        self.llm.build_request(chat_history)
+        self.llm.build_request(chat_history, options)
     }
 
     /// Flushes the step buffer and adds the tool call and results to the message history.
@@ -103,7 +108,7 @@ impl<'a, C: Config + Send + Sync + 'static> GenericChatSession<'a, C> {
             return Ok(());
         };
 
-        let thought = if self.llm.options.drop_thought.unwrap_or(true) {
+        let thought = if self.llm.default_options.drop_thought.unwrap_or(true) {
             None
         } else {
             buffer.thought
@@ -124,10 +129,13 @@ impl<'a, C: Config + Send + Sync + 'static> GenericChatSession<'a, C> {
     ///
     /// Calls to mcp tools are handled internally, and only calls to local tools are included in the
     /// output.
-    async fn advance_once(&mut self) -> Result<WithUsage<LLMOutput>, AgentError> {
+    async fn advance_once(
+        &mut self,
+        options: LLMOptions,
+    ) -> Result<WithUsage<LLMOutput>, AgentError> {
         self.flush_step_buffer()?;
 
-        let request = self.build_request();
+        let request = self.build_request(options);
         let response = self.llm.send_request(request).await?;
 
         let choice = select_choice(response.choices)?;
@@ -173,12 +181,12 @@ impl<C: Config + Send + Sync + 'static> LlmSession for GenericChatSession<'_, C>
         Ok(())
     }
 
-    async fn advance(&mut self) -> Result<WithUsage<LLMOutput>, AgentError> {
+    async fn advance(&mut self, options: LLMOptions) -> Result<WithUsage<LLMOutput>, AgentError> {
         let mut usage = None;
 
         let content = loop {
             // `advance_once` only returns tool calls to non-mcp functions.
-            let output = self.advance_once().await?;
+            let output = self.advance_once(options.clone()).await?;
             usage = TokenUsage::merge_options([&usage, &output.usage]);
 
             // If all tool calls are calls to tools from mcp tools, advance without returning.

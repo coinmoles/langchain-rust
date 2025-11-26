@@ -17,7 +17,7 @@ use crate::llm::chat::helper::{
     select_choice, system_message, tool_message,
 };
 use crate::llm::chat::request::ChatRequest;
-use crate::llm::{LLMError, LlmSession, OpenAIChat, StepBuffer};
+use crate::llm::{LLMError, LLMOptions, LlmSession, OpenAIChat, StepBuffer};
 use crate::memory::Memory;
 use crate::schemas::{
     IntoWithUsage, LLMEvent, LLMOutput, Message, Role, TokenUsage, ToolCall, ToolSpec, WithUsage,
@@ -81,19 +81,25 @@ impl<'a, C: Config + Send + Sync + 'static> OpenAiChatSession<'a, C> {
     }
 
     /// Builds a chat completion request with the configured call options.
-    fn build_request(&self) -> ChatRequest<'_, ChatHistory<'_>> {
+    fn build_request(&self, options: LLMOptions) -> ChatRequest<'_, ChatHistory<'_>> {
         let function_specs = if !self.force_final_answer {
             self.function_specs.as_deref().map(Cow::Borrowed)
         } else {
             None
         };
 
-        let chat_history = if self.llm.options.system_is_assistant.unwrap_or_default() {
+        let chat_history = if self
+            .llm
+            .default_options
+            .system_is_assistant
+            .unwrap_or_default()
+        {
             ChatHistory::as_assistant(&self.system, &self.messages)
         } else {
             ChatHistory::new(&self.system, &self.messages)
         };
-        self.llm.build_request(chat_history, function_specs)
+        self.llm
+            .build_request(chat_history, function_specs, options)
     }
 
     /// Flushes the step buffer and adds the tool call and results to the message history.
@@ -102,7 +108,7 @@ impl<'a, C: Config + Send + Sync + 'static> OpenAiChatSession<'a, C> {
             return Ok(());
         };
 
-        let thought = if self.llm.options.drop_thought.unwrap_or(true) {
+        let thought = if self.llm.default_options.drop_thought.unwrap_or(true) {
             None
         } else {
             buffer.thought
@@ -123,10 +129,13 @@ impl<'a, C: Config + Send + Sync + 'static> OpenAiChatSession<'a, C> {
     ///
     /// Calls to mcp tools are handled internally, and only calls to local tools are included in the
     /// output.
-    async fn advance_once(&mut self) -> Result<WithUsage<LLMOutput>, AgentError> {
+    async fn advance_once(
+        &mut self,
+        options: LLMOptions,
+    ) -> Result<WithUsage<LLMOutput>, AgentError> {
         self.flush_step_buffer()?;
 
-        let request = self.build_request();
+        let request = self.build_request(options);
         let response = self.llm.send_request(request).await?;
 
         let choice = select_choice(response.choices)?;
@@ -189,12 +198,12 @@ impl<C: Config + Send + Sync + 'static> LlmSession for OpenAiChatSession<'_, C> 
         Ok(())
     }
 
-    async fn advance(&mut self) -> Result<WithUsage<LLMOutput>, AgentError> {
+    async fn advance(&mut self, options: LLMOptions) -> Result<WithUsage<LLMOutput>, AgentError> {
         let mut usage = None;
 
         let content = loop {
             // `advance_once` only returns tool calls to non-mcp functions.
-            let output = self.advance_once().await?;
+            let output = self.advance_once(options.clone()).await?;
             usage = TokenUsage::merge_options([&usage, &output.usage]);
 
             // If all tool calls are calls to tools from mcp tools, advance without returning.

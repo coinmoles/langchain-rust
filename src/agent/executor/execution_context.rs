@@ -154,7 +154,8 @@ where
         &mut self,
         session: &mut dyn LlmSession,
     ) -> Result<LLMEvent, ChainError> {
-        let output = match session.advance().await {
+        let options = self.strategy.call_options().await;
+        let output = match session.advance(options).await {
             Ok(output) => output,
             Err(e) => return failure!(self, e, "Failed to advance session"),
         };

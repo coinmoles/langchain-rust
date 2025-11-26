@@ -26,8 +26,8 @@ pub struct OpenAIChat<C: Config = OpenAIConfig> {
     client: OpenAIClient<C>,
     /// The model id.
     model: String,
-    /// The call options for the LLM.
-    pub(super) options: LLMOptions,
+    /// The default call options for the LLM.
+    pub(super) default_options: LLMOptions,
 }
 
 impl<C: Config + Default> OpenAIChat<C> {
@@ -70,7 +70,7 @@ impl<C: Config> OpenAIChat<C> {
         Self {
             client,
             model: model.into(),
-            options,
+            default_options: options,
         }
     }
 
@@ -84,7 +84,9 @@ impl<C: Config> OpenAIChat<C> {
             .to_messages()
             .into_iter()
             .map(|message| {
-                ChatCompletionRequestMessage::from(message.process_with_options(&self.options))
+                ChatCompletionRequestMessage::from(
+                    message.process_with_options(&self.default_options),
+                )
             })
             .collect()
     }
@@ -94,8 +96,10 @@ impl<C: Config> OpenAIChat<C> {
         &self,
         messages: M,
         function_specs: Option<Cow<'a, [ChatCompletionTool]>>,
+        options: LLMOptions,
     ) -> ChatRequest<'a, M> {
-        ChatRequest::new(&self.model, messages, function_specs).with_options(&self.options)
+        let options = self.default_options.clone().merge(options);
+        ChatRequest::new(&self.model, messages, function_specs).with_options(options)
     }
 
     /// Sends a chat completion request to the server.
@@ -115,6 +119,7 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
         &self,
         prompt: Prompt,
         tools: Option<&ToolSpec>,
+        options: LLMOptions,
     ) -> Result<WithUsage<LLMOutput>, LLMError> {
         if tools.as_ref().is_some_and(|t| !t.mcps.is_empty()) {
             log::warn!("`OpenAIChat` does not support mcp tools natively, they will be ignored");
@@ -124,7 +129,7 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
             tools.map(|t| t.functions.clone().into_iter().map(|f| f.into()).collect());
         let messages = self.process_prompt(prompt);
 
-        let request = self.build_request(messages, function_specs);
+        let request = self.build_request(messages, function_specs, options);
         let response = self.send_request(request).await?;
 
         let choice: async_openai::types::ChatChoice = select_choice(response.choices)?;
@@ -146,8 +151,8 @@ impl<C: Config + Send + Sync + 'static> LLM for OpenAIChat<C> {
         Ok(Box::new(session))
     }
 
-    fn with_options(&mut self, options: LLMOptions) {
-        self.options.merge_options(options)
+    fn with_default_options(&mut self, options: LLMOptions) {
+        self.default_options.merge_inplace(options)
     }
 }
 
@@ -215,7 +220,7 @@ mod tests {
         let prompt = Prompt::single("Hello, how are you?");
 
         // Call the generate function
-        match llm.generate(prompt, None).await {
+        match llm.generate_default(prompt, None).await {
             Ok(result) => {
                 // Print the response from the generate function
                 println!("Generate Result: {result:?}");
@@ -249,7 +254,7 @@ mod tests {
         ]);
 
         // Call the generate function
-        let response = open_ai.generate(prompt, None).await.unwrap();
+        let response = open_ai.generate_default(prompt, None).await.unwrap();
         println!("Response: {response:?}");
     }
 }

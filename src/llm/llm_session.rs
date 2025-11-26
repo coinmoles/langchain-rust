@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 
 use crate::agent::AgentError;
+use crate::llm::LLMOptions;
 use crate::memory::Memory;
 use crate::schemas::{LLMOutput, WithUsage};
 use crate::tools::{ToolError, ToolOutput};
@@ -21,7 +22,7 @@ pub trait LlmSession: Send + Sync {
     async fn load_memory(&mut self, _memory: &dyn Memory) -> Result<(), AgentError>;
 
     /// Advances the session until the model requires a tool result from the user.
-    async fn advance(&mut self) -> Result<WithUsage<LLMOutput>, AgentError>;
+    async fn advance(&mut self, options: LLMOptions) -> Result<WithUsage<LLMOutput>, AgentError>;
 
     /// Adds a tool result to the session.
     fn add_tool_result(&mut self, id: &str, tool_name: &str, result: Result<ToolOutput, ToolError>);

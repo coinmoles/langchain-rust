@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use crate::agent::AgentError;
-use crate::llm::{LLM, LlmSession, StepBuffer};
+use crate::llm::{LLM, LLMOptions, LlmSession, StepBuffer};
 use crate::memory::Memory;
 use crate::schemas::{LLMEvent, LLMOutput, Message, Prompt, Role, ToolCall, ToolSpec, WithUsage};
 use crate::tools::{ToolError, ToolOutput};
@@ -63,12 +63,16 @@ impl<L: LLM + ?Sized> LlmSession for DefaultSession<'_, L> {
         Ok(())
     }
 
-    async fn advance(&mut self) -> Result<WithUsage<LLMOutput>, AgentError> {
+    async fn advance(&mut self, options: LLMOptions) -> Result<WithUsage<LLMOutput>, AgentError> {
         self.flush_step_buffer()?;
 
         let response = self
             .llm
-            .generate(Prompt::new(self.messages.clone()), self.tool_spec.as_ref())
+            .generate(
+                Prompt::new(self.messages.clone()),
+                self.tool_spec.as_ref(),
+                options,
+            )
             .await?;
         if let LLMEvent::ToolCall(calls) = &response.content.event {
             self.step_buffer

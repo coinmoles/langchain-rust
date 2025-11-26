@@ -74,7 +74,9 @@ impl<'b> SQLDatabaseChainBuilder<'b> {
 
         let llm_chain = {
             let mut llm = llm;
-            llm.with_options(LLMOptions::new().with_stop_words(vec![STOP_WORD.to_string()]));
+            llm.with_default_options(
+                LLMOptions::new().with_stop_words(vec![STOP_WORD.to_string()]),
+            );
 
             let mut builder = LLMChain::builder().prompt(prompt).llm(llm);
 
