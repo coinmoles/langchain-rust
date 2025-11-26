@@ -40,7 +40,7 @@ pub trait Strategy: Send + Sync {
     }
 
     /// The call options for the LLM.
-    async fn call_options(&mut self) -> LLMOptions {
+    fn call_options(&self) -> LLMOptions {
         LLMOptions::default()
     }
 

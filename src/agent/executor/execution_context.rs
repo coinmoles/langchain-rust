@@ -131,7 +131,7 @@ where
     async fn begin_session(&mut self) -> Result<Box<dyn LlmSession + 'exec>, ChainError> {
         let messages = self.prepare_messages().await?;
         let spec = self.prepare_tools()?;
-        let options = self.strategy.call_options().await;
+        let options = self.strategy.call_options();
         let session = self
             .executor
             .agent
