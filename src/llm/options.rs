@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::schemas::{ReasoningEffort, ResponseFormat, ToolChoice};
 
 /// Options for LLM calls.
@@ -128,6 +130,9 @@ pub struct LLMOptions {
     /// [`ResponsesRequest::text`](crate::llm::ResponsesRequest::text).
     pub response_format: Option<ResponseFormat>,
 
+    /// Extra parameters for custom api.
+    pub extra_params: Option<HashMap<String, serde_json::Value>>,
+
     /// Whether to convert system message into assistant message.
     ///
     /// Some LLMs do not support system messages. Set this field to `true` for those models.
@@ -168,6 +173,7 @@ impl LLMOptions {
             response_format: None,
             system_is_assistant: None,
             drop_thought: None,
+            extra_params: None,
         }
     }
 
@@ -282,6 +288,12 @@ impl LLMOptions {
     /// Sets the [`drop_thought`](Self::drop_thought).
     pub fn with_drop_thought(mut self, drop_thought: bool) -> Self {
         self.drop_thought = Some(drop_thought);
+        self
+    }
+
+    /// Sets the [`extra_params`](Self::extra_params).
+    pub fn with_extra_params(mut self, extra_params: HashMap<String, serde_json::Value>) -> Self {
+        self.extra_params = Some(extra_params);
         self
     }
 

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use async_openai::types::responses::{
     Input, InputItem, ReasoningConfig, ReasoningSummary, TextConfig, ToolChoice, ToolDefinition,
 };
@@ -129,6 +131,10 @@ pub struct ResponsesRequest {
     /// See [`text`](https://platform.openai.com/docs/api-reference/responses/create#responses-create-text)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub text: Option<TextConfig>,
+
+    /// Extra parameters for custom api.
+    #[serde(flatten)]
+    pub extra_params: HashMap<String, serde_json::Value>,
 }
 
 impl ResponsesRequest {
@@ -163,6 +169,7 @@ impl ResponsesRequest {
             max_output_tokens: None,
             stop: None,
             text: None,
+            extra_params: HashMap::new(),
         }
     }
 
@@ -187,6 +194,7 @@ impl ResponsesRequest {
                 format: rf.into(),
                 verbosity: None,
             }),
+            extra_params: options.extra_params.unwrap_or(self.extra_params),
             ..self
         }
     }

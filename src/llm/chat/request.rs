@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::collections::HashMap;
 
 use async_openai::types::{
     ChatCompletionStreamOptions, ChatCompletionTool, ChatCompletionToolChoiceOption,
@@ -143,6 +144,10 @@ pub struct ChatRequest<'a, M> {
     /// See [`response_format`](https://platform.openai.com/docs/api-reference/chat/create#chat-create-response_format).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub response_format: Option<ResponseFormat>,
+
+    /// Extra parameters for custom api.
+    #[serde(flatten)]
+    pub extra_params: HashMap<String, serde_json::Value>,
 }
 
 impl<'a, M> ChatRequest<'a, M> {
@@ -172,6 +177,7 @@ impl<'a, M> ChatRequest<'a, M> {
             max_completion_tokens: None,
             stop: None,
             response_format: None,
+            extra_params: HashMap::new(),
         }
     }
 
@@ -208,6 +214,7 @@ impl<'a, M> ChatRequest<'a, M> {
             max_completion_tokens: options.max_completion_tokens,
             stop: options.stop_words,
             response_format: options.response_format.map(Into::into),
+            extra_params: options.extra_params.unwrap_or(self.extra_params),
             ..self
         }
     }
