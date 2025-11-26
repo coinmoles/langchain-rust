@@ -148,6 +148,14 @@ where
         }
     }
 
+    fn call_options(&self) -> LLMOptions {
+        if let Some(strategy) = self {
+            strategy.call_options()
+        } else {
+            LLMOptions::default()
+        }
+    }
+
     async fn process_initial_messages(
         &mut self,
         messages: Vec<Message>,
@@ -213,6 +221,10 @@ where
             .collect()
     }
 
+    fn call_options(&self) -> LLMOptions {
+        self.0.call_options().merge(self.1.call_options())
+    }
+
     async fn process_initial_messages(
         &mut self,
         messages: Vec<Message>,
@@ -263,6 +275,13 @@ where
             .chain(self.1.additional_tools())
             .chain(self.2.additional_tools())
             .collect()
+    }
+
+    fn call_options(&self) -> LLMOptions {
+        self.0
+            .call_options()
+            .merge(self.1.call_options())
+            .merge(self.2.call_options())
     }
 
     async fn process_initial_messages(
