@@ -320,9 +320,9 @@ impl LLMOptions {
         self.response_format = other.response_format.or(self.response_format.clone());
 
         // For `Vec<String>`, merge if both are Some; prefer incoming if only incoming is Some
-        if let Some(mut new_stop_words) = other.stop_words {
+        if let Some(new_stop_words) = other.stop_words {
             if let Some(existing_stop_words) = &mut self.stop_words {
-                existing_stop_words.append(&mut new_stop_words);
+                existing_stop_words.extend(new_stop_words);
             } else {
                 self.stop_words = Some(new_stop_words);
             }
@@ -330,5 +330,13 @@ impl LLMOptions {
 
         self.system_is_assistant = other.system_is_assistant.or(self.system_is_assistant);
         self.drop_thought = other.drop_thought.and(self.drop_thought);
+
+        if let Some(new_extra_params) = other.extra_params {
+            if let Some(existing_extra_params) = &mut self.extra_params {
+                existing_extra_params.extend(new_extra_params);
+            } else {
+                self.extra_params = Some(new_extra_params);
+            }
+        }
     }
 }
