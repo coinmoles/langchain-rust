@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use tokio::sync::RwLock;
 
 use super::ExecutorOptions;
-use crate::agent::{Agent, DefaultStrategy, ExecutionContext, Strategy};
+use crate::agent::{Agent, ExecutionContext, Strategy};
 use crate::chain::{Chain, ChainError, ChainOutput, GetPrompt, InputCtor, OutputCtor};
 use crate::memory::Memory;
 use crate::schemas::{Prompt, WithUsage};
@@ -90,8 +90,8 @@ where
     pub fn execution<'exec, 'input>(
         &'exec self,
         input: I::Target<'input>,
-    ) -> ExecutionContext<'exec, 'tool, 'input, I, O, DefaultStrategy> {
-        ExecutionContext::new(self, input, DefaultStrategy)
+    ) -> ExecutionContext<'exec, 'tool, 'input, I, O, ()> {
+        ExecutionContext::new(self, input, ())
     }
 
     /// Constructs a new [`ExecutionContext`] with the provided input and custom

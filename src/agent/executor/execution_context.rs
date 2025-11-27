@@ -4,7 +4,7 @@ use std::fmt::Display;
 use itertools::{Either, Itertools};
 use tracing::instrument;
 
-use crate::agent::{AgentError, AgentExecutor, DefaultStrategy, ExecutionOutput, Strategy};
+use crate::agent::{AgentError, AgentExecutor, ExecutionOutput, Strategy};
 use crate::chain::{ChainError, ChainOutput, InputCtor, OutputCtor};
 use crate::llm::LlmSession;
 use crate::schemas::{LLMEvent, Message, Role, TokenUsage, ToolCall, ToolSpec};
@@ -31,7 +31,7 @@ enum FinalizeFailure<Ctx> {
 }
 
 /// Runtime context that owns mutable states during an [`AgentExecutor`] run.
-pub struct ExecutionContext<'exec, 'tool, 'input, I, O, S = DefaultStrategy>
+pub struct ExecutionContext<'exec, 'tool, 'input, I, O, S = ()>
 where
     I: InputCtor,
     O: OutputCtor,

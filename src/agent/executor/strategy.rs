@@ -120,12 +120,8 @@ pub trait Strategy: Send + Sync {
     async fn finalize(self) -> Result<Self::Output, ChainError>;
 }
 
-/// The default strategy without any special behavior.
-#[derive(Default)]
-pub struct DefaultStrategy;
-
 #[async_trait]
-impl Strategy for DefaultStrategy {
+impl Strategy for () {
     type Output = ();
 
     async fn finalize(self) -> Result<Self::Output, ChainError> {
