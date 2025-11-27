@@ -67,6 +67,7 @@ impl<'a, C: Config + Send + Sync + 'static> GenericChatSession<'a, C> {
         let (function_specs, mcp_functions) = resolve_mcp_tools(tool_spec).await?;
         let system = if !function_specs.is_empty() {
             let tool_use_instruction = llm.instructor.tool_use_instruction(&function_specs);
+            log::debug!("Tool use instruction (Appended to system):\n{tool_use_instruction}");
             append_system(system_without_tools.clone(), tool_use_instruction)
         } else {
             system_without_tools.clone()
