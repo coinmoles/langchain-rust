@@ -42,13 +42,13 @@ fn generate_comment(
     let optional = if required { None } else { Some("(optional)") };
 
     match (description, enum_comment, optional) {
-        (Some(desc), Some(enum_desc), Some(opt)) => format!("// {desc}, {enum_desc} {opt}"),
-        (Some(desc), Some(enum_desc), None) => format!("// {desc}, {enum_desc}"),
-        (Some(desc), None, Some(opt)) => format!("// {desc} {opt}"),
-        (None, Some(enum_desc), Some(opt)) => format!("// {enum_desc} {opt}"),
-        (Some(desc), None, None) => format!("// {desc}"),
-        (None, Some(enum_desc), None) => format!("// {enum_desc}"),
-        (None, None, Some(opt)) => format!("// {opt}"),
+        (Some(desc), Some(enum_desc), Some(opt)) => format!(" // {desc}, {enum_desc} {opt}"),
+        (Some(desc), Some(enum_desc), None) => format!(" // {desc}, {enum_desc}"),
+        (Some(desc), None, Some(opt)) => format!(" // {desc} {opt}"),
+        (None, Some(enum_desc), Some(opt)) => format!(" // {enum_desc} {opt}"),
+        (Some(desc), None, None) => format!(" // {desc}"),
+        (None, Some(enum_desc), None) => format!(" // {enum_desc}"),
+        (None, None, Some(opt)) => format!(" // {opt}"),
         (None, None, None) => String::new(),
     }
 }
@@ -101,10 +101,10 @@ fn describe_schema(
 
     let full_description = match instance_type {
         "null" => "{} // An empty object".to_string(),
-        "boolean" => format!("bool {comment}"),
-        "number" => format!("number {comment}"),
-        "integer" => format!("integer {comment}"),
-        "string" => format!("string {comment}"),
+        "boolean" => format!("bool{comment}"),
+        "number" => format!("number{comment}"),
+        "integer" => format!("integer{comment}"),
+        "string" => format!("string{comment}"),
         "object" => describe_object(obj, &comment, definitions, depth)?,
         "array" => describe_array(obj, &comment, definitions, depth)?,
         other => return Err(format!("Unsupported type: {other}")),
@@ -129,7 +129,7 @@ fn describe_object(
         .unwrap_or_default();
 
     let Some(properties) = obj.get("properties").and_then(|v| v.as_object()) else {
-        return Ok(format!("object {comment} {{}}"));
+        return Ok(format!("object{comment} {{}}"));
     };
 
     let properties = properties
@@ -146,7 +146,7 @@ fn describe_object(
         .join("\n");
 
     Ok(formatdoc! {"
-        object {comment}
+        object{comment}
         {{
         {}
         }}",
@@ -161,7 +161,7 @@ fn describe_array(
     depth: usize,
 ) -> Result<String, String> {
     let Some(items) = obj.get("items") else {
-        return Ok(format!("[] {comment}"));
+        return Ok(format!("[]{comment}"));
     };
 
     let items_schema = match items {
@@ -170,7 +170,7 @@ fn describe_array(
             if let Some(first) = arr.first() {
                 first
             } else {
-                return Ok(format!("[] {comment}"));
+                return Ok(format!("[]{comment}"));
             }
         }
         other => other,
@@ -185,7 +185,7 @@ fn describe_array(
     );
 
     Ok(formatdoc! {"
-        array {comment}
+        array{comment}
         [
         {}
         ]",

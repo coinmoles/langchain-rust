@@ -247,10 +247,11 @@ mod tests {
                     "ingredients": ["egg", "cheese", "ham"]
                 }
             ]
-            ```
-        "#},
+            ```"#
+        },
         None,
         indoc! {r#"
+            ```json
             [
                 {
                     "recipe": "Pancakes",
@@ -260,7 +261,8 @@ mod tests {
                     "recipe": "Omelette",
                     "ingredients": ["egg", "cheese", "ham"]
                 }
-            ]"#
+            ]
+            ```"#
         }
     )]
     #[case::final_answer(
@@ -287,7 +289,7 @@ mod tests {
         Some("Here are some suggestions for the dinner menu :)"),
         indoc! {
             r#"## Thinking process
-            
+
             ### Step 1:
             - Candidate 1: Mac and Cheese
             - Candidate 2: Dumplings
@@ -298,7 +300,7 @@ mod tests {
         indoc! {r#"
             {
                 "final_answer": "I don't think pancakes are good for dinner. Here is a detailed explanation:
-                
+
             - Pancakes are typically considered a breakfast food and may not provide the necessary nutrients for a balanced dinner.
             - They are often high in carbohydrates and sugars, which can lead to energy crashes later in the evening.
             - For dinner, it's generally better to have a meal that includes a good balance of protein, vegetables, and healthy fats."
@@ -306,7 +308,7 @@ mod tests {
         None,
         indoc! {r#"
             I don't think pancakes are good for dinner. Here is a detailed explanation:
-                
+
             - Pancakes are typically considered a breakfast food and may not provide the necessary nutrients for a balanced dinner.
             - They are often high in carbohydrates and sugars, which can lead to energy crashes later in the evening.
             - For dinner, it's generally better to have a meal that includes a good balance of protein, vegetables, and healthy fats."#

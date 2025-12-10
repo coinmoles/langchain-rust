@@ -49,13 +49,14 @@ pub trait Function: Send + Sync {
     /// Executes the core functionality of the tool.
     ///
     /// Example implementation:
-    /// ```rust
+    /// ```rust,ignore
     /// // type Input = (usize, usize);
     /// // type Output = String;
-    /// async fn run(
+    ///
+    /// async fn call(
     ///     &self,
-    ///     input: (usize, usize),
-    /// ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    ///     input: Self::Input,
+    /// ) -> Result<Self::Output, Box<dyn std::error::Error + Send + Sync>> {
     ///     let result = self.0 + self.1;
     ///     Ok(result.to_string())
     /// }

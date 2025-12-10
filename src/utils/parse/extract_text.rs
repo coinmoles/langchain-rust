@@ -26,7 +26,7 @@ pub fn extract_from_codeblock(text: &str) -> &str {
 
     let out = text.get(start..).unwrap_or(text);
     let out = if out.is_empty() { text } else { out };
-    out.trim_end_matches("```").trim_end()
+    out.trim_end_matches("```").trim()
 }
 
 /// Returns the trimmed content inside the specified XML-like tag. If no tag is found, returns the

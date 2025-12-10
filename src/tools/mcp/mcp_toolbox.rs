@@ -40,6 +40,7 @@ mod tests {
     use crate::tools::ListTools;
 
     #[tokio::test]
+    #[ignore = "Requires running mcp server"]
     async fn test_list_tools() {
         let url = "http://localhost:8000/sse";
         let toolbox = McpToolbox::fetch("Test", url, None).await.unwrap();
@@ -50,6 +51,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "Requires running mcp server"]
     async fn test_mcp_toolbox() {
         let url = "http://localhost:8000/sse";
         let toolbox = McpToolbox::fetch("Test", url, None).await.unwrap();
@@ -63,6 +65,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "Requires running mcp server"]
     async fn test_mcp_toolbox_using() {
         let url = "http://localhost:8000/sse";
         let tools = vec!["say_hello".into(), "sum".into()];
